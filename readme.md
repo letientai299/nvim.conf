@@ -49,6 +49,12 @@ will fail.
 differ — `sa`/`sd`/`sr` instead of `ys`/`ds`/`cs`. See `:h mini.surround` for
 the full mapping reference.
 
+## Migration notes
+
+| Old plugin            | Replacement                | Notes                            |
+| --------------------- | -------------------------- | -------------------------------- |
+| `embear/vim-localvimrc` | Built-in `exrc`          | Set `vim.o.exrc = true`, place `.nvim.lua` in project root |
+
 ## Beyond dotfiles/vim
 
 Once the migration is complete, this config will grow on its own — new plugins,
