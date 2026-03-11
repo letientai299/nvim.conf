@@ -1,0 +1,7 @@
+{
+  "Function with self": {
+    "prefix": "fns",
+    "body": "fn ${1:function_name}(${2:&self, }$3)${4/.+/ -> /}$4 {\n\t$0\n}",
+    "description": "fn name(&self, ...) -> T { }"
+  }
+}

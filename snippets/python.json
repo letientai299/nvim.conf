@@ -1,0 +1,7 @@
+{
+  "Print": {
+    "prefix": "pr",
+    "body": "print(${0})",
+    "description": "print()"
+  }
+}

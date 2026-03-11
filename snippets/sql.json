@@ -1,0 +1,74 @@
+{
+  "Create table": {
+    "prefix": "ct",
+    "body": [
+      "create table if not exists $1 (",
+      "\tid serial primary key,",
+      "\t$0",
+      "\tstatus int not null default 0,",
+      "\t/* creation time, milliseconds since Epoch */",
+      "\tctime bigint NOT NULL DEFAULT extract(epoch FROM (timezone('utc', now()))) * 1000,",
+      "\t/* modified time, milliseconds since Epoch */",
+      "\tmtime bigint NOT NULL DEFAULT extract(epoch FROM (timezone('utc', now()))) * 1000",
+      ");"
+    ],
+    "description": "Create table if not exists"
+  },
+  "Create translation table": {
+    "prefix": "ctr",
+    "body": [
+      "create table if not exists ${1}_tr (",
+      "\t${2}_id int references $1 not null,",
+      "\tlang varchar(10) not null,",
+      "\tprimary key(${2}_id, lang),",
+      "\t$0",
+      "\t/* creation time, milliseconds since Epoch */",
+      "\tctime bigint NOT NULL DEFAULT extract(epoch FROM (timezone('utc', now()))) * 1000,",
+      "\t/* modified time, milliseconds since Epoch */",
+      "\tmtime bigint NOT NULL DEFAULT extract(epoch FROM (timezone('utc', now()))) * 1000",
+      ");"
+    ],
+    "description": "Create translation table"
+  },
+  "ID serial": {
+    "prefix": "id",
+    "body": "id serial PRIMARY KEY,",
+    "description": "id serial PRIMARY KEY"
+  },
+  "NOT NULL": {
+    "prefix": "nn",
+    "body": "NOT NULL",
+    "description": "NOT NULL"
+  },
+  "Name column": {
+    "prefix": "name",
+    "body": "name text NOT NULL,",
+    "description": "name text NOT NULL"
+  },
+  "PRIMARY KEY": {
+    "prefix": "pk",
+    "body": "PRIMARY KEY",
+    "description": "PRIMARY KEY"
+  },
+  "References": {
+    "prefix": "ref",
+    "body": "$1 int references $2 not null,",
+    "description": "Foreign key reference"
+  },
+  "Ctime": {
+    "prefix": "ctime",
+    "body": [
+      "\t/* creation time, milliseconds since Epoch */",
+      "\tctime bigint NOT NULL DEFAULT extract(epoch FROM (timezone('utc', now()))) * 1000,"
+    ],
+    "description": "Creation time column"
+  },
+  "Mtime": {
+    "prefix": "mtime",
+    "body": [
+      "\t/* modified time, milliseconds since Epoch */",
+      "\tmtime bigint NOT NULL DEFAULT extract(epoch FROM (timezone('utc', now()))) * 1000"
+    ],
+    "description": "Modified time column"
+  }
+}

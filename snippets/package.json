@@ -1,0 +1,12 @@
+{
+  "name": "nvim-conf-snippets",
+  "contributes": {
+    "snippets": [
+      { "language": "markdown", "path": "./markdown.json" },
+      { "language": "sql", "path": "./sql.json" },
+      { "language": "python", "path": "./python.json" },
+      { "language": "rust", "path": "./rust.json" },
+      { "language": "racket", "path": "./racket.json" }
+    ]
+  }
+}

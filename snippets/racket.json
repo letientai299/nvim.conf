@@ -1,0 +1,21 @@
+{
+  "Comment block": {
+    "prefix": ";b",
+    "body": [
+      ";-----------------------------------------------------------",
+      "; $0",
+      ";-----------------------------------------------------------"
+    ],
+    "description": "Block of comments wrapped in 2 lines"
+  },
+  "Module test": {
+    "prefix": "modtest",
+    "body": [
+      "(module+ test",
+      "\t(require rackunit)",
+      "\t$0",
+      "\t)"
+    ],
+    "description": "module+ test block"
+  }
+}

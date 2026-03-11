@@ -1,0 +1,37 @@
+{
+  "TODO": {
+    "prefix": "td",
+    "body": "> TODO (tai): $0",
+    "description": "TODO comment"
+  },
+  "NOTE": {
+    "prefix": "nt",
+    "body": "> NOTE (tai): $0",
+    "description": "NOTE comment"
+  },
+  "FIXME": {
+    "prefix": "fm",
+    "body": "> FIXME (tai): $0",
+    "description": "FIXME comment"
+  },
+  "Link to relative path": {
+    "prefix": "llf",
+    "body": "[`.$1`](.$1)$0",
+    "description": "Link to relative file path"
+  },
+  "LaTeX lfloor rceil": {
+    "prefix": "\\lr",
+    "body": "\\\\lfloor $0 \\\\rceil",
+    "description": "\\lfloor \\rceil"
+  },
+  "LaTeX split": {
+    "prefix": "\\split",
+    "body": ["\\\\begin{split}", "$0", "\\\\end{split}"],
+    "description": "\\begin{split} ... \\end{split}"
+  },
+  "LaTeX cases": {
+    "prefix": "\\cases",
+    "body": ["\\\\begin{cases}", "$0", "\\\\end{cases}"],
+    "description": "\\begin{cases} ... \\end{cases}"
+  }
+}
