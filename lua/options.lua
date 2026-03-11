@@ -21,7 +21,17 @@ vim.opt.foldenable = false
 vim.opt.foldlevel = 99
 vim.opt.spelllang = "en_us"
 vim.opt.timeoutlen = 300
-vim.opt.winblend = 40
+-- vim.opt.winblend = 40
 vim.opt.concealcursor = "nc"
 vim.opt.fillchars:append({ eob = " " })
 vim.opt.formatoptions:append("r")
+
+vim.api.nvim_create_user_command("GitRoot", function()
+  local root = vim.fs.root(0, ".git")
+  if root then
+    vim.fn.chdir(root)
+    vim.notify(root)
+  else
+    vim.notify("Not in a git repo", vim.log.levels.WARN)
+  end
+end, {})
