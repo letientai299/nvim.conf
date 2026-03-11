@@ -8,6 +8,7 @@ local map = vim.keymap.set
 
 map("i", "jk", "<Esc>")
 map("v", "jk", "<Esc>")
+map("t", "<C-[><C-[>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
 
 -- ---------------------------------------------------------------------------
 -- System clipboard
