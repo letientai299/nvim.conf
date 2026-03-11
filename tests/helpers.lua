@@ -8,42 +8,31 @@ M.root = vim.fn.fnamemodify(".", ":p"):gsub("/$", "")
 --- Assert equality.
 M.eq = MiniTest.expect.equality
 
---- Create isolated XDG dirs and install plugins once.
+--- Create isolated XDG dirs and reuse cached plugin clones.
 --- Returns a context table; pass it to new_child() and teardown().
+---
+--- Plugin clones live in .tests/data/ (populated by `make deps`).
+--- Only config/state/cache use a fresh tmpdir per test file.
 function M.setup()
   local tmp = vim.fn.tempname()
+  local data = M.root .. "/.tests/data"
   vim.fn.mkdir(tmp .. "/config", "p")
-  vim.fn.mkdir(tmp .. "/data", "p")
+  if vim.fn.isdirectory(data) == 0 then vim.fn.mkdir(data, "p") end
   vim.fn.mkdir(tmp .. "/state", "p")
   vim.fn.mkdir(tmp .. "/cache", "p")
   vim.uv.fs_symlink(M.root, tmp .. "/config/nvim")
 
-  local ctx = {
+  return {
     tmp = tmp,
     init = tmp .. "/config/nvim/init.lua",
     env = {
       XDG_CONFIG_HOME = tmp .. "/config",
-      XDG_DATA_HOME = tmp .. "/data",
+      XDG_DATA_HOME = data,
       XDG_STATE_HOME = tmp .. "/state",
       XDG_CACHE_HOME = tmp .. "/cache",
       NVIM_TEST = "1",
     },
   }
-
-  -- Install plugins once so per-case restarts are fast.
-  local child = M.new_child(ctx)
-  child.lua([[
-    local lazy = require("lazy")
-    lazy.install({ show = false })
-    vim.wait(60000, function()
-      for _, p in ipairs(lazy.plugins()) do
-        if not p._.installed then return false end
-      end
-      return true
-    end, 200)
-  ]])
-  child.stop()
-  return ctx
 end
 
 --- Spawn a fresh child Neovim using an existing context.

@@ -1,2 +1,3 @@
 .ai.dump/
 .tests/deps/
+.tests/data/
