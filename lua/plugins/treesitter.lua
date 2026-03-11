@@ -1,17 +1,17 @@
 return {
   "nvim-treesitter/nvim-treesitter",
   branch = "main",
-  build = ":TSUpdate",
-  lazy = false,
-  config = function()
-    require("nvim-treesitter").setup({})
-
+  build = function()
     require("nvim-treesitter").install({
-      "bash", "c", "css", "go", "gomod", "gosum",
+      "bash", "c", "c_sharp", "css", "go", "gomod", "gosum",
       "html", "javascript", "json", "lua", "markdown",
       "markdown_inline", "mermaid", "tsx", "typescript",
       "vim", "vimdoc", "xml", "yaml", "query",
     })
+  end,
+  lazy = false,
+  config = function()
+    require("nvim-treesitter").setup({})
 
     vim.api.nvim_create_autocmd("FileType", {
       callback = function()
