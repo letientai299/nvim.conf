@@ -43,6 +43,12 @@ these automatically is planned.
 Without it, `:TSInstall` for languages with external scanners (like `c_sharp`)
 will fail.
 
+## Keybinding differences from dotfiles/vim
+
+[mini.surround][mini-surround] replaces `tpope/vim-surround`. Default mappings
+differ — `sa`/`sd`/`sr` instead of `ys`/`ds`/`cs`. See `:h mini.surround` for
+the full mapping reference.
+
 ## Beyond dotfiles/vim
 
 Once the migration is complete, this config will grow on its own — new plugins,
@@ -50,4 +56,5 @@ local plugins developed in-repo, and workflow-specific tooling that the old setu
 never had.
 
 [lazy]: https://github.com/folke/lazy.nvim
+[mini-surround]: https://github.com/nvim-mini/mini.surround
 [ts-cli]: https://github.com/tree-sitter/tree-sitter/blob/master/crates/cli/README.md
