@@ -26,6 +26,7 @@ function M.setup()
       XDG_DATA_HOME = tmp .. "/data",
       XDG_STATE_HOME = tmp .. "/state",
       XDG_CACHE_HOME = tmp .. "/cache",
+      NVIM_TEST = "1",
     },
   }
 
