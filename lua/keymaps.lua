@@ -53,6 +53,7 @@ local function create_file()
 end
 
 map("n", "<Leader>gf", create_file, { desc = "Create file from path under cursor" })
+map("n", "<Leader>w", "<Cmd>Dirsv<CR>", { desc = "Dirsv" })
 
 -- ---------------------------------------------------------------------------
 -- Commands
@@ -62,6 +63,18 @@ vim.api.nvim_create_user_command("SudoWrite", function()
   vim.cmd("w !sudo tee % > /dev/null")
   vim.cmd.edit({ bang = true })
 end, { desc = "Write file with sudo" })
+
+vim.api.nvim_create_user_command("Reload", function()
+  local config = vim.fn.stdpath("config") .. "/lua/"
+  for mod, _ in pairs(package.loaded) do
+    local path = package.searchpath(mod, package.path)
+    if path and path:find(config, 1, true) then
+      package.loaded[mod] = nil
+    end
+  end
+  dofile(vim.fn.stdpath("config") .. "/init.lua")
+  vim.notify("Config reloaded", vim.log.levels.INFO)
+end, { desc = "Invalidate Lua cache and reload config" })
 
 vim.api.nvim_create_user_command("BufOnly", function()
   local cur = vim.api.nvim_get_current_buf()
