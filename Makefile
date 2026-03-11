@@ -6,7 +6,7 @@ TEST_FILES := $(wildcard tests/test_*.lua)
 # Clone mini.nvim if missing
 $(MINI_DIR):
 	@mkdir -p $(DEPS_DIR)
-	git clone --depth 1 https://github.com/echasnovski/mini.nvim $@
+	git clone --depth 1 https://github.com/nvim-mini/mini.nvim $@
 
 # Install plugins into cached data dir (skip if already populated)
 deps: $(MINI_DIR)
