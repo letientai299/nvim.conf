@@ -27,6 +27,22 @@ nv some/file    # edit a file
 
 The `nv` script lives at `~/.local/bin/nv`
 
+## Dependencies
+
+External tools required for full functionality. A bootstrap script to install
+these automatically is planned.
+
+| Tool              | Required by         | Install                        |
+| ----------------- | ------------------- | ------------------------------ |
+| `tree-sitter-cli` | nvim-treesitter     | `brew install tree-sitter-cli` |
+| C compiler        | nvim-treesitter     | Xcode CLT / `gcc` / `clang`   |
+| `git`             | lazy.nvim, parsers  | `brew install git`             |
+| `curl`            | nvim-treesitter     | Usually preinstalled           |
+
+[tree-sitter-cli][ts-cli] (0.26.1+) is needed to compile grammar parsers.
+Without it, `:TSInstall` for languages with external scanners (like `c_sharp`)
+will fail.
+
 ## Beyond dotfiles/vim
 
 Once the migration is complete, this config will grow on its own — new plugins,
@@ -34,3 +50,4 @@ local plugins developed in-repo, and workflow-specific tooling that the old setu
 never had.
 
 [lazy]: https://github.com/folke/lazy.nvim
+[ts-cli]: https://github.com/tree-sitter/tree-sitter/blob/master/crates/cli/README.md
