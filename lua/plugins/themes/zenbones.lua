@@ -2,6 +2,9 @@ return {
   "mcchrish/zenbones.nvim",
   dependencies = { "rktjmp/lush.nvim" },
   lazy = true,
+  init = function()
+    vim.g.zenbones_darken_comments = 45
+  end,
   themes = {
     "zenbones",
     "zenwritten",

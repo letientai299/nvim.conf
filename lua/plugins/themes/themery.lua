@@ -43,6 +43,9 @@ return {
     require("themery").setup({
       themes = collect_themes(),
       livePreview = true,
+      -- Reset background before each switch so hooks from the previous theme
+      -- don't leak (e.g., vim.opt.background = "light" persisting into a dark theme)
+      globalBefore = [[vim.opt.background = "dark"]],
     })
   end,
 }
