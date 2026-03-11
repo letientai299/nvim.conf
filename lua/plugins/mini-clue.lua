@@ -58,6 +58,9 @@ return {
         miniclue.gen_clues.z(),
 
         ce_postkeys,
+        { mode = "n", keys = "<Leader>g", desc = "+Git" },
+        { mode = "x", keys = "<Leader>g", desc = "+Git" },
+        { mode = "n", keys = "<Leader>c", desc = "+Create" },
       },
     })
   end,

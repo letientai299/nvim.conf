@@ -52,7 +52,7 @@ local function create_file()
   vim.cmd.edit(path)
 end
 
-map("n", "<Leader>gf", create_file, { desc = "Create file from path under cursor" })
+map("n", "<Leader>cf", create_file, { desc = "Create file from path under cursor" })
 map("n", "<Leader>w", "<Cmd>Dirsv<CR>", { desc = "Dirsv" })
 
 -- ---------------------------------------------------------------------------
