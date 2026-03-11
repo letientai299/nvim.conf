@@ -2,8 +2,10 @@
   "dirsv.nvim": { "branch": "main", "commit": "7f719b8b58e5b402adcba8c5fe561a8168b024aa" },
   "lazy.nvim": { "branch": "main", "commit": "306a05526ada86a7b30af95c5cc81ffba93fef97" },
   "mini.ai": { "branch": "main", "commit": "4b0a6207341d895b6cfe9bcb1e4d3e8607bfe4f4" },
+  "mini.clue": { "branch": "main", "commit": "8b748316c5a5ab24ab18ccd5db9d62fe86fdddee" },
   "mini.indentscope": { "branch": "main", "commit": "065c7713fb4cd0124fe1462f15f27feeb8b04406" },
   "mini.splitjoin": { "branch": "main", "commit": "8112e794cbb022b9d4b7af60b64e9896930f1697" },
+  "mini.surround": { "branch": "main", "commit": "d205d1741d1fcc1f3117b4e839bf00f74ad72fa2" },
   "nvim-treesitter": { "branch": "main", "commit": "5cb05e1b0fa3c469958a2b26f36b3fe930af221c" },
   "nvim-treesitter-textobjects": { "branch": "main", "commit": "4e91b5d0394329a229725b021a8ea217099826ef" },
   "oil.nvim": { "branch": "master", "commit": "0fcc83805ad11cf714a949c98c605ed717e0b83e" }
