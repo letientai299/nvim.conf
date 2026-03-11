@@ -16,9 +16,12 @@ return {
     integrations = {
       alpha = true,
       blink_cmp = true,
+      diffview = true,
       fzf = true,
+      gitsigns = true,
       mini = { enabled = true },
       native_lsp = { enabled = true },
+      neogit = true,
       treesitter = true,
     },
   },

@@ -3,7 +3,7 @@ return {
   lazy = true,
   opts = {
     async_loading = true,
-    plugins = { "blink", "mini" },
+    plugins = { "blink", "gitsigns", "mini" },
     styles = {
       comments = { italic = true },
       keywords = { italic = true },

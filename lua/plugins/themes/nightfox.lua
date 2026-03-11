@@ -13,8 +13,10 @@ return {
       },
       modules = {
         alpha = true,
+        gitsigns = true,
         mini = true,
         native_lsp = { enable = true },
+        neogit = true,
         treesitter = true,
       },
     },
