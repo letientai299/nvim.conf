@@ -5,8 +5,8 @@ local M = {}
 --- Wrap a treesitter spec so it returns nil instead of erroring
 --- when no parser is available for the current buffer.
 local function ts(captures, opts)
-  local ts_spec = require("mini.ai").gen_spec.treesitter(captures, opts)
   return function(...)
+    local ts_spec = require("mini.ai").gen_spec.treesitter(captures, opts)
     local ok, result = pcall(ts_spec, ...)
     if ok then return result end
   end

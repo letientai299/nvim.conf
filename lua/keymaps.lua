@@ -90,3 +90,36 @@ vim.api.nvim_create_autocmd("FileChangedShellPost", {
     vim.notify("File changed on disk. Buffer reloaded.", vim.log.levels.WARN)
   end,
 })
+
+-- Hide end-of-buffer tildes after colorscheme loads.
+vim.api.nvim_create_autocmd("ColorScheme", {
+  group = augroup,
+  callback = function()
+    vim.api.nvim_set_hl(0, "EndOfBuffer", { fg = "bg" })
+  end,
+})
+
+-- Markdown: enable proper comment leaders for lists and quotes.
+vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
+  group = augroup,
+  pattern = "*.md",
+  callback = function()
+    vim.opt_local.comments = "fb:>,fb:*,fb:+,fb:-"
+  end,
+})
+
+-- Azure DevOps Definitions files → confini filetype.
+vim.api.nvim_create_autocmd("BufEnter", {
+  group = augroup,
+  pattern = "*Definitions.*",
+  callback = function()
+    vim.bo.filetype = "confini"
+  end,
+})
+
+-- ---------------------------------------------------------------------------
+-- Abbreviations
+-- ---------------------------------------------------------------------------
+
+vim.cmd.iabbrev("ref refactor:")
+vim.cmd.iabbrev("ans **Answer**:")
