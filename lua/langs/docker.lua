@@ -2,7 +2,7 @@ require("lib.tools").check("dockerfile", {
   { name = "docker-langserver", bin = "docker-langserver", kind = "lsp" },
 })
 
-vim.lsp.enable("dockerls")
+require("lib.lsp").enable("dockerls")
 
 return {
   {

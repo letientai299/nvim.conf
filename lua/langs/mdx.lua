@@ -8,7 +8,7 @@ require("lib.tools").check("mdx", {
 vim.filetype.add({ extension = { mdx = "mdx" } })
 vim.treesitter.language.register("markdown", "mdx")
 
-vim.lsp.enable("mdx_analyzer")
+require("lib.lsp").enable("mdx_analyzer")
 
 return {
   prettier.conform("mdx"),

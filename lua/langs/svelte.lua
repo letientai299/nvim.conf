@@ -7,7 +7,7 @@ require("lib.tools").check("svelte", {
   { name = "svelte-check", bin = "svelte-check", kind = "check" },
 })
 
-vim.lsp.enable("svelte")
+require("lib.lsp").enable("svelte")
 
 return {
   prettier.conform("svelte"),

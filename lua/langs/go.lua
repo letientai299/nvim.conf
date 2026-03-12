@@ -5,7 +5,7 @@ require("lib.tools").check("go", {
   { name = "golangci-lint", bin = "golangci-lint", kind = "lint" },
 })
 
-vim.lsp.enable("gopls")
+require("lib.lsp").enable("gopls")
 
 return {
   {

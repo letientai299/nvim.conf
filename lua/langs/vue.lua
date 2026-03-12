@@ -6,7 +6,7 @@ require("lib.tools").check("vue", {
   { name = "biome", bin = "biome", kind = "lint" },
 })
 
-vim.lsp.enable("vls")
+require("lib.lsp").enable("vls")
 
 return {
   prettier.conform("vue"),

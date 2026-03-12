@@ -3,7 +3,7 @@ require("lib.tools").check("rust", {
   { name = "rustfmt", bin = "rustfmt", kind = "fmt" },
 })
 
-vim.lsp.enable("rust_analyzer")
+require("lib.lsp").enable("rust_analyzer")
 
 return {
   {

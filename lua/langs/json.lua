@@ -13,7 +13,7 @@ vim.lsp.config("jsonls", {
     },
   },
 })
-vim.lsp.enable("jsonls")
+require("lib.lsp").enable("jsonls")
 
 return {
   prettier.conform({ "json", "jsonc" }),

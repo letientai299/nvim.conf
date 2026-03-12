@@ -3,7 +3,7 @@ require("lib.tools").check("sh", {
   { name = "shfmt", bin = "shfmt", kind = "fmt" },
 })
 
-vim.lsp.enable("bashls")
+require("lib.lsp").enable("bashls")
 
 return {
   {

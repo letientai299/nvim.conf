@@ -6,7 +6,7 @@ require("lib.tools").check("markdown", {
   { name = "markdownlint-cli2", bin = "markdownlint-cli2", kind = "lint" },
 })
 
-vim.lsp.enable("marksman")
+require("lib.lsp").enable("marksman")
 
 return {
   prettier.conform("markdown"),

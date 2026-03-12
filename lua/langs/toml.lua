@@ -2,7 +2,7 @@ require("lib.tools").check("toml", {
   { name = "taplo", bin = "taplo", kind = "lsp/fmt" },
 })
 
-vim.lsp.enable("taplo")
+require("lib.lsp").enable("taplo")
 
 return {
   {

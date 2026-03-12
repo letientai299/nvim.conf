@@ -5,7 +5,7 @@ require("lib.tools").check("html", {
   prettier.tool(),
 })
 
-vim.lsp.enable("html")
+require("lib.lsp").enable("html")
 
 return {
   prettier.conform("html"),

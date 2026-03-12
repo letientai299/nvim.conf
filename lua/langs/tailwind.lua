@@ -4,6 +4,6 @@ require("lib.tools").check(fts, {
   { name = "tailwindcss-language-server", bin = "tailwindcss-language-server", kind = "lsp" },
 })
 
-vim.lsp.enable("tailwindcss")
+require("lib.lsp").enable("tailwindcss")
 
 return {}

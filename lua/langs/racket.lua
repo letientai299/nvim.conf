@@ -3,7 +3,7 @@ require("lib.tools").check("racket", {
   { name = "raco fmt", bin = "raco", kind = "fmt" },
 })
 
-vim.lsp.enable("racket_langserver")
+require("lib.lsp").enable("racket_langserver")
 
 return {
   {

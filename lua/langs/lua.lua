@@ -3,7 +3,7 @@ require("lib.tools").check("lua", {
   { name = "stylua", bin = "stylua", kind = "fmt" },
 })
 
-vim.lsp.enable("lua_ls")
+require("lib.lsp").enable("lua_ls")
 
 return {
   {

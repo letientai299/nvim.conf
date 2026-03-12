@@ -6,7 +6,7 @@ require("lib.tools").check("css", {
   { name = "biome", bin = "biome", kind = "lint" },
 })
 
-vim.lsp.enable("cssls")
+require("lib.lsp").enable("cssls")
 
 return {
   prettier.conform({ "css", "scss", "less" }),

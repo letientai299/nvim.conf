@@ -60,7 +60,7 @@ if #plugins > 0 then
   })
 end
 
-vim.lsp.enable("vtsls")
+require("lib.lsp").enable("vtsls")
 
 local linters = { "biomejs" }
 

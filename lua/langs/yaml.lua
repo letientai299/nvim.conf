@@ -13,7 +13,7 @@ vim.lsp.config("yamlls", {
     },
   },
 })
-vim.lsp.enable("yamlls")
+require("lib.lsp").enable("yamlls")
 
 return {
   prettier.conform("yaml"),

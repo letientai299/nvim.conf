@@ -5,7 +5,7 @@ require("lib.tools").check("astro", {
   prettier.tool(),
 })
 
-vim.lsp.enable("astro")
+require("lib.lsp").enable("astro")
 
 return {
   prettier.conform("astro"),
