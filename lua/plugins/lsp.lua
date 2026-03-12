@@ -1,24 +1,19 @@
-vim.lsp.config("*", {
-  root_markers = { ".git" },
-  capabilities = vim.lsp.protocol.make_client_capabilities(),
-})
-
--- Load blink.cmp on first InsertEnter, then restart LSP clients with full caps.
+-- Upgrade LSP capabilities to blink.cmp on first InsertEnter.
+-- Base capabilities are provided by Neovim 0.11 defaults; root_markers are
+-- set per-server in lsp/*.lua. No vim.lsp.config("*") needed at startup.
 vim.api.nvim_create_autocmd("InsertEnter", {
   once = true,
   callback = function()
     local caps = require("blink.cmp").get_lsp_capabilities()
-    vim.lsp.config("*", {
-      root_markers = { ".git" },
-      capabilities = caps,
-    })
-    -- Stop all running clients; :edit re-triggers FileType → LSP attach
+    vim.lsp.config("*", { capabilities = caps })
     local clients = vim.lsp.get_clients()
     if #clients > 0 then
       for _, client in ipairs(clients) do
         client:stop()
       end
-      vim.defer_fn(function() vim.cmd("edit") end, 200)
+      vim.defer_fn(function()
+        vim.cmd("edit")
+      end, 200)
     end
   end,
 })

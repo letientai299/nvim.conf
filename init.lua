@@ -5,8 +5,16 @@ vim.opt.rtp:prepend(vim.fn.stdpath("config"))
 require("options")
 require("keymaps")
 require("commands")
-require("notes").setup()
-pcall(require, "local")
+-- notes: lazy-load on command/keymap (avoids require at startup)
+vim.api.nvim_create_user_command("NoteToday", function()
+  require("notes").note_today()
+end, { desc = "Open/append to today's diary note" })
+vim.keymap.set("n", "<Leader>td", function()
+  require("notes").note_today()
+end, { desc = "Open today's diary note" })
+if vim.uv.fs_stat(vim.fn.stdpath("config") .. "/lua/local/init.lua") then
+  require("local")
+end
 
 -- Disable netrw (oil.nvim replaces it)
 vim.g.loaded_netrw = 1

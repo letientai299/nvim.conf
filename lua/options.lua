@@ -18,7 +18,7 @@ vim.opt.number = true
 vim.opt.cursorline = true
 
 -- Disable the fixed-column ruler (0 = off)
-vim.opt.colorcolumn = "0"
+vim.opt.colorcolumn = "80"
 
 -- No soft wrapping — long lines scroll horizontally
 vim.opt.wrap = false
@@ -86,11 +86,17 @@ vim.opt.completeopt:append("fuzzy")
 -- Rounded borders on every floating window globally (0.11+)
 vim.o.winborder = "rounded"
 
--- Diagnostics: show float on jump, virtual text inline, severity signs
-vim.diagnostic.config({
-  jump = { float = true },
-  virtual_text = { spacing = 4, prefix = "●" },
-  severity_sort = true,
+-- Diagnostics: defer config to avoid loading vim.diagnostic at startup
+vim.api.nvim_create_autocmd("User", {
+  pattern = "VeryLazy",
+  once = true,
+  callback = function()
+    vim.diagnostic.config({
+      jump = { float = true },
+      virtual_text = { spacing = 4, prefix = "●" },
+      severity_sort = true,
+    })
+  end,
 })
 
 vim.api.nvim_create_user_command("GitRoot", function()
