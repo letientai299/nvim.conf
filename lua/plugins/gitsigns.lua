@@ -1,6 +1,30 @@
 return {
   "lewis6991/gitsigns.nvim",
-  event = { "BufReadPre", "BufNewFile" },
+  lazy = true,
+  init = function()
+    local augroup = vim.api.nvim_create_augroup("defer_gitsigns", { clear = true })
+
+    local function load_gitsigns(args)
+      if vim.g.defer_gitsigns_loaded then
+        return
+      end
+
+      if vim.bo[args.buf].buftype ~= "" then
+        return
+      end
+
+      vim.g.defer_gitsigns_loaded = true
+
+      vim.schedule(function()
+        require("lazy").load({ plugins = { "gitsigns.nvim" } })
+      end)
+    end
+
+    vim.api.nvim_create_autocmd({ "BufReadPost", "BufNewFile" }, {
+      group = augroup,
+      callback = load_gitsigns,
+    })
+  end,
   opts = {
     preview_config = {
       style = "minimal",
