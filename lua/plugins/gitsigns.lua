@@ -59,16 +59,16 @@ return {
 
       -- Navigation
       for _, dir in ipairs({
-        { "]h", "]c", gs.next_hunk, "Next hunk" },
-        { "[h", "[c", gs.prev_hunk, "Prev hunk" },
+        { "]c", gs.next_hunk, "Next change" },
+        { "[c", gs.prev_hunk, "Prev change" },
       }) do
         bmap("n", dir[1], function()
           if vim.wo.diff then
-            vim.cmd.normal({ dir[2], bang = true })
+            vim.cmd.normal({ dir[1], bang = true })
             return
           end
-          dir[3]()
-        end, dir[4])
+          dir[2]()
+        end, dir[3])
       end
 
       -- Stage / reset
