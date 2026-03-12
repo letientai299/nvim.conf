@@ -35,6 +35,7 @@ require("lazy").setup({
       import = "local.plugins",
     } or nil,
   },
+  change_detection = { enabled = false },
   rocks = { enabled = false },
   lockfile = vim.env.NVIM_TEST and vim.fn.stdpath("cache") .. "/lazy-lock.json"
     or vim.fn.stdpath("config") .. "/lazy-lock.json",
