@@ -57,6 +57,6 @@ return {
     },
   },
   init = function()
-    vim.o.formatexpr = "v:lua.require'conform'.formatexpr()"
+    vim.o.formatexpr = "v:lua.require'conform'.formatexpr({timeout_ms=500, lsp_format='fallback'})"
   end,
 }
