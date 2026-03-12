@@ -39,6 +39,41 @@ vim.opt.foldexpr = "v:lua.vim.treesitter.foldexpr()"
 vim.opt.foldtext = "" -- render first line with syntax highlighting (0.10+)
 vim.opt.foldlevelstart = 99
 
+-- Register treesitter language names for filetypes where Neovim's defaults
+-- don't match (nvim-treesitter normally does this but loads later).
+vim.treesitter.language.register("tsx", { "typescriptreact", "javascriptreact" })
+vim.treesitter.language.register("bash", { "sh" })
+vim.treesitter.language.register("json", { "jsonc" })
+vim.treesitter.language.register("c_sharp", { "cs" })
+vim.treesitter.language.register("markdown", { "mdx" })
+
+-- Skip runtime syntax scripts when a treesitter parser is installed.
+-- synload.vim registers an ungrouped `Syntax *` → `s:SynSet()` handler that
+-- sources runtime syntax files. We replace it after synload.vim finishes.
+vim.api.nvim_create_autocmd("SourcePost", {
+  pattern = "*/syntax/synload.vim",
+  once = true,
+  callback = function()
+    vim.cmd("au! Syntax *")
+    vim.api.nvim_create_autocmd("Syntax", {
+      pattern = "*",
+      callback = function()
+        local syntax = vim.fn.expand("<amatch>")
+        if syntax == "" or syntax == "ON" or syntax == "OFF" then
+          return
+        end
+        local lang = vim.treesitter.language.get_lang(syntax)
+        if lang and pcall(vim.treesitter.language.inspect, lang) then
+          vim.b.current_syntax = syntax
+          return
+        end
+        vim.cmd.syntax("clear")
+        vim.cmd("runtime! syntax/" .. vim.fn.fnameescape(syntax) .. ".vim")
+      end,
+    })
+  end,
+})
+
 -- Spell-check language (activate per buffer with :set spell)
 vim.opt.spelllang = "en_us"
 
