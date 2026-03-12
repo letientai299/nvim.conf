@@ -24,7 +24,7 @@ return {
       "hover.providers.man",
       "hover.providers.dictionary",
     },
-    preview_opts = { border = "rounded" },
+    preview_opts = { border = "rounded", max_width = 80, wrap = true },
     title = true,
   },
 }
