@@ -3,6 +3,94 @@
 local M = {}
 
 local prev_search = ""
+local detail_columns = { "permissions", "size", "mtime" }
+
+local oil_filetype_hl_links = {
+  OilFileCss = "Special",
+  OilFileGo = "Type",
+  OilFileHtml = "Tag",
+  OilFileJs = "Keyword",
+  OilFileJson = "Identifier",
+  OilFileLua = "Special",
+  OilFileMarkdown = "String",
+  OilFilePy = "Function",
+  OilFileSh = "Statement",
+  OilFileToml = "Number",
+  OilFileTs = "Constant",
+  OilFileYaml = "PreProc",
+}
+
+local oil_filetype_hl_by_ext = {
+  bash = "OilFileSh",
+  cjs = "OilFileJs",
+  css = "OilFileCss",
+  go = "OilFileGo",
+  htm = "OilFileHtml",
+  html = "OilFileHtml",
+  js = "OilFileJs",
+  json = "OilFileJson",
+  jsonc = "OilFileJson",
+  jsx = "OilFileJs",
+  less = "OilFileCss",
+  lua = "OilFileLua",
+  md = "OilFileMarkdown",
+  mdx = "OilFileMarkdown",
+  mjs = "OilFileJs",
+  py = "OilFilePy",
+  sass = "OilFileCss",
+  scss = "OilFileCss",
+  sh = "OilFileSh",
+  toml = "OilFileToml",
+  ts = "OilFileTs",
+  tsx = "OilFileTs",
+  yaml = "OilFileYaml",
+  yml = "OilFileYaml",
+  zsh = "OilFileSh",
+}
+
+local oil_filetype_hl_by_name = {
+  [".bashrc"] = "OilFileSh",
+  [".bash_profile"] = "OilFileSh",
+  [".profile"] = "OilFileSh",
+  [".zprofile"] = "OilFileSh",
+  [".zshenv"] = "OilFileSh",
+  [".zshrc"] = "OilFileSh",
+  ["go.mod"] = "OilFileGo",
+  ["go.sum"] = "OilFileGo",
+}
+
+local function set_filetype_highlights()
+  for group, target in pairs(oil_filetype_hl_links) do
+    vim.api.nvim_set_hl(0, group, { default = true, link = target })
+  end
+end
+
+local function file_highlight(name)
+  local base = name:match("([^/]+)$") or name
+  local by_name = oil_filetype_hl_by_name[base]
+  if by_name then
+    return by_name
+  end
+
+  local ext = base:match("%.([^.]+)$")
+  if not ext then
+    return nil
+  end
+
+  return oil_filetype_hl_by_ext[ext:lower()]
+end
+
+local function highlight_filename(
+  entry,
+  is_hidden,
+  is_link_target,
+  is_link_orphan
+)
+  if is_hidden or is_link_target or is_link_orphan or entry.type ~= "file" then
+    return nil
+  end
+  return file_highlight(entry.name)
+end
 
 --- Save the current search register, set it to the current filename,
 --- then open oil at `dir`. Pressing `n` in oil jumps to that file entry.
@@ -37,14 +125,14 @@ function M.copy_filepath()
   vim.fn.setreg("+", vim.fn.getreg(vim.v.register))
 end
 
---- Toggle between icon-only and full detail columns (permissions, size, mtime).
+--- Toggle between filename-only and detail columns (permissions, size, mtime).
 function M.toggle_detail()
   local oil = require("oil")
   local cols = oil.get_columns and oil.get_columns() or {}
-  if #cols > 1 then
-    oil.set_columns({ "icon" })
+  if #cols > 0 then
+    oil.set_columns({})
   else
-    oil.set_columns({ "icon", "permissions", "size", "mtime" })
+    oil.set_columns(detail_columns)
   end
 end
 
@@ -69,7 +157,11 @@ return {
     },
   },
   opts = {
-    view_options = { show_hidden = true },
+    columns = {},
+    view_options = {
+      show_hidden = true,
+      highlight_filename = highlight_filename,
+    },
     skip_confirm_for_simple_edits = true,
     keymaps = {
       ["yp"] = {
@@ -83,8 +175,21 @@ return {
   -- handler at startup, which hijacks directory buffers for both
   -- `nvim <dir>` and `:e <dir>` cases.
   config = function(_, opts)
+    local oil_util = require("oil.util")
+    oil_util.get_icon_provider = function()
+      return nil
+    end
+
+    set_filetype_highlights()
     require("oil").setup(opts)
+
+    local group = vim.api.nvim_create_augroup("UserOilConfig", { clear = true })
+    vim.api.nvim_create_autocmd("ColorScheme", {
+      group = group,
+      callback = set_filetype_highlights,
+    })
     vim.api.nvim_create_autocmd("BufLeave", {
+      group = group,
       pattern = "oil://*",
       callback = M.restore_search,
     })
