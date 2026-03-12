@@ -1,7 +1,6 @@
 require("lib.tools").check("astro", {
   { name = "astro-ls", bin = "astro-ls", kind = "lsp" },
   { name = "prettier", bin = "prettier", kind = "fmt" },
-  { name = "eslint", bin = "vscode-eslint-language-server", kind = "lsp" },
 })
 
 vim.lsp.enable("astro")

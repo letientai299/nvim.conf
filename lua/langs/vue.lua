@@ -2,7 +2,6 @@ require("lib.tools").check("vue", {
   { name = "vue-language-server", bin = "vue-language-server", kind = "lsp" },
   { name = "prettier", bin = "prettier", kind = "fmt" },
   { name = "biome", bin = "biome", kind = "lint" },
-  { name = "eslint", bin = "vscode-eslint-language-server", kind = "lsp" },
 })
 
 vim.lsp.enable("vue_ls")

@@ -2,7 +2,6 @@ require("lib.tools").check("svelte", {
   { name = "svelteserver", bin = "svelteserver", kind = "lsp" },
   { name = "prettier", bin = "prettier", kind = "fmt" },
   { name = "biome", bin = "biome", kind = "lint" },
-  { name = "eslint", bin = "vscode-eslint-language-server", kind = "lsp" },
   { name = "svelte-check", bin = "svelte-check", kind = "check" },
 })
 

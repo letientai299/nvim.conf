@@ -4,7 +4,6 @@ require("lib.tools").check(fts, {
   { name = "vtsls", bin = "vtsls", kind = "lsp" },
   { name = "prettier", bin = "prettier", kind = "fmt" },
   { name = "biome", bin = "biome", kind = "lint" },
-  { name = "eslint", bin = "vscode-eslint-language-server", kind = "lsp" },
 })
 
 --- Resolve the npm package directory from a binary on PATH.
@@ -61,7 +60,6 @@ if #plugins > 0 then
 end
 
 vim.lsp.enable("vtsls")
-vim.lsp.enable("eslint")
 
 local fmt = { "prettier" }
 local linters = { "biomejs" }
