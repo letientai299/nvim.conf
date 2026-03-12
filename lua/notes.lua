@@ -41,13 +41,4 @@ function M.note_today()
   vim.cmd("$")
 end
 
-function M.setup()
-  vim.api.nvim_create_user_command("NoteToday", M.note_today, {
-    desc = "Open/append to today's diary note",
-  })
-  vim.keymap.set("n", "<Leader>td", M.note_today, {
-    desc = "Open today's diary note",
-  })
-end
-
 return M
