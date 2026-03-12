@@ -4,6 +4,7 @@ vim.opt.rtp:prepend(vim.fn.stdpath("config"))
 -- Options and keymaps first (leader must be set before lazy.nvim)
 require("options")
 require("keymaps")
+require("commands")
 require("notes").setup()
 pcall(require, "local")
 
