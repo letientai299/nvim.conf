@@ -1,6 +1,4 @@
 .ai.dump/
-.tests/deps/
-.tests/data/
 lua/local.lua
 lua/local/
 .local-plugin-names
