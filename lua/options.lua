@@ -47,7 +47,7 @@ vim.opt.timeoutlen = 300
 vim.opt.concealcursor = "nc"
 
 -- Show invisible characters
-vim.opt.list = true
+vim.opt.list = false
 vim.opt.listchars = {
   tab = "» ",
   lead = "·",
