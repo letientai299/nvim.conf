@@ -2,5 +2,5 @@
 
 return {
   "letientai299/dirsv.nvim",
-  cmd = { "Dirsv", "DirsvStop" },
+  cmd = { "Dirsv", "DirsvStop", "DirsvLog" },
 }
