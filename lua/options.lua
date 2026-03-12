@@ -46,6 +46,26 @@ vim.opt.timeoutlen = 300
 -- Hide concealed text in normal and command-line mode
 vim.opt.concealcursor = "nc"
 
+-- Show invisible characters
+vim.opt.list = true
+vim.opt.listchars = {
+  tab = "» ",
+  lead = "·",
+  trail = "·",
+  nbsp = "␣",
+  extends = "…",
+  precedes = "…",
+  eol = "↲",
+}
+
+-- Swap eol icon: thin ↲ for LF, bold ⏎ for CRLF
+vim.api.nvim_create_autocmd({ "BufReadPost", "BufNewFile" }, {
+  callback = function()
+    local eol = vim.bo.fileformat == "dos" and "⏎" or "↲"
+    vim.opt_local.listchars:append({ eol = eol })
+  end,
+})
+
 -- Replace ~ end-of-buffer markers with blank space
 vim.opt.fillchars:append({ eob = " " })
 
