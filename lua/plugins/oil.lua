@@ -2,7 +2,7 @@
 
 local M = {}
 
-local prev_search = ""
+local prev_search ---@type string?
 local detail_columns = { "permissions", "size", "mtime" }
 
 local oil_filetype_hl_links = {
@@ -103,20 +103,16 @@ end
 --- Restore the search register saved by `save_search_and_open`.
 --- No-op if nothing was saved.
 function M.restore_search()
-  if prev_search == "" then
+  if prev_search == nil then
     return
   end
   vim.fn.setreg("/", prev_search)
-  prev_search = ""
+  prev_search = nil
 end
 
 --- Return the git repo root for cwd, or nil outside a repo.
 function M.git_root()
-  local out = vim.trim(vim.fn.system("git rev-parse --show-toplevel"))
-  if vim.v.shell_error ~= 0 then
-    return nil
-  end
-  return out
+  return vim.fs.root(0, ".git")
 end
 
 --- Copy the entry path under cursor to the system clipboard (`+` register).
