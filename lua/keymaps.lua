@@ -75,8 +75,39 @@ end
 
 map(
   "n",
-  "<Leader>cf",
+  "<Leader>cn",
   create_file,
   { desc = "Create file from path under cursor" }
 )
 map("n", "<Leader>w", "<Cmd>Dirsv<CR>", { desc = "Dirsv" })
+
+-- ---------------------------------------------------------------------------
+-- LSP actions
+-- ---------------------------------------------------------------------------
+
+map("n", "<Leader>ca", vim.lsp.buf.code_action, { desc = "Code action" })
+map("n", "<Leader>cr", vim.lsp.buf.rename, { desc = "Rename" })
+map("n", "<Leader>cf", function()
+  vim.lsp.buf.format({ async = true })
+end, { desc = "Format" })
+
+-- ---------------------------------------------------------------------------
+-- Diagnostics
+-- ---------------------------------------------------------------------------
+
+map("n", "<Leader>dd", vim.diagnostic.open_float, { desc = "Line diagnostic" })
+map("n", "<Leader>dl", function()
+  vim.diagnostic.setloclist()
+end, { desc = "Diagnostic loclist" })
+map("n", "<Leader>dq", function()
+  vim.diagnostic.setqflist()
+end, { desc = "Diagnostic quickfix" })
+
+-- ---------------------------------------------------------------------------
+-- Go to (LSP)
+-- ---------------------------------------------------------------------------
+
+map("n", "gd", vim.lsp.buf.definition, { desc = "Go to definition" })
+map("n", "gD", vim.lsp.buf.declaration, { desc = "Go to declaration" })
+map("n", "gi", vim.lsp.buf.implementation, { desc = "Go to implementation" })
+map("n", "gI", vim.lsp.buf.type_definition, { desc = "Go to type definition" })
