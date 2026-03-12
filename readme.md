@@ -32,13 +32,25 @@ The `nv` script lives at `~/.local/bin/nv`
 External tools required for full functionality. A bootstrap script to install
 these automatically is planned.
 
-| Tool              | Required by         | Install                        |
-| ----------------- | ------------------- | ------------------------------ |
-| `tree-sitter-cli` | nvim-treesitter     | `brew install tree-sitter-cli` |
-| C compiler        | nvim-treesitter     | Xcode CLT / `gcc` / `clang`   |
-| `git`             | lazy.nvim, parsers  | `brew install git`             |
-| `curl`            | nvim-treesitter     | Usually preinstalled           |
-| [jq][]            | git pre-commit hook | `brew install jq`              |
+| Tool                     | Required by           | Install                                              |
+| ------------------------ | --------------------- | ---------------------------------------------------- |
+| `tree-sitter-cli`        | nvim-treesitter       | `brew install tree-sitter-cli`                       |
+| C compiler               | nvim-treesitter       | Xcode CLT / `gcc` / `clang`                          |
+| `git`                    | lazy.nvim, parsers    | `brew install git`                                   |
+| `curl`                   | nvim-treesitter       | Usually preinstalled                                 |
+| [jq][]                   | git pre-commit hook   | `brew install jq`                                    |
+| `lua-language-server`    | langs/lua (LSP)       | `mise use -g lua-language-server`                    |
+| `stylua`                 | langs/lua (format)    | `mise use -g stylua`                                 |
+| `gopls`                  | langs/go (LSP)        | `mise use -g gopls`                                  |
+| `goimports`              | langs/go (format)     | `go install golang.org/x/tools/cmd/goimports@latest` |
+| `gofumpt`                | langs/go (format)     | `mise use -g gofumpt`                                |
+| `golangci-lint`          | langs/go (lint)       | `mise use -g golangci-lint`                          |
+| `marksman`               | langs/markdown (LSP)  | `mise use -g marksman`                               |
+| `prettierd` / `prettier` | langs/markdown (fmt)  | `mise use -g npm:@fsouza/prettierd prettier`         |
+| `markdownlint-cli2`      | langs/markdown (lint) | `mise use -g markdownlint-cli2`                      |
+| `bash-language-server`   | langs/bash (LSP)      | `mise use -g npm:bash-language-server`               |
+| `shellcheck`             | langs/bash (lint)     | `mise use -g shellcheck`                             |
+| `shfmt`                  | langs/bash (format)   | `mise use -g shfmt`                                  |
 
 [tree-sitter-cli][ts-cli] (0.26.1+) is needed to compile grammar parsers.
 Without it, `:TSInstall` for languages with external scanners (like `c_sharp`)
@@ -52,15 +64,15 @@ the full mapping reference.
 
 ## Migration notes
 
-| Old plugin            | Replacement                | Notes                            |
-| --------------------- | -------------------------- | -------------------------------- |
-| `embear/vim-localvimrc` | Built-in `exrc`          | Set `vim.o.exrc = true`, place `.nvim.lua` in project root |
+| Old plugin              | Replacement     | Notes                                                      |
+| ----------------------- | --------------- | ---------------------------------------------------------- |
+| `embear/vim-localvimrc` | Built-in `exrc` | Set `vim.o.exrc = true`, place `.nvim.lua` in project root |
 
 ## Beyond dotfiles/vim
 
 Once the migration is complete, this config will grow on its own — new plugins,
-local plugins developed in-repo, and workflow-specific tooling that the old setup
-never had.
+local plugins developed in-repo, and workflow-specific tooling that the old
+setup never had.
 
 ## Theme tests
 
@@ -69,4 +81,5 @@ never had.
 [jq]: https://jqlang.github.io/jq/
 [lazy]: https://github.com/folke/lazy.nvim
 [mini-surround]: https://github.com/nvim-mini/mini.surround
-[ts-cli]: https://github.com/tree-sitter/tree-sitter/blob/master/crates/cli/README.md
+[ts-cli]:
+  https://github.com/tree-sitter/tree-sitter/blob/master/crates/cli/README.md
