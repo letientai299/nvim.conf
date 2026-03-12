@@ -4,12 +4,12 @@ return {
   init = function()
     local augroup = vim.api.nvim_create_augroup("defer_gitsigns", { clear = true })
 
-    local function load_gitsigns(args)
+    local function load_gitsigns(bufnr)
       if vim.g.defer_gitsigns_loaded then
         return
       end
 
-      if vim.bo[args.buf].buftype ~= "" then
+      if vim.bo[bufnr].buftype ~= "" then
         return
       end
 
@@ -20,9 +20,26 @@ return {
       end)
     end
 
+    vim.api.nvim_create_autocmd("VimEnter", {
+      group = augroup,
+      once = true,
+      callback = function()
+        local bufnr = vim.api.nvim_get_current_buf()
+        if vim.api.nvim_buf_get_name(bufnr) == "" then
+          return
+        end
+        load_gitsigns(bufnr)
+      end,
+    })
+
     vim.api.nvim_create_autocmd({ "BufReadPost", "BufNewFile" }, {
       group = augroup,
-      callback = load_gitsigns,
+      callback = function(args)
+        if vim.v.vim_did_enter == 0 then
+          return
+        end
+        load_gitsigns(args.buf)
+      end,
     })
   end,
   opts = {

@@ -2,6 +2,13 @@
 
 local map = vim.keymap.set
 
+local function lsp_buf(method, ...)
+  local args = { ... }
+  return function()
+    return vim.lsp.buf[method](unpack(args))
+  end
+end
+
 -- ---------------------------------------------------------------------------
 -- Escape
 -- ---------------------------------------------------------------------------
@@ -85,11 +92,9 @@ map("n", "<Leader>w", "<Cmd>Dirsv<CR>", { desc = "Dirsv" })
 -- LSP actions
 -- ---------------------------------------------------------------------------
 
-map("n", "<Leader>ca", vim.lsp.buf.code_action, { desc = "Code action" })
-map("n", "<Leader>cr", vim.lsp.buf.rename, { desc = "Rename" })
-map("n", "<Leader>cf", function()
-  vim.lsp.buf.format({ async = true })
-end, { desc = "Format" })
+map("n", "<Leader>ca", lsp_buf("code_action"), { desc = "Code action" })
+map("n", "<Leader>cr", lsp_buf("rename"), { desc = "Rename" })
+map("n", "<Leader>cf", lsp_buf("format", { async = true }), { desc = "Format" })
 
 -- ---------------------------------------------------------------------------
 -- Diagnostics
@@ -107,7 +112,7 @@ end, { desc = "Diagnostic quickfix" })
 -- Go to (LSP)
 -- ---------------------------------------------------------------------------
 
-map("n", "gd", vim.lsp.buf.definition, { desc = "Go to definition" })
-map("n", "gD", vim.lsp.buf.declaration, { desc = "Go to declaration" })
-map("n", "gi", vim.lsp.buf.implementation, { desc = "Go to implementation" })
-map("n", "gI", vim.lsp.buf.type_definition, { desc = "Go to type definition" })
+map("n", "gd", lsp_buf("definition"), { desc = "Go to definition" })
+map("n", "gD", lsp_buf("declaration"), { desc = "Go to declaration" })
+map("n", "gi", lsp_buf("implementation"), { desc = "Go to implementation" })
+map("n", "gI", lsp_buf("type_definition"), { desc = "Go to type definition" })

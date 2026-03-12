@@ -35,7 +35,7 @@ end
 
 return {
   "mfussenegger/nvim-lint",
-  event = { "BufWritePost", "BufReadPost", "InsertLeave" },
+  event = { "BufWritePost", "InsertLeave" },
   opts = {
     linters_by_ft = {},
   },
@@ -45,9 +45,8 @@ return {
     local lint = require("lint")
     lint.linters_by_ft = opts.linters_by_ft
 
-    -- Fast linters: InsertLeave + BufWritePost + BufReadPost
-    -- Slow linters: BufWritePost + BufReadPost only
-    vim.api.nvim_create_autocmd({ "BufWritePost", "BufReadPost" }, {
+    -- Run lint after writes; avoid adding initial file-open cost.
+    vim.api.nvim_create_autocmd("BufWritePost", {
       group = vim.api.nvim_create_augroup("nvim-lint", { clear = true }),
       callback = function()
         local ft = vim.bo.filetype

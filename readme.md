@@ -17,16 +17,6 @@ Lua. The goal is a minimal config where every line earns its place.
 The old config stays functional during migration. `nv` launches this config via
 `NVIM_APPNAME`, so global `nvim` is unaffected.
 
-## Usage
-
-```sh
-nv              # launch nvim with this config
-nv .            # open oil in current directory
-nv some/file    # edit a file
-```
-
-The `nv` script lives at `~/.local/bin/nv`
-
 ## Dependencies
 
 External tools required for full functionality. A bootstrap script to install
@@ -69,7 +59,7 @@ than what that `gopls` build supports. When hover or diagnostics stop working
 after a runtime upgrade, update the LSP server first:
 
 ```sh
-mise upgrade gopls lua-language-server   # or whichever server is stale
+mise upgrade gopls lua-language-server # or whichever server is stale
 ```
 
 ## Keybinding differences from dotfiles/vim
