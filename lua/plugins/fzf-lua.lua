@@ -2,59 +2,59 @@
 -- Supports fd glob syntax: ".ai.dump" (literal), "**/local" (any depth).
 local include_dirs = { ".ai.dump", ".dump", "**/local" }
 
--- Gitignored files to include in the file picker (matched at project root).
--- Supports find -name glob syntax: ".env" (literal), ".env.*" (wildcard).
+-- Gitignored files to include in the file picker (matched at any depth).
+-- Supports glob wildcard: ".env" (literal), ".env.*" (wildcard).
 local include_files = { ".envrc", ".exrc", ".nvim.lua", ".env", ".env.*" }
 
 local function has_glob(s)
   return s:find("[*?%[]") ~= nil
 end
 
+--- Convert an fd glob pattern to a full-path regex.
+--- e.g. "**/local" -> "/local/"
+local function glob_to_path_regex(pat)
+  return "/" .. pat:gsub("%*%*/", ""):gsub("%.", "\\."):gsub("%*", "[^/]*") .. "/"
+end
+
 --- Build an fd command that respects .gitignore but also finds the exceptions.
+--- Two fd calls: one gitignore-aware base, one --no-ignore with a combined
+--- full-path regex for all exception dirs and root files.
 local function files_cmd()
   -- Base: respect .gitignore, show hidden, skip .git
   local parts = { "fd --hidden --type f -E .git" }
 
-  -- Gitignored dirs: literal paths use --search-path (fast, no full scan);
-  -- glob patterns resolve matching dirs first, then search files inside.
-  local literal, glob = {}, {}
+  -- Build a single regex that matches all gitignored exceptions.
+  local alts = {}
+
   for _, d in ipairs(include_dirs) do
-    table.insert(has_glob(d) and glob or literal, d)
+    if has_glob(d) then
+      -- **/local -> /local/  (substring match at any depth)
+      table.insert(alts, glob_to_path_regex(d))
+    else
+      -- .ai.dump -> /\.ai\.dump/  (substring match; fd normalises away leading ./)
+      table.insert(alts, "/" .. d:gsub("%.", "\\.") .. "/")
+    end
   end
 
-  local fd_noignore = "fd --hidden --no-ignore -E .git"
-
-  if #literal > 0 then
-    local paths = vim.tbl_map(function(d)
-      return "--search-path " .. vim.fn.shellescape(d)
-    end, literal)
-    local cmd = fd_noignore .. " --type f " .. table.concat(paths, " ")
-    table.insert(parts, cmd .. " 2>/dev/null")
-  end
-
-  for _, pat in ipairs(glob) do
-    local find_dirs = fd_noignore
-      .. " --type d --full-path --glob "
-      .. vim.fn.shellescape(pat)
-    local search = " | while IFS= read -r d; do "
-      .. fd_noignore
-      .. ' --type f --search-path "$d"; done 2>/dev/null'
-    table.insert(parts, find_dirs .. search)
-  end
-
-  -- Gitignored files at project root via find's -name glob matching.
   if #include_files > 0 then
-    local names = vim.tbl_map(function(f)
-      return "-name " .. vim.fn.shellescape(f)
+    -- {".envrc", ".env.*"} -> /\.(envrc|env\..*)$
+    local file_alts = vim.tbl_map(function(f)
+      return f:sub(2):gsub("%.", "\\."):gsub("%*", ".*")
     end, include_files)
-    local match = table.concat(names, " -o ")
+    table.insert(alts, "/\\.(" .. table.concat(file_alts, "|") .. ")$")
+  end
+
+  if #alts > 0 then
+    local regex = table.concat(alts, "|")
     table.insert(
       parts,
-      "find . -maxdepth 1 \\( " .. match .. " \\) 2>/dev/null | cut -c3-"
+      "fd --hidden --no-ignore -E .git --type f --full-path "
+        .. vim.fn.shellescape(regex)
+        .. " 2>/dev/null"
     )
   end
 
-  return "{ " .. table.concat(parts, "; ") .. "; } | sort -u"
+  return "{ " .. table.concat(parts, " & ") .. "; wait; } | sort -u"
 end
 
 return {
