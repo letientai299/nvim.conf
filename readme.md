@@ -61,6 +61,10 @@ Once the migration is complete, this config will grow on its own — new plugins
 local plugins developed in-repo, and workflow-specific tooling that the old setup
 never had.
 
+## Theme tests
+
+**bold**, _italic_, **_both_**, ~~crossed~~, `-> ==> [] () != <> |> )( <|`,
+
 [lazy]: https://github.com/folke/lazy.nvim
 [mini-surround]: https://github.com/nvim-mini/mini.surround
 [ts-cli]: https://github.com/tree-sitter/tree-sitter/blob/master/crates/cli/README.md
