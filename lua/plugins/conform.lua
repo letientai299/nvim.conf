@@ -7,6 +7,7 @@ return {
   opts = {
     formatters = {
       prettier = {
+        prepend_args = { "--ignore-unknown", "--ignore-path", "/dev/null" },
         -- Override cwd to include .ts config files (prettier 3.x) and also
         -- check package.json for a "prettier" key. Uses callback form of
         -- vim.fs.root so it returns the nearest match, not the first marker.
