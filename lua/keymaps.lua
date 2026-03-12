@@ -10,6 +10,10 @@ map("i", "jk", "<Esc>")
 map("v", "jk", "<Esc>")
 map("t", "<C-[><C-[>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
 
+-- Free <C-q> from its built-in <C-v> alias so mini-clue can use it as a
+-- terminal prefix trigger.
+map("n", "<C-q>", "<Nop>")
+
 -- ---------------------------------------------------------------------------
 -- System clipboard
 -- ---------------------------------------------------------------------------

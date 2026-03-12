@@ -44,6 +44,8 @@ return {
         { mode = "x", keys = "'" },
         { mode = "x", keys = "`" },
         { mode = "i", keys = "<C-x>" },
+        { mode = "n", keys = "<C-q>" },
+        { mode = "t", keys = "<C-q>" },
       },
       window = {
         config = { width = "auto" },
@@ -61,6 +63,8 @@ return {
         { mode = "n", keys = "<Leader>g", desc = "+Git" },
         { mode = "x", keys = "<Leader>g", desc = "+Git" },
         { mode = "n", keys = "<Leader>c", desc = "+Create" },
+        { mode = "n", keys = "<C-q>", desc = "+Terminal" },
+        { mode = "t", keys = "<C-q>", desc = "+Terminal" },
       },
     })
   end,
