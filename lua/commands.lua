@@ -69,7 +69,10 @@ vim.api.nvim_create_autocmd("FileChangedShellPost", {
 vim.api.nvim_create_autocmd("ColorScheme", {
   group = augroup,
   callback = function()
-    vim.api.nvim_set_hl(0, "EndOfBuffer", { fg = "bg" })
+    local bg = vim.api.nvim_get_hl(0, { name = "Normal" }).bg
+    if bg then
+      vim.api.nvim_set_hl(0, "EndOfBuffer", { fg = bg })
+    end
   end,
 })
 
