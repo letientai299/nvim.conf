@@ -22,8 +22,26 @@ return {
       mode = { "n", "v" },
       desc = "Copy git URL",
     },
+    {
+      "<Leader>.",
+      function()
+        require("snacks").scratch()
+      end,
+      desc = "Toggle scratch buffer",
+    },
+    {
+      "<Leader>,",
+      function()
+        require("snacks").scratch.select()
+      end,
+      desc = "Select scratch buffer",
+    },
   },
   opts = {
     gitbrowse = { enabled = true },
+    scratch = {
+      enabled = true,
+      ft = "markdown",
+    },
   },
 }
