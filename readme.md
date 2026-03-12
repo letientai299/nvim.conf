@@ -51,10 +51,22 @@ these automatically is planned.
 | `bash-language-server`   | langs/bash (LSP)      | `mise use -g npm:bash-language-server`               |
 | `shellcheck`             | langs/bash (lint)     | `mise use -g shellcheck`                             |
 | `shfmt`                  | langs/bash (format)   | `mise use -g shfmt`                                  |
+| `vscode-json-languageserver` | langs/json (LSP)  | `mise use -g npm:vscode-json-languageserver`         |
+| `yaml-language-server`   | langs/yaml (LSP)      | `mise use -g npm:yaml-language-server`               |
+| `taplo`                  | langs/toml (LSP+fmt)  | `mise use -g taplo`                                  |
 
 [tree-sitter-cli][ts-cli] (0.26.1+) is needed to compile grammar parsers.
 Without it, `:TSInstall` for languages with external scanners (like `c_sharp`)
 will fail.
+
+LSP servers must match the language runtime version. An outdated `gopls`, for
+example, won't return hover docs for stdlib symbols if the Go version is newer
+than what that `gopls` build supports. When hover or diagnostics stop working
+after a runtime upgrade, update the LSP server first:
+
+```sh
+mise upgrade gopls lua-language-server   # or whichever server is stale
+```
 
 ## Keybinding differences from dotfiles/vim
 
