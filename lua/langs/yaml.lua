@@ -1,5 +1,8 @@
+local prettier = require("lib.prettier")
+
 require("lib.tools").check("yaml", {
   { name = "yaml-language-server", bin = "yaml-language-server", kind = "lsp" },
+  prettier.tool(),
 })
 
 vim.lsp.config("yamlls", {
@@ -13,14 +16,7 @@ vim.lsp.config("yamlls", {
 vim.lsp.enable("yamlls")
 
 return {
-  {
-    "stevearc/conform.nvim",
-    opts = {
-      formatters_by_ft = {
-        yaml = { "prettier" },
-      },
-    },
-  },
+  prettier.conform("yaml"),
   {
     "nvim-treesitter/nvim-treesitter",
     opts = { ensure_installed = { "yaml" } },

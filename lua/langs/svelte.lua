@@ -1,6 +1,8 @@
+local prettier = require("lib.prettier")
+
 require("lib.tools").check("svelte", {
   { name = "svelteserver", bin = "svelteserver", kind = "lsp" },
-  { name = "prettier", bin = "prettier", kind = "fmt" },
+  prettier.tool(),
   { name = "biome", bin = "biome", kind = "lint" },
   { name = "svelte-check", bin = "svelte-check", kind = "check" },
 })
@@ -8,14 +10,7 @@ require("lib.tools").check("svelte", {
 vim.lsp.enable("svelte")
 
 return {
-  {
-    "stevearc/conform.nvim",
-    opts = {
-      formatters_by_ft = {
-        svelte = { "prettier" },
-      },
-    },
-  },
+  prettier.conform("svelte"),
   {
     "mfussenegger/nvim-lint",
     opts = {

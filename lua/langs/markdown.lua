@@ -1,20 +1,15 @@
+local prettier = require("lib.prettier")
+
 require("lib.tools").check("markdown", {
   { name = "marksman", bin = "marksman", kind = "lsp" },
-  { name = "prettier", bin = "prettier", kind = "fmt" },
+  prettier.tool(),
   { name = "markdownlint-cli2", bin = "markdownlint-cli2", kind = "lint" },
 })
 
 vim.lsp.enable("marksman")
 
 return {
-  {
-    "stevearc/conform.nvim",
-    opts = {
-      formatters_by_ft = {
-        markdown = { "prettier" },
-      },
-    },
-  },
+  prettier.conform("markdown"),
   {
     "mfussenegger/nvim-lint",
     opts = {

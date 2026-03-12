@@ -1,8 +1,13 @@
 local M = {}
 
+--- @class lib.tools.Tool
+--- @field name string
+--- @field bin string
+--- @field kind string
+
 --- Check tool binaries when a matching filetype is first opened.
 --- @param ft string|string[] filetype(s) to trigger the check
---- @param tools {name: string, bin: string, kind: string}[]
+--- @param tools lib.tools.Tool[]
 function M.check(ft, tools)
   local group = vim.api.nvim_create_augroup("ToolCheck_" .. (type(ft) == "table" and ft[1] or ft), {})
   vim.api.nvim_create_autocmd("FileType", {

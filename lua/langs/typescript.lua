@@ -1,8 +1,9 @@
+local prettier = require("lib.prettier")
 local fts = { "javascript", "javascriptreact", "typescript", "typescriptreact" }
 
 require("lib.tools").check(fts, {
   { name = "vtsls", bin = "vtsls", kind = "lsp" },
-  { name = "prettier", bin = "prettier", kind = "fmt" },
+  prettier.tool(),
   { name = "biome", bin = "biome", kind = "lint" },
 })
 
@@ -61,21 +62,10 @@ end
 
 vim.lsp.enable("vtsls")
 
-local fmt = { "prettier" }
 local linters = { "biomejs" }
 
 return {
-  {
-    "stevearc/conform.nvim",
-    opts = {
-      formatters_by_ft = {
-        javascript = fmt,
-        javascriptreact = fmt,
-        typescript = fmt,
-        typescriptreact = fmt,
-      },
-    },
-  },
+  prettier.conform(fts),
   {
     "mfussenegger/nvim-lint",
     opts = {

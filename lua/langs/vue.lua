@@ -1,20 +1,15 @@
+local prettier = require("lib.prettier")
+
 require("lib.tools").check("vue", {
   { name = "vue-language-server", bin = "vue-language-server", kind = "lsp" },
-  { name = "prettier", bin = "prettier", kind = "fmt" },
+  prettier.tool(),
   { name = "biome", bin = "biome", kind = "lint" },
 })
 
 vim.lsp.enable("vls")
 
 return {
-  {
-    "stevearc/conform.nvim",
-    opts = {
-      formatters_by_ft = {
-        vue = { "prettier" },
-      },
-    },
-  },
+  prettier.conform("vue"),
   {
     "mfussenegger/nvim-lint",
     opts = {

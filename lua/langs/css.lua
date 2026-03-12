@@ -1,22 +1,15 @@
+local prettier = require("lib.prettier")
+
 require("lib.tools").check("css", {
   { name = "vscode-css-language-server", bin = "vscode-css-language-server", kind = "lsp" },
-  { name = "prettier", bin = "prettier", kind = "fmt" },
+  prettier.tool(),
   { name = "biome", bin = "biome", kind = "lint" },
 })
 
 vim.lsp.enable("cssls")
 
 return {
-  {
-    "stevearc/conform.nvim",
-    opts = {
-      formatters_by_ft = {
-        css = { "prettier" },
-        scss = { "prettier" },
-        less = { "prettier" },
-      },
-    },
-  },
+  prettier.conform({ "css", "scss", "less" }),
   {
     "mfussenegger/nvim-lint",
     opts = {
