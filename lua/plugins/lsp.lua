@@ -1,6 +1,26 @@
 vim.lsp.config("*", {
   root_markers = { ".git" },
-  capabilities = require("blink.cmp").get_lsp_capabilities(),
+  capabilities = vim.lsp.protocol.make_client_capabilities(),
+})
+
+-- Load blink.cmp on first InsertEnter, then restart LSP clients with full caps.
+vim.api.nvim_create_autocmd("InsertEnter", {
+  once = true,
+  callback = function()
+    local caps = require("blink.cmp").get_lsp_capabilities()
+    vim.lsp.config("*", {
+      root_markers = { ".git" },
+      capabilities = caps,
+    })
+    -- Stop all running clients; :edit re-triggers FileType → LSP attach
+    local clients = vim.lsp.get_clients()
+    if #clients > 0 then
+      for _, client in ipairs(clients) do
+        client:stop()
+      end
+      vim.defer_fn(function() vim.cmd("edit") end, 200)
+    end
+  end,
 })
 
 vim.api.nvim_create_user_command("LspInfo", function()
