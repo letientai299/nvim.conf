@@ -11,7 +11,7 @@
 return {
   "barrettruth/diffs.nvim",
   lazy = true,
-  config = function()
+  init = function()
     vim.g.diffs = {
       integrations = {
         neogit = true,
