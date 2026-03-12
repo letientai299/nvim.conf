@@ -5,7 +5,12 @@ return {
   ---@module "conform"
   ---@type conform.setupOpts
   opts = {
-    formatters_by_ft = {},
+    formatters_by_ft = {
+      -- Runs on all filetypes, after per-ft formatters.
+      -- Does NOT run when LSP fallback is used (lsp_format = "fallback"
+      -- only triggers when no per-ft conform formatters are configured).
+      ["*"] = { "trim_whitespace", "trim_newlines", "injected" },
+    },
     default_format_opts = {
       lsp_format = "fallback",
     },
