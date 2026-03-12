@@ -13,6 +13,9 @@ return {
   lazy = true,
   init = function()
     vim.g.diffs = {
+      highlights = {
+        warn_max_lines = false,
+      },
       integrations = {
         neogit = true,
       },
