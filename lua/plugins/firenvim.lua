@@ -1,6 +1,3 @@
-local guifont = require("lib.guifont")
-local store = guifont.state("firenvim")
-
 return {
   "glacambre/firenvim",
   lazy = not vim.g.started_by_firenvim,
@@ -9,6 +6,9 @@ return {
     if not vim.g.started_by_firenvim then
       return
     end
+
+    local guifont = require("lib.guifont")
+    local store = guifont.state("firenvim")
 
     -- Minimal UI — set early so the window doesn't flash with bars.
     vim.o.laststatus = 0

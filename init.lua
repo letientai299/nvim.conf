@@ -34,31 +34,92 @@ if not vim.uv.fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
--- Read persisted colorscheme from themery state (avoid loading themery at startup)
+-- Cache Themery's JSON state as a tiny Lua chunk so the hot startup path avoids
+-- JSON decode and repeated loadstring work.
 local _themery_state = vim.fn.stdpath("data") .. "/themery/state.json"
-local _themery_cs ---@type string?
-do
-  local f = io.open(_themery_state)
-  if f then
-    local ok, state = pcall(vim.json.decode, f:read("*a"))
-    f:close()
-    if ok and state then
-      if state.globalBeforeCode and state.globalBeforeCode ~= "" then
-        local fn = loadstring(state.globalBeforeCode)
-        if fn then
-          fn()
-        end
-      end
-      if state.beforeCode and state.beforeCode ~= "" then
-        local fn = loadstring(state.beforeCode)
-        if fn then
-          fn()
-        end
-      end
-      _themery_cs = state.colorscheme
-    end
+local _themery_cache = vim.fn.stdpath("state") .. "/themery-startup.lua"
+
+local function _themery_mtime(path)
+  local stat = vim.uv.fs_stat(path)
+  if not stat or not stat.mtime then
+    return nil
+  end
+  return stat.mtime.sec * 1000000000 + stat.mtime.nsec
+end
+
+local function _themery_load_cached()
+  local ok, colorscheme = pcall(dofile, _themery_cache)
+  if ok and type(colorscheme) == "string" and colorscheme ~= "" then
+    return colorscheme
   end
 end
+
+local function _themery_decode_state()
+  local f = io.open(_themery_state)
+  if not f then
+    return nil
+  end
+  local ok, state = pcall(vim.json.decode, f:read("*a"))
+  f:close()
+  if not ok or type(state) ~= "table" then
+    return nil
+  end
+  return state
+end
+
+local function _themery_write_cache(state)
+  local colorscheme = state.colorscheme
+  if type(colorscheme) ~= "string" then
+    return
+  end
+
+  local lines = { "-- Auto-generated from Themery state." }
+  for _, key in ipairs({ "globalBeforeCode", "beforeCode" }) do
+    local code = state[key]
+    if type(code) == "string" and code ~= "" then
+      lines[#lines + 1] = code
+    end
+  end
+  lines[#lines + 1] = string.format("return %q", colorscheme)
+
+  local f = io.open(_themery_cache, "w")
+  if not f then
+    return
+  end
+  f:write(table.concat(lines, "\n"))
+  f:write("\n")
+  f:close()
+end
+
+local function _themery_cache_stale()
+  local state_mtime = _themery_mtime(_themery_state)
+  if not state_mtime then
+    return false
+  end
+  local cache_mtime = _themery_mtime(_themery_cache)
+  if not cache_mtime then
+    return true
+  end
+  return state_mtime > cache_mtime
+end
+
+local function _themery_load()
+  if not _themery_cache_stale() then
+    local colorscheme = _themery_load_cached()
+    if colorscheme then
+      return colorscheme
+    end
+  end
+
+  local state = _themery_decode_state()
+  if state then
+    _themery_write_cache(state)
+  end
+
+  return _themery_load_cached()
+end
+
+local _themery_cs = _themery_load()
 
 require("lazy").setup({
   spec = {

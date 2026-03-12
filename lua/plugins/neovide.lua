@@ -1,11 +1,11 @@
-local guifont = require("lib.guifont")
-local store = guifont.state("neovide")
-
 return {
   dir = ".",
   name = "neovide",
   cond = vim.g.neovide ~= nil,
   init = function()
+    local guifont = require("lib.guifont")
+    local store = guifont.state("neovide")
+
     vim.g.neovide_input_macos_option_key_is_meta = true
     vim.g.neovide_hide_mouse_when_typing = true
     vim.g.neovide_cursor_animation_length = 0.1
