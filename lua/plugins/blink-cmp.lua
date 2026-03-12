@@ -12,14 +12,7 @@ return {
     },
     snippets = { preset = "luasnip" },
     sources = {
-      default = { "lazydev", "lsp", "snippets", "path", "buffer" },
-      providers = {
-        lazydev = {
-          name = "LazyDev",
-          module = "lazydev.integrations.blink",
-          score_offset = 100,
-        },
-      },
+      default = { "lsp", "snippets", "path", "buffer" },
     },
     fuzzy = { implementation = "prefer_rust" },
   },

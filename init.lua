@@ -26,6 +26,7 @@ require("lazy").setup({
   spec = {
     { import = "plugins" },
     { import = "plugins.themes" },
+    { import = "langs" },
   },
   rocks = { enabled = false },
   lockfile = vim.env.NVIM_TEST and vim.fn.stdpath("cache") .. "/lazy-lock.json"

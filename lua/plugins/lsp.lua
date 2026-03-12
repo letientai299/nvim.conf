@@ -1,7 +1,6 @@
-vim.lsp.config("lua_ls", {
-  cmd = { "lua-language-server" },
-  root_markers = { ".luarc.json", ".luarc.jsonc", ".git" },
+vim.lsp.config("*", {
+  root_markers = { ".git" },
+  capabilities = require("blink.cmp").get_lsp_capabilities(),
 })
-vim.lsp.enable("lua_ls")
 
 return {}
