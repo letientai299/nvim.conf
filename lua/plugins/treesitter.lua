@@ -52,16 +52,5 @@ return {
       end,
     })
 
-    vim.api.nvim_create_autocmd("OptionSet", {
-      group = group,
-      pattern = "foldmethod",
-      callback = function()
-        if vim.wo.foldmethod ~= "expr" or vim.wo.foldexpr ~= "" then
-          return
-        end
-
-        vim.wo.foldexpr = "v:lua.vim.treesitter.foldexpr()"
-      end,
-    })
   end,
 }

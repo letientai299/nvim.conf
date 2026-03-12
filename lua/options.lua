@@ -33,9 +33,11 @@ vim.opt.signcolumn = "yes:1"
 vim.opt.ignorecase = true
 vim.opt.smartcase = true
 
--- Start with all folds open
-vim.opt.foldenable = false
-vim.opt.foldlevel = 99
+-- Treesitter-based folding, start with all folds open
+vim.opt.foldmethod = "expr"
+vim.opt.foldexpr = "v:lua.vim.treesitter.foldexpr()"
+vim.opt.foldtext = "" -- render first line with syntax highlighting (0.10+)
+vim.opt.foldlevelstart = 99
 
 -- Spell-check language (activate per buffer with :set spell)
 vim.opt.spelllang = "en_us"
