@@ -1,21 +1,44 @@
--- Upgrade LSP capabilities to blink.cmp on first InsertEnter.
--- Base capabilities are provided by Neovim 0.11 defaults; root_markers are
--- set per-server in lsp/*.lua. No vim.lsp.config("*") needed at startup.
-vim.api.nvim_create_autocmd("InsertEnter", {
-  once = true,
-  callback = function()
-    local caps = require("blink.cmp").get_lsp_capabilities()
-    vim.lsp.config("*", { capabilities = caps })
-    local clients = vim.lsp.get_clients()
-    if #clients > 0 then
-      for _, client in ipairs(clients) do
-        client:stop()
-      end
-      vim.defer_fn(function()
-        vim.cmd("edit")
-      end, 200)
-    end
-  end,
+-- Hardcoded blink.cmp completion capabilities so servers start with them
+-- immediately — no lazy-load dependency, no restart needed.
+-- Source: blink.cmp/lua/blink/cmp/sources/lib/init.lua get_lsp_capabilities()
+vim.lsp.config("*", {
+  capabilities = {
+    textDocument = {
+      completion = {
+        completionItem = {
+          snippetSupport = true,
+          commitCharactersSupport = false,
+          documentationFormat = { "markdown", "plaintext" },
+          deprecatedSupport = true,
+          preselectSupport = false,
+          tagSupport = { valueSet = { 1 } },
+          insertReplaceSupport = true,
+          resolveSupport = {
+            properties = {
+              "documentation",
+              "detail",
+              "additionalTextEdits",
+              "command",
+              "data",
+            },
+          },
+          insertTextModeSupport = { valueSet = { 1 } },
+          labelDetailsSupport = true,
+        },
+        completionList = {
+          itemDefaults = {
+            "commitCharacters",
+            "editRange",
+            "insertTextFormat",
+            "insertTextMode",
+            "data",
+          },
+        },
+        contextSupport = true,
+        insertTextMode = 1,
+      },
+    },
+  },
 })
 
 vim.api.nvim_create_user_command("LspInfo", function()
