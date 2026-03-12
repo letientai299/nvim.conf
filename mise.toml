@@ -1,0 +1,3 @@
+[tasks.sync]
+description = "Install all tools globally and handle non-mise deps"
+file = "tasks/sync.sh"

@@ -19,48 +19,19 @@ The old config stays functional during migration. `nv` launches this config via
 
 ## Dependencies
 
-External tools required for full functionality. A bootstrap script to install
-these automatically is planned.
-
-| Tool                         | Required by           | Install                                              |
-| ---------------------------- | --------------------- | ---------------------------------------------------- |
-| `tree-sitter-cli`            | nvim-treesitter       | `brew install tree-sitter-cli`                       |
-| C compiler                   | nvim-treesitter       | Xcode CLT / `gcc` / `clang`                          |
-| `git`                        | lazy.nvim, parsers    | `brew install git`                                   |
-| `curl`                       | nvim-treesitter       | Usually preinstalled                                 |
-| [jq][]                       | git pre-commit hook   | `brew install jq`                                    |
-| `lua-language-server`        | langs/lua (LSP)       | `mise use -g lua-language-server`                    |
-| `stylua`                     | langs/lua (format)    | `mise use -g stylua`                                 |
-| `gopls`                      | langs/go (LSP)        | `mise use -g gopls`                                  |
-| `goimports`                  | langs/go (format)     | `go install golang.org/x/tools/cmd/goimports@latest` |
-| `gofumpt`                    | langs/go (format)     | `mise use -g gofumpt`                                |
-| `golangci-lint`              | langs/go (lint)       | `mise use -g golangci-lint`                          |
-| `marksman`                   | langs/markdown (LSP)  | `mise use -g marksman`                               |
-| `prettier`                   | langs/markdown (fmt)  | `mise use -g prettier`                               |
-| `markdownlint-cli2`          | langs/markdown (lint) | `mise use -g markdownlint-cli2`                      |
-| `bash-language-server`       | langs/bash (LSP)      | `mise use -g npm:bash-language-server`               |
-| `shellcheck`                 | langs/bash (lint)     | `mise use -g shellcheck`                             |
-| `shfmt`                      | langs/bash (format)   | `mise use -g shfmt`                                  |
-| `vscode-json-languageserver` | langs/json (LSP)      | `mise use -g npm:vscode-json-languageserver`         |
-| `yaml-language-server`       | langs/yaml (LSP)      | `mise use -g npm:yaml-language-server`               |
-| `taplo`                      | langs/toml (LSP+fmt)  | `mise use -g taplo`                                  |
-| `rust-analyzer`              | langs/rust (LSP)      | `rustup component add rust-analyzer`                 |
-| `rustfmt`                    | langs/rust (format)   | `rustup component add rustfmt`                       |
-| Roslyn language server       | langs/csharp (LSP)    | See [roslyn install][roslyn-install]                 |
-| `csharpier`                  | langs/csharp (format) | `dotnet tool install -g csharpier`                   |
-
-[tree-sitter-cli][ts-cli] (0.26.1+) is needed to compile grammar parsers.
-Without it, `:TSInstall` for languages with external scanners (like `c_sharp`)
-will fail.
-
-LSP servers must match the language runtime version. An outdated `gopls`, for
-example, won't return hover docs for stdlib symbols if the Go version is newer
-than what that `gopls` build supports. When hover or diagnostics stop working
-after a runtime upgrade, update the LSP server first:
+LSPs, formatters, linters, and CLI tools are declared in `tools.txt`. On a new
+machine, install [mise][mise] and run:
 
 ```sh
-mise upgrade gopls lua-language-server # or whichever server is stale
+mise run sync
 ```
+
+This installs all tools globally. Brew-only packages (`pgformatter`) are
+handled in `tasks/sync.sh`.
+
+Prerequisites not managed by mise: a C compiler (Xcode CLT), `git`, `curl`,
+[jq][], and [Roslyn language server][roslyn-install]. To add a new tool, add it
+to `tools.txt` and re-run `mise run sync`.
 
 ## Keybinding differences from dotfiles/vim
 
@@ -85,9 +56,8 @@ setup never had.
 **bold**, _italic_, **_both_**, ~~crossed~~, `-> ==> [] () != <> |> )( <|`,
 
 [jq]: https://jqlang.github.io/jq/
+[mise]: https://mise.jdx.dev/
 [roslyn-install]:
   https://github.com/seblyng/roslyn.nvim?tab=readme-ov-file#install-the-language-server
 [lazy]: https://github.com/folke/lazy.nvim
 [mini-surround]: https://github.com/nvim-mini/mini.surround
-[ts-cli]:
-  https://github.com/tree-sitter/tree-sitter/blob/master/crates/cli/README.md
