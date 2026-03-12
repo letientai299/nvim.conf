@@ -1,18 +1,13 @@
-require("lib.tools").check("sql", {
-  { name = "sql-formatter", bin = "sql-formatter", kind = "fmt" },
-})
+local M = {}
 
-return {
-  {
-    "stevearc/conform.nvim",
-    opts = {
-      formatters_by_ft = {
-        sql = { "sql_formatter" },
-      },
-    },
-  },
-  {
-    "nvim-treesitter/nvim-treesitter",
-    opts = { ensure_installed = { "sql" } },
-  },
-}
+function M.setup()
+  require("lib.tools").check_now({
+    { name = "sql-formatter", bin = "sql-formatter", kind = "fmt" },
+  })
+
+  local registry = require("lib.lang_registry")
+  registry.add_formatters("sql", { "sql_formatter" })
+  registry.ensure_parsers({ "sql" })
+end
+
+return M

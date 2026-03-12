@@ -1,47 +1,16 @@
-require("lib.tools").check("lua", {
-  { name = "lua-language-server", bin = "lua-language-server", kind = "lsp" },
-  { name = "stylua", bin = "stylua", kind = "fmt" },
-})
+local M = {}
 
-require("lib.lsp").enable("lua_ls")
+function M.setup(bufnr)
+  require("lib.tools").check_now({
+    { name = "lua-language-server", bin = "lua-language-server", kind = "lsp" },
+    { name = "stylua", bin = "stylua", kind = "fmt" },
+  })
 
-return {
-  {
-    "folke/lazydev.nvim",
-    ft = "lua",
-    opts = {
-      enabled = function(root_dir)
-        return not vim.uv.fs_stat(root_dir .. "/.luarc.json")
-      end,
-    },
-  },
-  {
-    "saghen/blink.cmp",
-    opts = {
-      sources = {
-        per_filetype = {
-          lua = { inherit_defaults = true, "lazydev" },
-        },
-        providers = {
-          lazydev = {
-            name = "LazyDev",
-            module = "lazydev.integrations.blink",
-            score_offset = 100,
-          },
-        },
-      },
-    },
-  },
-  {
-    "stevearc/conform.nvim",
-    opts = {
-      formatters_by_ft = {
-        lua = { "stylua" },
-      },
-    },
-  },
-  {
-    "nvim-treesitter/nvim-treesitter",
-    opts = { ensure_installed = { "lua", "luadoc" } },
-  },
-}
+  require("lib.lsp").enable("lua_ls", bufnr)
+
+  local registry = require("lib.lang_registry")
+  registry.add_formatters("lua", { "stylua" })
+  registry.ensure_parsers({ "lua", "luadoc" })
+end
+
+return M

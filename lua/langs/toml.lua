@@ -1,20 +1,15 @@
-require("lib.tools").check("toml", {
-  { name = "taplo", bin = "taplo", kind = "lsp/fmt" },
-})
+local M = {}
 
-require("lib.lsp").enable("taplo")
+function M.setup(bufnr)
+  require("lib.tools").check_now({
+    { name = "taplo", bin = "taplo", kind = "lsp/fmt" },
+  })
 
-return {
-  {
-    "stevearc/conform.nvim",
-    opts = {
-      formatters_by_ft = {
-        toml = { "taplo" },
-      },
-    },
-  },
-  {
-    "nvim-treesitter/nvim-treesitter",
-    opts = { ensure_installed = { "toml" } },
-  },
-}
+  require("lib.lsp").enable("taplo", bufnr)
+
+  local registry = require("lib.lang_registry")
+  registry.add_formatters("toml", { "taplo" })
+  registry.ensure_parsers({ "toml" })
+end
+
+return M

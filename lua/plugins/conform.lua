@@ -30,10 +30,14 @@ return {
             ["prettier.config.ts"] = true,
           }
           return vim.fs.root(ctx.dirname, function(name, path)
-            if config_names[name] then return true end
+            if config_names[name] then
+              return true
+            end
             if name == "package.json" then
               local f = io.open(path .. "/" .. name, "r")
-              if not f then return false end
+              if not f then
+                return false
+              end
               local ok, json = pcall(vim.json.decode, f:read("*a"))
               f:close()
               return ok and json and json.prettier ~= nil
@@ -44,9 +48,6 @@ return {
       },
     },
     formatters_by_ft = {
-      -- Runs on all filetypes, after per-ft formatters.
-      -- Does NOT run when LSP fallback is used (lsp_format = "fallback"
-      -- only triggers when no per-ft conform formatters are configured).
       ["*"] = { "trim_whitespace", "trim_newlines", "injected" },
     },
     default_format_opts = {
@@ -57,6 +58,11 @@ return {
     },
   },
   init = function()
-    vim.o.formatexpr = "v:lua.require'conform'.formatexpr({timeout_ms=500, lsp_format='fallback'})"
+    vim.o.formatexpr =
+      "v:lua.require'conform'.formatexpr({timeout_ms=500, lsp_format='fallback'})"
+  end,
+  config = function(_, opts)
+    require("lib.lang_registry").activate_conform(opts)
+    require("conform").setup(opts)
   end,
 }

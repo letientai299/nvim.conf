@@ -1,9 +1,15 @@
-local fts = { "css", "html", "javascript", "javascriptreact", "typescript", "typescriptreact", "vue", "svelte", "astro", "mdx" }
+local M = {}
 
-require("lib.tools").check(fts, {
-  { name = "tailwindcss-language-server", bin = "tailwindcss-language-server", kind = "lsp" },
-})
+function M.setup(bufnr)
+  require("lib.tools").check_now({
+    {
+      name = "tailwindcss-language-server",
+      bin = "tailwindcss-language-server",
+      kind = "lsp",
+    },
+  })
 
-require("lib.lsp").enable("tailwindcss")
+  require("lib.lsp").enable("tailwindcss", bufnr)
+end
 
-return {}
+return M

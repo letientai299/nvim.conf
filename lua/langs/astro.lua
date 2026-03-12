@@ -1,16 +1,16 @@
-local prettier = require("lib.prettier")
+local M = {}
 
-require("lib.tools").check("astro", {
-  { name = "astro-ls", bin = "astro-ls", kind = "lsp" },
-  prettier.tool(),
-})
+function M.setup(bufnr)
+  require("lib.tools").check_now({
+    { name = "astro-ls", bin = "astro-ls", kind = "lsp" },
+    require("lib.prettier").tool(),
+  })
 
-require("lib.lsp").enable("astro")
+  require("lib.lsp").enable("astro", bufnr)
 
-return {
-  prettier.conform("astro"),
-  {
-    "nvim-treesitter/nvim-treesitter",
-    opts = { ensure_installed = { "astro" } },
-  },
-}
+  local registry = require("lib.lang_registry")
+  registry.add_formatters("astro", { "prettier" })
+  registry.ensure_parsers({ "astro" })
+end
+
+return M

@@ -1,12 +1,12 @@
-require("lib.tools").check("dockerfile", {
-  { name = "docker-langserver", bin = "docker-langserver", kind = "lsp" },
-})
+local M = {}
 
-require("lib.lsp").enable("dockerls")
+function M.setup(bufnr)
+  require("lib.tools").check_now({
+    { name = "docker-langserver", bin = "docker-langserver", kind = "lsp" },
+  })
 
-return {
-  {
-    "nvim-treesitter/nvim-treesitter",
-    opts = { ensure_installed = { "dockerfile" } },
-  },
-}
+  require("lib.lsp").enable("dockerls", bufnr)
+  require("lib.lang_registry").ensure_parsers({ "dockerfile" })
+end
+
+return M

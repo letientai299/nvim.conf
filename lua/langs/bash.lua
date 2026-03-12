@@ -1,21 +1,20 @@
-require("lib.tools").check("sh", {
-  { name = "bash-language-server", bin = "bash-language-server", kind = "lsp" },
-  { name = "shfmt", bin = "shfmt", kind = "fmt" },
-})
+local M = {}
 
-require("lib.lsp").enable("bashls")
-
-return {
-  {
-    "stevearc/conform.nvim",
-    opts = {
-      formatters_by_ft = {
-        sh = { "shfmt" },
-      },
+function M.setup(bufnr)
+  require("lib.tools").check_now({
+    {
+      name = "bash-language-server",
+      bin = "bash-language-server",
+      kind = "lsp",
     },
-  },
-  {
-    "nvim-treesitter/nvim-treesitter",
-    opts = { ensure_installed = { "bash" } },
-  },
-}
+    { name = "shfmt", bin = "shfmt", kind = "fmt" },
+  })
+
+  require("lib.lsp").enable("bashls", bufnr)
+
+  local registry = require("lib.lang_registry")
+  registry.add_formatters({ "bash", "sh", "zsh" }, { "shfmt" })
+  registry.ensure_parsers({ "bash" })
+end
+
+return M

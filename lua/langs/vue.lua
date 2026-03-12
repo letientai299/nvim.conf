@@ -1,25 +1,18 @@
-local prettier = require("lib.prettier")
+local M = {}
 
-require("lib.tools").check("vue", {
-  { name = "vue-language-server", bin = "vue-language-server", kind = "lsp" },
-  prettier.tool(),
-  { name = "biome", bin = "biome", kind = "lint" },
-})
+function M.setup(bufnr)
+  require("lib.tools").check_now({
+    { name = "vue-language-server", bin = "vue-language-server", kind = "lsp" },
+    require("lib.prettier").tool(),
+    { name = "biome", bin = "biome", kind = "lint" },
+  })
 
-require("lib.lsp").enable("vls")
+  require("lib.lsp").enable("vls", bufnr)
 
-return {
-  prettier.conform("vue"),
-  {
-    "mfussenegger/nvim-lint",
-    opts = {
-      linters_by_ft = {
-        vue = { "biomejs" },
-      },
-    },
-  },
-  {
-    "nvim-treesitter/nvim-treesitter",
-    opts = { ensure_installed = { "vue" } },
-  },
-}
+  local registry = require("lib.lang_registry")
+  registry.add_formatters("vue", { "prettier" })
+  registry.add_linter("vue", { "biomejs" })
+  registry.ensure_parsers({ "vue" })
+end
+
+return M

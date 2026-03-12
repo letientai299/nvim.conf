@@ -1,14 +1,9 @@
-return {
-  {
-    "stevearc/conform.nvim",
-    opts = {
-      formatters_by_ft = {
-        cs = { "csharpier" },
-      },
-    },
-  },
-  {
-    "nvim-treesitter/nvim-treesitter",
-    opts = { ensure_installed = { "c_sharp" } },
-  },
-}
+local M = {}
+
+function M.setup()
+  local registry = require("lib.lang_registry")
+  registry.add_formatters("cs", { "csharpier" })
+  registry.ensure_parsers({ "c_sharp" })
+end
+
+return M

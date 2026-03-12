@@ -1,16 +1,20 @@
-local prettier = require("lib.prettier")
+local M = {}
 
-require("lib.tools").check("html", {
-  { name = "vscode-html-language-server", bin = "vscode-html-language-server", kind = "lsp" },
-  prettier.tool(),
-})
+function M.setup(bufnr)
+  require("lib.tools").check_now({
+    {
+      name = "vscode-html-language-server",
+      bin = "vscode-html-language-server",
+      kind = "lsp",
+    },
+    require("lib.prettier").tool(),
+  })
 
-require("lib.lsp").enable("html")
+  require("lib.lsp").enable("html", bufnr)
 
-return {
-  prettier.conform("html"),
-  {
-    "nvim-treesitter/nvim-treesitter",
-    opts = { ensure_installed = { "html" } },
-  },
-}
+  local registry = require("lib.lang_registry")
+  registry.add_formatters("html", { "prettier" })
+  registry.ensure_parsers({ "html" })
+end
+
+return M

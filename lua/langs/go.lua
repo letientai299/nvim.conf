@@ -1,31 +1,19 @@
-require("lib.tools").check("go", {
-  { name = "gopls", bin = "gopls", kind = "lsp" },
-  { name = "goimports", bin = "goimports", kind = "fmt" },
-  { name = "gofumpt", bin = "gofumpt", kind = "fmt" },
-  { name = "golangci-lint", bin = "golangci-lint", kind = "lint" },
-})
+local M = {}
 
-require("lib.lsp").enable("gopls")
+function M.setup(bufnr)
+  require("lib.tools").check_now({
+    { name = "gopls", bin = "gopls", kind = "lsp" },
+    { name = "goimports", bin = "goimports", kind = "fmt" },
+    { name = "gofumpt", bin = "gofumpt", kind = "fmt" },
+    { name = "golangci-lint", bin = "golangci-lint", kind = "lint" },
+  })
 
-return {
-  {
-    "stevearc/conform.nvim",
-    opts = {
-      formatters_by_ft = {
-        go = { "goimports", "gofumpt" },
-      },
-    },
-  },
-  {
-    "mfussenegger/nvim-lint",
-    opts = {
-      linters_by_ft = {
-        go = { "golangcilint" },
-      },
-    },
-  },
-  {
-    "nvim-treesitter/nvim-treesitter",
-    opts = { ensure_installed = { "go", "gomod", "gosum" } },
-  },
-}
+  require("lib.lsp").enable("gopls", bufnr)
+
+  local registry = require("lib.lang_registry")
+  registry.add_formatters("go", { "goimports", "gofumpt" })
+  registry.add_linter("go", { "golangcilint" })
+  registry.ensure_parsers({ "go", "gomod", "gosum" })
+end
+
+return M

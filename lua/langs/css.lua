@@ -1,25 +1,22 @@
-local prettier = require("lib.prettier")
+local M = {}
 
-require("lib.tools").check("css", {
-  { name = "vscode-css-language-server", bin = "vscode-css-language-server", kind = "lsp" },
-  prettier.tool(),
-  { name = "biome", bin = "biome", kind = "lint" },
-})
-
-require("lib.lsp").enable("cssls")
-
-return {
-  prettier.conform({ "css", "scss", "less" }),
-  {
-    "mfussenegger/nvim-lint",
-    opts = {
-      linters_by_ft = {
-        css = { "biomejs" },
-      },
+function M.setup(bufnr)
+  require("lib.tools").check_now({
+    {
+      name = "vscode-css-language-server",
+      bin = "vscode-css-language-server",
+      kind = "lsp",
     },
-  },
-  {
-    "nvim-treesitter/nvim-treesitter",
-    opts = { ensure_installed = { "css", "scss" } },
-  },
-}
+    require("lib.prettier").tool(),
+    { name = "biome", bin = "biome", kind = "lint" },
+  })
+
+  require("lib.lsp").enable("cssls", bufnr)
+
+  local registry = require("lib.lang_registry")
+  registry.add_formatters({ "css", "scss", "less" }, { "prettier" })
+  registry.add_linter("css", { "biomejs" })
+  registry.ensure_parsers({ "css", "scss" })
+end
+
+return M

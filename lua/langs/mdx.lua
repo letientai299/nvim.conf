@@ -1,19 +1,17 @@
-local prettier = require("lib.prettier")
+local M = {}
 
-require("lib.tools").check("mdx", {
-  { name = "mdx-language-server", bin = "mdx-language-server", kind = "lsp" },
-  prettier.tool(),
-})
+function M.setup(bufnr)
+  require("lib.tools").check_now({
+    { name = "mdx-language-server", bin = "mdx-language-server", kind = "lsp" },
+    require("lib.prettier").tool(),
+  })
 
-vim.filetype.add({ extension = { mdx = "mdx" } })
-vim.treesitter.language.register("markdown", "mdx")
+  vim.treesitter.language.register("markdown", "mdx")
+  require("lib.lsp").enable("mdx_analyzer", bufnr)
 
-require("lib.lsp").enable("mdx_analyzer")
+  local registry = require("lib.lang_registry")
+  registry.add_formatters("mdx", { "prettier" })
+  registry.ensure_parsers({ "markdown", "markdown_inline" })
+end
 
-return {
-  prettier.conform("mdx"),
-  {
-    "nvim-treesitter/nvim-treesitter",
-    opts = { ensure_installed = { "markdown", "markdown_inline" } },
-  },
-}
+return M

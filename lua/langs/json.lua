@@ -1,24 +1,20 @@
-local prettier = require("lib.prettier")
+local M = {}
 
-require("lib.tools").check({ "json", "jsonc" }, {
-  { name = "vscode-json-languageserver", bin = "vscode-json-languageserver", kind = "lsp" },
-  prettier.tool(),
-})
-
-vim.lsp.config("jsonls", {
-  settings = {
-    json = {
-      schemas = require("schemastore").json.schemas(),
-      validate = { enable = true },
+function M.setup(bufnr)
+  require("lib.tools").check_now({
+    {
+      name = "vscode-json-languageserver",
+      bin = "vscode-json-languageserver",
+      kind = "lsp",
     },
-  },
-})
-require("lib.lsp").enable("jsonls")
+    require("lib.prettier").tool(),
+  })
 
-return {
-  prettier.conform({ "json", "jsonc" }),
-  {
-    "nvim-treesitter/nvim-treesitter",
-    opts = { ensure_installed = { "json" } },
-  },
-}
+  require("lib.lsp").enable("jsonls", bufnr)
+
+  local registry = require("lib.lang_registry")
+  registry.add_formatters({ "json", "jsonc" }, { "prettier" })
+  registry.ensure_parsers({ "json" })
+end
+
+return M

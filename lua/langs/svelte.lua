@@ -1,26 +1,19 @@
-local prettier = require("lib.prettier")
+local M = {}
 
-require("lib.tools").check("svelte", {
-  { name = "svelteserver", bin = "svelteserver", kind = "lsp" },
-  prettier.tool(),
-  { name = "biome", bin = "biome", kind = "lint" },
-  { name = "svelte-check", bin = "svelte-check", kind = "check" },
-})
+function M.setup(bufnr)
+  require("lib.tools").check_now({
+    { name = "svelteserver", bin = "svelteserver", kind = "lsp" },
+    require("lib.prettier").tool(),
+    { name = "biome", bin = "biome", kind = "lint" },
+    { name = "svelte-check", bin = "svelte-check", kind = "check" },
+  })
 
-require("lib.lsp").enable("svelte")
+  require("lib.lsp").enable("svelte", bufnr)
 
-return {
-  prettier.conform("svelte"),
-  {
-    "mfussenegger/nvim-lint",
-    opts = {
-      linters_by_ft = {
-        svelte = { "biomejs" },
-      },
-    },
-  },
-  {
-    "nvim-treesitter/nvim-treesitter",
-    opts = { ensure_installed = { "svelte" } },
-  },
-}
+  local registry = require("lib.lang_registry")
+  registry.add_formatters("svelte", { "prettier" })
+  registry.add_linter("svelte", { "biomejs" })
+  registry.ensure_parsers({ "svelte" })
+end
+
+return M

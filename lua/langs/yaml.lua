@@ -1,24 +1,20 @@
-local prettier = require("lib.prettier")
+local M = {}
 
-require("lib.tools").check("yaml", {
-  { name = "yaml-language-server", bin = "yaml-language-server", kind = "lsp" },
-  prettier.tool(),
-})
-
-vim.lsp.config("yamlls", {
-  settings = {
-    yaml = {
-      schemaStore = { enable = false, url = "" },
-      schemas = require("schemastore").yaml.schemas(),
+function M.setup(bufnr)
+  require("lib.tools").check_now({
+    {
+      name = "yaml-language-server",
+      bin = "yaml-language-server",
+      kind = "lsp",
     },
-  },
-})
-require("lib.lsp").enable("yamlls")
+    require("lib.prettier").tool(),
+  })
 
-return {
-  prettier.conform("yaml"),
-  {
-    "nvim-treesitter/nvim-treesitter",
-    opts = { ensure_installed = { "yaml" } },
-  },
-}
+  require("lib.lsp").enable("yamlls", bufnr)
+
+  local registry = require("lib.lang_registry")
+  registry.add_formatters("yaml", { "prettier" })
+  registry.ensure_parsers({ "yaml" })
+end
+
+return M

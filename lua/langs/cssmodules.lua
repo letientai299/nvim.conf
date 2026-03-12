@@ -1,9 +1,15 @@
-local fts = { "javascript", "javascriptreact", "typescript", "typescriptreact" }
+local M = {}
 
-require("lib.tools").check(fts, {
-  { name = "cssmodules-language-server", bin = "cssmodules-language-server", kind = "lsp" },
-})
+function M.setup(bufnr)
+  require("lib.tools").check_now({
+    {
+      name = "cssmodules-language-server",
+      bin = "cssmodules-language-server",
+      kind = "lsp",
+    },
+  })
 
-require("lib.lsp").enable("cssmodules_ls")
+  require("lib.lsp").enable("cssmodules_ls", bufnr)
+end
 
-return {}
+return M

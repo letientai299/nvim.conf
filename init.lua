@@ -6,6 +6,7 @@ require("options")
 require("keymaps")
 require("commands")
 require("notes").setup()
+require("langs").setup()
 pcall(require, "local")
 
 -- Disable netrw (oil.nvim replaces it)
@@ -37,11 +38,15 @@ do
     if ok and state then
       if state.globalBeforeCode and state.globalBeforeCode ~= "" then
         local fn = loadstring(state.globalBeforeCode)
-        if fn then fn() end
+        if fn then
+          fn()
+        end
       end
       if state.beforeCode and state.beforeCode ~= "" then
         local fn = loadstring(state.beforeCode)
-        if fn then fn() end
+        if fn then
+          fn()
+        end
       end
       _themery_cs = state.colorscheme
     end
@@ -52,7 +57,6 @@ require("lazy").setup({
   spec = {
     { import = "plugins" },
     { import = "plugins.themes" },
-    { import = "langs" },
     vim.uv.fs_stat(vim.fn.stdpath("config") .. "/lua/local/plugins") and {
       import = "local.plugins",
     } or nil,
