@@ -1,5 +1,5 @@
 return {
   "nvim-mini/mini.splitjoin",
-  lazy = false,
+  keys = { { "gS", mode = { "n", "x" } } },
   opts = {},
 }
