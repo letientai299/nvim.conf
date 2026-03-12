@@ -1,6 +1,6 @@
 return {
   "nvim-mini/mini.indentscope",
-  lazy = false,
+  event = "VeryLazy",
   opts = {
     symbol = "│",
   },

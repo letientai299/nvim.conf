@@ -1,6 +1,6 @@
 return {
   "nvim-mini/mini.clue",
-  lazy = false,
+  event = "VeryLazy",
   config = function()
     local miniclue = require("mini.clue")
 

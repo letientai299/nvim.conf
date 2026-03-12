@@ -55,7 +55,11 @@ function M.setup()
       pattern = spec.ft,
       once = true,
       callback = function(args)
-        require(spec.module).setup(args.buf)
+        vim.schedule(function()
+          if vim.api.nvim_buf_is_valid(args.buf) then
+            require(spec.module).setup(args.buf)
+          end
+        end)
       end,
     })
   end

@@ -1,9 +1,6 @@
 return {
   "nvim-mini/mini.ai",
-  dependencies = {
-    { "nvim-treesitter/nvim-treesitter-textobjects", branch = "main" },
-  },
-  lazy = false,
+  event = "VeryLazy",
   opts = {
     -- Search the whole buffer; default 50 breaks large classes (C#, Java).
     n_lines = math.huge,

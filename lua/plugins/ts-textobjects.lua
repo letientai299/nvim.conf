@@ -5,7 +5,7 @@ return {
   "nvim-treesitter/nvim-treesitter-textobjects",
   branch = "main",
   dependencies = { "nvim-treesitter/nvim-treesitter" },
-  lazy = false,
+  event = "VeryLazy",
   config = function()
     require("nvim-treesitter-textobjects").setup({
       move = { set_jumps = true },

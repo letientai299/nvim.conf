@@ -1,5 +1,5 @@
 return {
   "nvim-mini/mini.surround",
-  lazy = false,
+  event = "VeryLazy",
   opts = {},
 }

@@ -50,8 +50,8 @@ end
 
 return {
   "stevearc/oil.nvim",
-  lazy = false,
   priority = 900,
+  cmd = "Oil",
   keys = {
     {
       [[<C-\>]],
@@ -79,6 +79,30 @@ return {
       ["gd"] = { desc = "Toggle file detail view", callback = M.toggle_detail },
     },
   },
+  init = function()
+    if vim.fn.argc() ~= 1 then
+      return
+    end
+
+    local arg = vim.fn.argv(0)
+    if arg == "" then
+      return
+    end
+
+    local path = vim.fn.fnamemodify(arg, ":p")
+    local stat = vim.uv.fs_stat(path)
+    if not stat or stat.type ~= "directory" then
+      return
+    end
+
+    vim.api.nvim_create_autocmd("VimEnter", {
+      once = true,
+      callback = function()
+        require("lazy").load({ plugins = { "oil.nvim" } })
+        require("oil").open(path)
+      end,
+    })
+  end,
   config = function(_, opts)
     require("oil").setup(opts)
     vim.api.nvim_create_autocmd("BufLeave", {
