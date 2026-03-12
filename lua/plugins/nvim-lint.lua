@@ -5,6 +5,30 @@ local slow_linters = {
   ["markdownlint-cli2"] = true,
 }
 
+-- Cache executable lookups so each linter is checked at most once per session.
+local available_cache = {}
+local function is_available(name)
+  if available_cache[name] ~= nil then return available_cache[name] end
+  local lint = require("lint")
+  local linter = lint.linters[name]
+  local cmd = linter and linter.cmd
+  if type(cmd) == "function" then cmd = cmd() end
+  local ok = cmd ~= nil and vim.fn.executable(cmd) == 1
+  available_cache[name] = ok
+  return ok
+end
+
+--- Filter a list of linter names to only those with an installed binary.
+local function filter_available(names)
+  local result = {}
+  for _, name in ipairs(names) do
+    if is_available(name) then
+      result[#result + 1] = name
+    end
+  end
+  return result
+end
+
 return {
   "mfussenegger/nvim-lint",
   event = { "BufWritePost", "BufReadPost", "InsertLeave" },
@@ -13,21 +37,6 @@ return {
   },
   config = function(_, opts)
     local lint = require("lint")
-
-    -- Drop linters whose binary is not installed
-    for ft, names in pairs(opts.linters_by_ft) do
-      local available = {}
-      for _, name in ipairs(names) do
-        local linter = lint.linters[name]
-        local cmd = linter and linter.cmd
-        if type(cmd) == "function" then cmd = cmd() end
-        if cmd and vim.fn.executable(cmd) == 1 then
-          available[#available + 1] = name
-        end
-      end
-      opts.linters_by_ft[ft] = available
-    end
-
     lint.linters_by_ft = opts.linters_by_ft
 
     -- Fast linters: InsertLeave + BufWritePost + BufReadPost
@@ -35,7 +44,10 @@ return {
     vim.api.nvim_create_autocmd({ "BufWritePost", "BufReadPost" }, {
       group = vim.api.nvim_create_augroup("nvim-lint", { clear = true }),
       callback = function()
-        lint.try_lint()
+        local ft = vim.bo.filetype
+        local names = lint.linters_by_ft[ft] or {}
+        local avail = filter_available(names)
+        if #avail > 0 then lint.try_lint(avail) end
       end,
     })
 
@@ -46,13 +58,11 @@ return {
         local names = lint.linters_by_ft[ft] or {}
         local fast = {}
         for _, name in ipairs(names) do
-          if not slow_linters[name] then
+          if not slow_linters[name] and is_available(name) then
             fast[#fast + 1] = name
           end
         end
-        if #fast > 0 then
-          lint.try_lint(fast)
-        end
+        if #fast > 0 then lint.try_lint(fast) end
       end,
     })
   end,
