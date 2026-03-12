@@ -1,4 +1,4 @@
-# nvim-conf
+# Nvim Config
 
 Pure Lua Neovim config, replacing `dotfiles/vim`.
 
@@ -46,7 +46,7 @@ these automatically is planned.
 | `gofumpt`                    | langs/go (format)     | `mise use -g gofumpt`                                |
 | `golangci-lint`              | langs/go (lint)       | `mise use -g golangci-lint`                          |
 | `marksman`                   | langs/markdown (LSP)  | `mise use -g marksman`                               |
-| `prettierd` / `prettier`     | langs/markdown (fmt)  | `mise use -g npm:@fsouza/prettierd prettier`         |
+| `prettier`                   | langs/markdown (fmt)  | `mise use -g prettier`                               |
 | `markdownlint-cli2`          | langs/markdown (lint) | `mise use -g markdownlint-cli2`                      |
 | `bash-language-server`       | langs/bash (LSP)      | `mise use -g npm:bash-language-server`               |
 | `shellcheck`                 | langs/bash (lint)     | `mise use -g shellcheck`                             |
@@ -54,6 +54,10 @@ these automatically is planned.
 | `vscode-json-languageserver` | langs/json (LSP)      | `mise use -g npm:vscode-json-languageserver`         |
 | `yaml-language-server`       | langs/yaml (LSP)      | `mise use -g npm:yaml-language-server`               |
 | `taplo`                      | langs/toml (LSP+fmt)  | `mise use -g taplo`                                  |
+| `rust-analyzer`              | langs/rust (LSP)      | `rustup component add rust-analyzer`                 |
+| `rustfmt`                    | langs/rust (format)   | `rustup component add rustfmt`                       |
+| Roslyn language server       | langs/csharp (LSP)    | See [roslyn install][roslyn-install]                 |
+| `csharpier`                  | langs/csharp (format) | `dotnet tool install -g csharpier`                   |
 
 [tree-sitter-cli][ts-cli] (0.26.1+) is needed to compile grammar parsers.
 Without it, `:TSInstall` for languages with external scanners (like `c_sharp`)
@@ -91,6 +95,8 @@ setup never had.
 **bold**, _italic_, **_both_**, ~~crossed~~, `-> ==> [] () != <> |> )( <|`,
 
 [jq]: https://jqlang.github.io/jq/
+[roslyn-install]:
+  https://github.com/seblyng/roslyn.nvim?tab=readme-ov-file#install-the-language-server
 [lazy]: https://github.com/folke/lazy.nvim
 [mini-surround]: https://github.com/nvim-mini/mini.surround
 [ts-cli]:

@@ -1,6 +1,7 @@
 require("lib.tools").check("astro", {
   { name = "astro-ls", bin = "astro-ls", kind = "lsp" },
-  { name = "prettierd", bin = "prettierd", kind = "fmt" },
+  { name = "prettier", bin = "prettier", kind = "fmt" },
+  { name = "eslint", bin = "vscode-eslint-language-server", kind = "lsp" },
 })
 
 vim.lsp.enable("astro")
@@ -10,7 +11,7 @@ return {
     "stevearc/conform.nvim",
     opts = {
       formatters_by_ft = {
-        astro = { "prettierd", "prettier", stop_after_first = true },
+        astro = { "prettier" },
       },
     },
   },

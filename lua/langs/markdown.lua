@@ -1,6 +1,6 @@
 require("lib.tools").check("markdown", {
   { name = "marksman", bin = "marksman", kind = "lsp" },
-  { name = "prettierd", bin = "prettierd", kind = "fmt" },
+  { name = "prettier", bin = "prettier", kind = "fmt" },
   { name = "markdownlint-cli2", bin = "markdownlint-cli2", kind = "lint" },
 })
 
@@ -11,7 +11,7 @@ return {
     "stevearc/conform.nvim",
     opts = {
       formatters_by_ft = {
-        markdown = { "prettierd", "prettier", stop_after_first = true },
+        markdown = { "prettier" },
       },
     },
   },

@@ -1,8 +1,8 @@
 require("lib.tools").check("vue", {
   { name = "vue-language-server", bin = "vue-language-server", kind = "lsp" },
-  { name = "prettierd", bin = "prettierd", kind = "fmt" },
+  { name = "prettier", bin = "prettier", kind = "fmt" },
   { name = "biome", bin = "biome", kind = "lint" },
-  { name = "eslint_d", bin = "eslint_d", kind = "lint" },
+  { name = "eslint", bin = "vscode-eslint-language-server", kind = "lsp" },
 })
 
 vim.lsp.enable("vue_ls")
@@ -12,7 +12,7 @@ return {
     "stevearc/conform.nvim",
     opts = {
       formatters_by_ft = {
-        vue = { "prettierd", "prettier", stop_after_first = true },
+        vue = { "prettier" },
       },
     },
   },
@@ -20,7 +20,7 @@ return {
     "mfussenegger/nvim-lint",
     opts = {
       linters_by_ft = {
-        vue = { "biomejs", "eslint_d" },
+        vue = { "biomejs" },
       },
     },
   },

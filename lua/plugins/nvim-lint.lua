@@ -13,6 +13,21 @@ return {
   },
   config = function(_, opts)
     local lint = require("lint")
+
+    -- Drop linters whose binary is not installed
+    for ft, names in pairs(opts.linters_by_ft) do
+      local available = {}
+      for _, name in ipairs(names) do
+        local linter = lint.linters[name]
+        local cmd = linter and linter.cmd
+        if type(cmd) == "function" then cmd = cmd() end
+        if cmd and vim.fn.executable(cmd) == 1 then
+          available[#available + 1] = name
+        end
+      end
+      opts.linters_by_ft[ft] = available
+    end
+
     lint.linters_by_ft = opts.linters_by_ft
 
     -- Fast linters: InsertLeave + BufWritePost + BufReadPost

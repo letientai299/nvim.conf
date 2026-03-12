@@ -1,8 +1,8 @@
 require("lib.tools").check("svelte", {
   { name = "svelteserver", bin = "svelteserver", kind = "lsp" },
-  { name = "prettierd", bin = "prettierd", kind = "fmt" },
+  { name = "prettier", bin = "prettier", kind = "fmt" },
   { name = "biome", bin = "biome", kind = "lint" },
-  { name = "eslint_d", bin = "eslint_d", kind = "lint" },
+  { name = "eslint", bin = "vscode-eslint-language-server", kind = "lsp" },
   { name = "svelte-check", bin = "svelte-check", kind = "check" },
 })
 
@@ -13,7 +13,7 @@ return {
     "stevearc/conform.nvim",
     opts = {
       formatters_by_ft = {
-        svelte = { "prettierd", "prettier", stop_after_first = true },
+        svelte = { "prettier" },
       },
     },
   },
@@ -21,7 +21,7 @@ return {
     "mfussenegger/nvim-lint",
     opts = {
       linters_by_ft = {
-        svelte = { "biomejs", "eslint_d" },
+        svelte = { "biomejs" },
       },
     },
   },
