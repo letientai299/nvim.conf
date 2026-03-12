@@ -51,6 +51,7 @@ end
 return {
   "stevearc/oil.nvim",
   lazy = false,
+  priority = 900,
   keys = {
     {
       [[<C-\>]],

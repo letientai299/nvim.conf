@@ -3,6 +3,7 @@
 -- the correct commentstring at cursor position.
 return {
   "JoosepAlviste/nvim-ts-context-commentstring",
+  lazy = true,
   opts = {
     enable_autocmd = false,
   },

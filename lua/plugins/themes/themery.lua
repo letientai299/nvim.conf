@@ -34,8 +34,7 @@ end
 
 return {
   "zaldih/themery.nvim",
-  lazy = false,
-  priority = 1000,
+  cmd = "Themery",
   keys = {
     { "<leader>ft", "<Cmd>Themery<CR>", desc = "Colorschemes" },
   },
