@@ -38,6 +38,7 @@ these automatically is planned.
 | C compiler        | nvim-treesitter     | Xcode CLT / `gcc` / `clang`   |
 | `git`             | lazy.nvim, parsers  | `brew install git`             |
 | `curl`            | nvim-treesitter     | Usually preinstalled           |
+| [jq][]            | git pre-commit hook | `brew install jq`              |
 
 [tree-sitter-cli][ts-cli] (0.26.1+) is needed to compile grammar parsers.
 Without it, `:TSInstall` for languages with external scanners (like `c_sharp`)
@@ -65,6 +66,7 @@ never had.
 
 **bold**, _italic_, **_both_**, ~~crossed~~, `-> ==> [] () != <> |> )( <|`,
 
+[jq]: https://jqlang.github.io/jq/
 [lazy]: https://github.com/folke/lazy.nvim
 [mini-surround]: https://github.com/nvim-mini/mini.surround
 [ts-cli]: https://github.com/tree-sitter/tree-sitter/blob/master/crates/cli/README.md
