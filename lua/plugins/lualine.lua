@@ -7,6 +7,10 @@ return {
 			section_separators = "",
 			component_separators = "",
 		},
+		tabline = {
+			lualine_a = { { "buffers", show_filename_only = true, mode = 2 } },
+			lualine_z = { "tabs" },
+		},
 		sections = {
 			lualine_a = { "mode" },
 			lualine_b = { "branch" },

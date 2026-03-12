@@ -10,6 +10,8 @@ return {
     local cfg = require("alpha.themes.startify")
     cfg.section.header.val = {}
     alpha.setup(cfg.config)
+    -- Unlist the empty startup buffer so it doesn't show in bufferline.
+    vim.bo.buflisted = false
     alpha.start(false)
   end,
 }
