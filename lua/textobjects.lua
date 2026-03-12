@@ -8,7 +8,9 @@ local function ts(captures, opts)
   return function(...)
     local ts_spec = require("mini.ai").gen_spec.treesitter(captures, opts)
     local ok, result = pcall(ts_spec, ...)
-    if ok then return result end
+    if ok then
+      return result
+    end
   end
 end
 
@@ -41,8 +43,12 @@ function M.e(ai_type)
   local first = 1
   local last = vim.fn.line("$")
   if ai_type == "i" then
-    while first <= last and vim.fn.getline(first):find("^%s*$") do first = first + 1 end
-    while last >= first and vim.fn.getline(last):find("^%s*$") do last = last - 1 end
+    while first <= last and vim.fn.getline(first):find("^%s*$") do
+      first = first + 1
+    end
+    while last >= first and vim.fn.getline(last):find("^%s*$") do
+      last = last - 1
+    end
   end
   return {
     from = { line = first, col = 1 },

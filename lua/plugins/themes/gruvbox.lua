@@ -13,7 +13,15 @@ return {
     },
   },
   themes = {
-    { name = "Gruvbox Dark", colorscheme = "gruvbox", before = [[vim.opt.background = "dark"]] },
-    { name = "Gruvbox Light", colorscheme = "gruvbox", before = [[vim.opt.background = "light"]] },
+    {
+      name = "Gruvbox Dark",
+      colorscheme = "gruvbox",
+      before = [[vim.opt.background = "dark"]],
+    },
+    {
+      name = "Gruvbox Light",
+      colorscheme = "gruvbox",
+      before = [[vim.opt.background = "light"]],
+    },
   },
 }

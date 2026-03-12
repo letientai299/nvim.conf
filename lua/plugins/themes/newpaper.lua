@@ -7,7 +7,15 @@ return {
     keywords = "italic",
   },
   themes = {
-    { name = "Newpaper Light", colorscheme = "newpaper", before = [[vim.opt.background = "light"]] },
-    { name = "Newpaper Dark", colorscheme = "newpaper", before = [[vim.opt.background = "dark"]] },
+    {
+      name = "Newpaper Light",
+      colorscheme = "newpaper",
+      before = [[vim.opt.background = "light"]],
+    },
+    {
+      name = "Newpaper Dark",
+      colorscheme = "newpaper",
+      before = [[vim.opt.background = "dark"]],
+    },
   },
 }

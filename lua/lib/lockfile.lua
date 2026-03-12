@@ -11,16 +11,22 @@ function M.strip_local_plugins()
       local_names[#local_names + 1] = name
     end
   end
-  if #local_names == 0 then return end
+  if #local_names == 0 then
+    return
+  end
   table.sort(local_names)
 
   -- Read lockfile
   local lockfile = config.options.lockfile
   local f = io.open(lockfile, "r")
-  if not f then return end
+  if not f then
+    return
+  end
   local ok, data = pcall(vim.json.decode, f:read("*a"))
   f:close()
-  if not ok then return end
+  if not ok then
+    return
+  end
 
   -- Remove local plugin entries
   for _, name in ipairs(local_names) do
@@ -33,7 +39,11 @@ function M.strip_local_plugins()
   local lines = {}
   for i, key in ipairs(keys) do
     local comma = i < #keys and "," or ""
-    lines[#lines + 1] = ("  %s: %s%s"):format(vim.json.encode(key), vim.json.encode(data[key]), comma)
+    lines[#lines + 1] = ("  %s: %s%s"):format(
+      vim.json.encode(key),
+      vim.json.encode(data[key]),
+      comma
+    )
   end
   f = io.open(lockfile, "w")
   f:write("{\n" .. table.concat(lines, "\n") .. "\n}\n")

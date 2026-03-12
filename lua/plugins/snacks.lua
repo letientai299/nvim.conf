@@ -1,7 +1,14 @@
 return {
   "folke/snacks.nvim",
   keys = {
-    { "<Leader>go", function() require("snacks").gitbrowse() end, mode = { "n", "v" }, desc = "Open in browser" },
+    {
+      "<Leader>go",
+      function()
+        require("snacks").gitbrowse()
+      end,
+      mode = { "n", "v" },
+      desc = "Open in browser",
+    },
     {
       "<Leader>gO",
       function()

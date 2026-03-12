@@ -1,8 +1,20 @@
 return {
   "lewis6991/hover.nvim",
   keys = {
-    { "K", function() require("hover").open() end, desc = "Hover" },
-    { "gK", function() require("hover").enter() end, desc = "Hover (enter window)" },
+    {
+      "K",
+      function()
+        require("hover").open()
+      end,
+      desc = "Hover",
+    },
+    {
+      "gK",
+      function()
+        require("hover").enter()
+      end,
+      desc = "Hover (enter window)",
+    },
   },
   opts = {
     providers = {

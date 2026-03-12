@@ -21,7 +21,8 @@ return {
     end
 
     -- Try to find the help tag
-    local ok, tag_match = pcall(vim.fn.taglist, "^" .. vim.fn.escape(word, "\\") .. "$", "")
+    local ok, tag_match =
+      pcall(vim.fn.taglist, "^" .. vim.fn.escape(word, "\\") .. "$", "")
     if not ok or #tag_match == 0 then
       return done(false)
     end
@@ -39,7 +40,10 @@ return {
         local pattern = vim.fn.escape(word, "\\")
         local start_line = nil
         for i, line in ipairs(lines) do
-          if line:find(pattern, 1, true) and line:find("%*" .. vim.pesc(word) .. "%*") then
+          if
+            line:find(pattern, 1, true)
+            and line:find("%*" .. vim.pesc(word) .. "%*")
+          then
             start_line = i
             break
           end
@@ -54,7 +58,9 @@ return {
         local end_line = math.min(start_line + 30, #lines)
         for i = start_line + 1, end_line do
           -- Stop at separator lines or next tag definition at line start
-          if lines[i] and (lines[i]:match("^===") or lines[i]:match("^%-%-%-")) then
+          if
+            lines[i] and (lines[i]:match("^===") or lines[i]:match("^%-%-%-"))
+          then
             end_line = i - 1
             break
           end
@@ -62,7 +68,9 @@ return {
 
         local excerpt = {}
         for i = start_line, end_line do
-          for _, part in ipairs(vim.split(lines[i] or "", "\n", { plain = true })) do
+          for _, part in
+            ipairs(vim.split(lines[i] or "", "\n", { plain = true }))
+          do
             excerpt[#excerpt + 1] = part
           end
         end

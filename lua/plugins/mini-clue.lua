@@ -18,7 +18,10 @@ return {
     local ce_postkeys = {}
     for _, action in ipairs(ce_actions) do
       vim.keymap.set("n", "<C-e>" .. action[1], action[2], { desc = action[3] })
-      table.insert(ce_postkeys, { mode = "n", keys = "<C-e>" .. action[1], postkeys = "<C-e>" })
+      table.insert(
+        ce_postkeys,
+        { mode = "n", keys = "<C-e>" .. action[1], postkeys = "<C-e>" }
+      )
     end
 
     miniclue.setup({
@@ -56,7 +59,10 @@ return {
         miniclue.gen_clues.marks(),
         miniclue.gen_clues.registers(),
         miniclue.gen_clues.square_brackets(),
-        miniclue.gen_clues.windows({ submode_move = false, submode_resize = false }),
+        miniclue.gen_clues.windows({
+          submode_move = false,
+          submode_resize = false,
+        }),
         miniclue.gen_clues.z(),
 
         ce_postkeys,

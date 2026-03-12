@@ -66,17 +66,17 @@ vim.o.winborder = "rounded"
 
 -- Diagnostics: show float on jump, virtual text inline, severity signs
 vim.diagnostic.config({
-	jump = { float = true },
-	virtual_text = { spacing = 4, prefix = "●" },
-	severity_sort = true,
+  jump = { float = true },
+  virtual_text = { spacing = 4, prefix = "●" },
+  severity_sort = true,
 })
 
 vim.api.nvim_create_user_command("GitRoot", function()
-	local root = vim.fs.root(0, ".git")
-	if root then
-		vim.fn.chdir(root)
-		vim.notify(root)
-	else
-		vim.notify("Not in a git repo", vim.log.levels.WARN)
-	end
+  local root = vim.fs.root(0, ".git")
+  if root then
+    vim.fn.chdir(root)
+    vim.notify(root)
+  else
+    vim.notify("Not in a git repo", vim.log.levels.WARN)
+  end
 end, {})

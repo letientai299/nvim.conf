@@ -5,8 +5,20 @@ return {
     "sindrets/diffview.nvim",
   },
   keys = {
-    { "<Leader>gg", function() require("neogit").open() end, desc = "Neogit status" },
-    { "<Leader>gl", function() require("neogit").open({ "log" }) end, desc = "Log (branch)" },
+    {
+      "<Leader>gg",
+      function()
+        require("neogit").open()
+      end,
+      desc = "Neogit status",
+    },
+    {
+      "<Leader>gl",
+      function()
+        require("neogit").open({ "log" })
+      end,
+      desc = "Log (branch)",
+    },
   },
   opts = {
     integrations = { diffview = true },

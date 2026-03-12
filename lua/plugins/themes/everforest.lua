@@ -7,7 +7,15 @@ return {
     dim_inactive_windows = true,
   },
   themes = {
-    { name = "Everforest Dark", colorscheme = "everforest", before = [[vim.opt.background = "dark"]] },
-    { name = "Everforest Light", colorscheme = "everforest", before = [[vim.opt.background = "light"]] },
+    {
+      name = "Everforest Dark",
+      colorscheme = "everforest",
+      before = [[vim.opt.background = "dark"]],
+    },
+    {
+      name = "Everforest Light",
+      colorscheme = "everforest",
+      before = [[vim.opt.background = "light"]],
+    },
   },
 }

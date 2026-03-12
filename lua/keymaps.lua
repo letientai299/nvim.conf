@@ -18,10 +18,25 @@ map("n", "<C-q>", "<Nop>")
 -- System clipboard
 -- ---------------------------------------------------------------------------
 
-map({ "n", "v" }, "<Leader>p", [["+p]], { desc = "Paste from system clipboard" })
-map({ "n", "v" }, "<Leader>P", [["+P]], { desc = "Paste before from system clipboard" })
+map(
+  { "n", "v" },
+  "<Leader>p",
+  [["+p]],
+  { desc = "Paste from system clipboard" }
+)
+map(
+  { "n", "v" },
+  "<Leader>P",
+  [["+P]],
+  { desc = "Paste before from system clipboard" }
+)
 map({ "n", "v" }, "<Leader>y", [["+y]], { desc = "Copy to system clipboard" })
-map({ "n", "v" }, "<Leader>Y", [["+Y]], { desc = "Copy line to system clipboard" })
+map(
+  { "n", "v" },
+  "<Leader>Y",
+  [["+Y]],
+  { desc = "Copy line to system clipboard" }
+)
 
 -- ---------------------------------------------------------------------------
 -- Center after search
@@ -46,7 +61,9 @@ map("c", "<C-n>", "<Down>")
 --- Create the file under cursor if it doesn't exist, then open it.
 local function create_file()
   local path = vim.fn.expand("<cfile>")
-  if path == "" then return end
+  if path == "" then
+    return
+  end
   if not vim.uv.fs_stat(path) then
     local dir = vim.fn.fnamemodify(path, ":h")
     if dir ~= "." and not vim.uv.fs_stat(dir) then
@@ -56,7 +73,12 @@ local function create_file()
   vim.cmd.edit(path)
 end
 
-map("n", "<Leader>cf", create_file, { desc = "Create file from path under cursor" })
+map(
+  "n",
+  "<Leader>cf",
+  create_file,
+  { desc = "Create file from path under cursor" }
+)
 map("n", "<Leader>w", "<Cmd>Dirsv<CR>", { desc = "Dirsv" })
 
 -- ---------------------------------------------------------------------------

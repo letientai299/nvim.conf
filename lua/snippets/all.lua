@@ -13,7 +13,28 @@ local function comment_prefix()
 end
 
 return {
-  s("td", { f(function() return comment_prefix() .. " TODO (tai): " end), i(0) }),
-  s("nt", { f(function() return comment_prefix() .. " NOTE (tai): " end), i(0) }),
-  s("fm", { f(function() return comment_prefix() .. " FIXME (tai): " end), i(0) }),
+  s(
+    "td",
+    { f(function()
+      return comment_prefix() .. " TODO (tai): "
+    end), i(
+      0
+    ) }
+  ),
+  s(
+    "nt",
+    { f(function()
+      return comment_prefix() .. " NOTE (tai): "
+    end), i(
+      0
+    ) }
+  ),
+  s(
+    "fm",
+    { f(function()
+      return comment_prefix() .. " FIXME (tai): "
+    end), i(
+      0
+    ) }
+  ),
 }

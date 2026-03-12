@@ -33,8 +33,12 @@ return {
 
     local function set_motions(buf)
       local opts_for = buf
-        and function(desc) return { desc = desc, buffer = buf } end
-        or function(desc) return { desc = desc } end
+          and function(desc)
+            return { desc = desc, buffer = buf }
+          end
+        or function(desc)
+          return { desc = desc }
+        end
       for _, m in ipairs(motions) do
         vim.keymap.set(modes, m[1], m[2], opts_for(m[3]))
       end
@@ -45,9 +49,14 @@ return {
 
     -- Re-apply as buffer-local after ftplugins that shadow ]m, ]], etc.
     vim.api.nvim_create_autocmd("FileType", {
-      group = vim.api.nvim_create_augroup("TsTextobjectsOverride", { clear = true }),
+      group = vim.api.nvim_create_augroup(
+        "TsTextobjectsOverride",
+        { clear = true }
+      ),
       pattern = { "python", "ruby", "gdscript", "eiffel" },
-      callback = function(ev) set_motions(ev.buf) end,
+      callback = function(ev)
+        set_motions(ev.buf)
+      end,
     })
 
     -- Make ; and , repeat the last treesitter move (and builtin f/F/t/T).

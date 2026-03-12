@@ -5,7 +5,15 @@ return {
     italic_comments = true,
   },
   themes = {
-    { name = "VSCode Dark", colorscheme = "vscode", before = [[vim.opt.background = "dark"]] },
-    { name = "VSCode Light", colorscheme = "vscode", before = [[vim.opt.background = "light"]] },
+    {
+      name = "VSCode Dark",
+      colorscheme = "vscode",
+      before = [[vim.opt.background = "dark"]],
+    },
+    {
+      name = "VSCode Light",
+      colorscheme = "vscode",
+      before = [[vim.opt.background = "light"]],
+    },
   },
 }

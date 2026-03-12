@@ -15,7 +15,9 @@ end
 --- Restore the search register saved by `save_search_and_open`.
 --- No-op if nothing was saved.
 function M.restore_search()
-  if prev_search == "" then return end
+  if prev_search == "" then
+    return
+  end
   vim.fn.setreg("/", prev_search)
   prev_search = ""
 end
@@ -23,7 +25,9 @@ end
 --- Return the git repo root for cwd, or nil outside a repo.
 function M.git_root()
   local out = vim.trim(vim.fn.system("git rev-parse --show-toplevel"))
-  if vim.v.shell_error ~= 0 then return nil end
+  if vim.v.shell_error ~= 0 then
+    return nil
+  end
   return out
 end
 
@@ -48,14 +52,29 @@ return {
   "stevearc/oil.nvim",
   lazy = false,
   keys = {
-    { [[<C-\>]], function() M.save_search_and_open(vim.fn.expand("%:p:h")) end, desc = "Oil: current file's directory" },
-    { [[<A-\>]], function() M.save_search_and_open(M.git_root()) end, desc = "Oil: git root" },
+    {
+      [[<C-\>]],
+      function()
+        M.save_search_and_open(vim.fn.expand("%:p:h"))
+      end,
+      desc = "Oil: current file's directory",
+    },
+    {
+      [[<A-\>]],
+      function()
+        M.save_search_and_open(M.git_root())
+      end,
+      desc = "Oil: git root",
+    },
   },
   opts = {
     view_options = { show_hidden = true },
     skip_confirm_for_simple_edits = true,
     keymaps = {
-      ["yp"] = { desc = "Copy filepath to system clipboard", callback = M.copy_filepath },
+      ["yp"] = {
+        desc = "Copy filepath to system clipboard",
+        callback = M.copy_filepath,
+      },
       ["gd"] = { desc = "Toggle file detail view", callback = M.toggle_detail },
     },
   },

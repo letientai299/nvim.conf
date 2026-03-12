@@ -2,7 +2,12 @@ return {
   "goolord/alpha-nvim",
   event = "VimEnter",
   config = function()
-    if vim.fn.argc() > 0 or vim.bo.buftype ~= "" or vim.fn.line("$") ~= 1 or vim.fn.getline(1) ~= "" then
+    if
+      vim.fn.argc() > 0
+      or vim.bo.buftype ~= ""
+      or vim.fn.line("$") ~= 1
+      or vim.fn.getline(1) ~= ""
+    then
       return
     end
 
