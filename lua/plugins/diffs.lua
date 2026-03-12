@@ -10,7 +10,8 @@
 -- https://github.com/NeogitOrg/neogit/discussions/1187
 return {
   "barrettruth/diffs.nvim",
-  init = function()
+  lazy = true,
+  config = function()
     vim.g.diffs = {
       integrations = {
         neogit = true,
