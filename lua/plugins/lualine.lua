@@ -13,11 +13,25 @@ return {
 		},
 		sections = {
 			lualine_a = { "mode" },
-			lualine_b = { "branch" },
-			lualine_c = { { "filename", path = 1 } },
-			lualine_x = { "diagnostics" },
+			lualine_b = {
+				"branch",
+				{
+					"diff",
+					source = function()
+						local gs = vim.b.gitsigns_status_dict
+						if not gs then return nil end
+						return { added = gs.added, modified = gs.changed, removed = gs.removed }
+					end,
+				},
+			},
+			lualine_c = { { "filename", path = 1 }, "searchcount" },
+			lualine_x = {
+				{ "lsp_status", symbols = { done = "", separator = " " } },
+				"diagnostics",
+			},
 			lualine_y = { "filetype" },
-			lualine_z = { "location" },
+			lualine_z = { "selectioncount", "location" },
 		},
+		extensions = { "oil", "toggleterm", "quickfix", "fzf", "lazy" },
 	},
 }
