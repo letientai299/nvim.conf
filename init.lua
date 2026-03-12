@@ -6,7 +6,6 @@ require("options")
 require("keymaps")
 require("commands")
 require("notes").setup()
-require("langs").setup()
 pcall(require, "local")
 
 -- Disable netrw (oil.nvim replaces it)
