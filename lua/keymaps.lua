@@ -89,6 +89,37 @@ map(
 map("n", "<Leader>w", "<Cmd>Dirsv<CR>", { desc = "Dirsv" })
 
 -- ---------------------------------------------------------------------------
+-- File navigation (prev/next in same directory)
+-- ---------------------------------------------------------------------------
+
+--- Get sorted sibling files, return the path offset by `delta` from current.
+local function sibling_file(delta)
+  local cur = vim.api.nvim_buf_get_name(0)
+  if cur == "" then
+    return
+  end
+  local dir = vim.fn.fnamemodify(cur, ":h")
+  local entries = {}
+  for name, type in vim.fs.dir(dir) do
+    if type == "file" then
+      entries[#entries + 1] = name
+    end
+  end
+  table.sort(entries)
+  local base = vim.fn.fnamemodify(cur, ":t")
+  for i, name in ipairs(entries) do
+    if name == base then
+      local target = entries[((i - 1 + delta) % #entries) + 1]
+      vim.cmd.edit(dir .. "/" .. target)
+      return
+    end
+  end
+end
+
+map("n", "[f", function() sibling_file(-1) end, { desc = "Previous file in directory" })
+map("n", "]f", function() sibling_file(1) end, { desc = "Next file in directory" })
+
+-- ---------------------------------------------------------------------------
 -- LSP actions
 -- ---------------------------------------------------------------------------
 
@@ -100,7 +131,9 @@ map("n", "<Leader>cf", lsp_buf("format", { async = true }), { desc = "Format" })
 -- Diagnostics
 -- ---------------------------------------------------------------------------
 
-map("n", "<Leader>dd", vim.diagnostic.open_float, { desc = "Line diagnostic" })
+map("n", "<Leader>dd", function()
+  vim.diagnostic.open_float()
+end, { desc = "Line diagnostic" })
 map("n", "<Leader>dl", function()
   vim.diagnostic.setloclist()
 end, { desc = "Diagnostic loclist" })
