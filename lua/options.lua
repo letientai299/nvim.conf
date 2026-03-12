@@ -20,8 +20,9 @@ vim.opt.cursorline = true
 -- Disable the fixed-column ruler (0 = off)
 vim.opt.colorcolumn = "80"
 
--- No soft wrapping — long lines scroll horizontally
-vim.opt.wrap = false
+-- Soft-wrap long lines at window edge (avoids horizontal scroll from ghost text)
+vim.opt.wrap = true
+vim.opt.linebreak = true
 
 -- Persistent undo across sessions, stored in undodir
 vim.opt.undofile = true
