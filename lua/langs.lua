@@ -16,6 +16,7 @@ local specs = {
   { module = "langs.lua", ft = { "lua" } },
   { module = "langs.markdown", ft = { "markdown", "markdown.mdx" } },
   { module = "langs.mdx", ft = { "mdx" } },
+  { module = "langs.python", ft = { "python" } },
   { module = "langs.racket", ft = { "racket" } },
   { module = "langs.rust", ft = { "rust" } },
   { module = "langs.sql", ft = { "sql" } },
