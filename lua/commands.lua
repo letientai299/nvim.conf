@@ -25,6 +25,17 @@ vim.api.nvim_create_user_command("AutoFormat", function()
   require("conform").format({ async = true, lsp_fallback = true })
 end, { desc = "Format current buffer with conform.nvim" })
 
+vim.api.nvim_create_user_command("LocalTodo", function()
+  local git_dir = vim.fn.system("git rev-parse --git-common-dir 2>/dev/null"):gsub("%s+$", "")
+  if vim.v.shell_error ~= 0 or git_dir == "" then
+    vim.notify("Not a git repo", vim.log.levels.ERROR)
+    return
+  end
+  local repo = vim.fn.fnamemodify(git_dir, ":h")
+  vim.fn.mkdir(repo .. "/.dump", "p")
+  vim.cmd.edit(repo .. "/.dump/todo.md")
+end, { desc = "Open per-repo todo file at .dump/todo.md" })
+
 vim.api.nvim_create_user_command("BufOnly", function()
   local cur = vim.api.nvim_get_current_buf()
   for _, buf in ipairs(vim.api.nvim_list_bufs()) do
