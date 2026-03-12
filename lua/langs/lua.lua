@@ -1,3 +1,8 @@
+require("lib.tools").check("lua", {
+  { name = "lua-language-server", bin = "lua-language-server", kind = "lsp" },
+  { name = "stylua", bin = "stylua", kind = "fmt" },
+})
+
 vim.lsp.enable("lua_ls")
 
 return {

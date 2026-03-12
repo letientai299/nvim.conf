@@ -1,3 +1,10 @@
+require("lib.tools").check("go", {
+  { name = "gopls", bin = "gopls", kind = "lsp" },
+  { name = "goimports", bin = "goimports", kind = "fmt" },
+  { name = "gofumpt", bin = "gofumpt", kind = "fmt" },
+  { name = "golangci-lint", bin = "golangci-lint", kind = "lint" },
+})
+
 vim.lsp.enable("gopls")
 
 return {

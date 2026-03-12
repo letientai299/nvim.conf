@@ -1,3 +1,8 @@
+require("lib.tools").check("sh", {
+  { name = "bash-language-server", bin = "bash-language-server", kind = "lsp" },
+  { name = "shfmt", bin = "shfmt", kind = "fmt" },
+})
+
 vim.lsp.enable("bashls")
 
 return {

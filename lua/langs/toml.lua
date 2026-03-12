@@ -1,3 +1,7 @@
+require("lib.tools").check("toml", {
+  { name = "taplo", bin = "taplo", kind = "lsp/fmt" },
+})
+
 vim.lsp.enable("taplo")
 
 return {

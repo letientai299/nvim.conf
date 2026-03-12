@@ -1,3 +1,9 @@
+require("lib.tools").check("markdown", {
+  { name = "marksman", bin = "marksman", kind = "lsp" },
+  { name = "prettierd", bin = "prettierd", kind = "fmt" },
+  { name = "markdownlint-cli2", bin = "markdownlint-cli2", kind = "lint" },
+})
+
 vim.lsp.enable("marksman")
 
 return {

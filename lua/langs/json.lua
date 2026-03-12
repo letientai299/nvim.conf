@@ -1,3 +1,7 @@
+require("lib.tools").check({ "json", "jsonc" }, {
+  { name = "vscode-json-languageserver", bin = "vscode-json-languageserver", kind = "lsp" },
+})
+
 vim.lsp.config("jsonls", {
   settings = {
     json = {

@@ -1,3 +1,7 @@
+require("lib.tools").check("yaml", {
+  { name = "yaml-language-server", bin = "yaml-language-server", kind = "lsp" },
+})
+
 vim.lsp.config("yamlls", {
   settings = {
     yaml = {

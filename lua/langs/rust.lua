@@ -1,3 +1,8 @@
+require("lib.tools").check("rust", {
+  { name = "rust-analyzer", bin = "rust-analyzer", kind = "lsp" },
+  { name = "rustfmt", bin = "rustfmt", kind = "fmt" },
+})
+
 vim.lsp.enable("rust_analyzer")
 
 return {
