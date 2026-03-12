@@ -4,7 +4,7 @@ require("lib.tools").check("vue", {
   { name = "biome", bin = "biome", kind = "lint" },
 })
 
-vim.lsp.enable("vue_ls")
+vim.lsp.enable("vls")
 
 return {
   {

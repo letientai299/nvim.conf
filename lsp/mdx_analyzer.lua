@@ -1,6 +1,10 @@
+local tsdk = require("lib.volar").get_tsdk()
+
 return {
   cmd = { "mdx-language-server", "--stdio" },
   filetypes = { "mdx" },
   root_markers = { "package.json", ".git" },
-  on_init = require("lib.volar").on_init,
+  init_options = {
+    typescript = { tsdk = tsdk },
+  },
 }

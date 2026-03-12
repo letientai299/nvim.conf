@@ -3,6 +3,9 @@ require("lib.tools").check("mdx", {
   { name = "prettier", bin = "prettier", kind = "fmt" },
 })
 
+vim.filetype.add({ extension = { mdx = "mdx" } })
+vim.treesitter.language.register("markdown", "mdx")
+
 vim.lsp.enable("mdx_analyzer")
 
 return {
@@ -13,5 +16,9 @@ return {
         mdx = { "prettier" },
       },
     },
+  },
+  {
+    "nvim-treesitter/nvim-treesitter",
+    opts = { ensure_installed = { "markdown", "markdown_inline" } },
   },
 }
