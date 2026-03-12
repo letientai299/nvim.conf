@@ -64,6 +64,13 @@ vim.opt.completeopt:append("fuzzy")
 -- Rounded borders on every floating window globally (0.11+)
 vim.o.winborder = "rounded"
 
+-- Diagnostics: show float on jump, virtual text inline, severity signs
+vim.diagnostic.config({
+	jump = { float = true },
+	virtual_text = { spacing = 4, prefix = "●" },
+	severity_sort = true,
+})
+
 vim.api.nvim_create_user_command("GitRoot", function()
 	local root = vim.fs.root(0, ".git")
 	if root then
