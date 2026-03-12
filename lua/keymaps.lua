@@ -120,6 +120,46 @@ map("n", "[f", function() sibling_file(-1) end, { desc = "Previous file in direc
 map("n", "]f", function() sibling_file(1) end, { desc = "Next file in directory" })
 
 -- ---------------------------------------------------------------------------
+-- Config editing / reloading
+-- ---------------------------------------------------------------------------
+
+local config_root = vim.fn.stdpath("config") --[[@as string]]
+
+--- Find the nearest .nvim.lua from cwd up to git root, or return git root path.
+local function find_project_exrc()
+  local root = vim.fs.root(0, ".git") or vim.uv.cwd()
+  local found = vim.fs.find(".nvim.lua", {
+    upward = true,
+    path = vim.uv.cwd(),
+    stop = vim.fn.fnamemodify(root, ":h"),
+  })
+  if found[1] then
+    return found[1]
+  end
+  return root .. "/.nvim.lua"
+end
+
+map("n", "<Leader>vl", function()
+  vim.cmd.edit(config_root .. "/lua/local/local.lua")
+end, { desc = "Edit machine-local config" })
+
+map("n", "<Leader>vp", function()
+  vim.cmd.edit(find_project_exrc())
+end, { desc = "Edit project .nvim.lua" })
+
+map("n", "<Leader>va", function()
+  local local_cfg = config_root .. "/lua/local/local.lua"
+  if vim.uv.fs_stat(local_cfg) then
+    vim.cmd.source(local_cfg)
+  end
+  local exrc = find_project_exrc()
+  if vim.uv.fs_stat(exrc) then
+    vim.cmd.source(exrc)
+  end
+  vim.notify("Reloaded local configs")
+end, { desc = "Reload local + project config" })
+
+-- ---------------------------------------------------------------------------
 -- LSP actions
 -- ---------------------------------------------------------------------------
 
