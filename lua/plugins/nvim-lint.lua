@@ -2,6 +2,7 @@
 -- Lang files should add entries here for linters that are too slow for real-time.
 local slow_linters = {
 	golangcilint = true,
+	["markdownlint-cli2"] = true,
 }
 
 return {
