@@ -1,3 +1,7 @@
+vim.bo.shiftwidth = 2
+vim.bo.tabstop = 2
+vim.bo.softtabstop = 2
+
 local function toggle_line(lnum)
   local line = vim.api.nvim_buf_get_lines(0, lnum - 1, lnum, false)[1]
   if line:match("^(%s*)%- %[x%]") then
