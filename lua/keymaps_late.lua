@@ -1,0 +1,223 @@
+-- Deferred keymaps that are not needed for the first painted frame.
+
+local map = vim.keymap.set
+
+local function lsp_buf(method, ...)
+  local args = { ... }
+  return function()
+    return vim.lsp.buf[method](unpack(args))
+  end
+end
+
+-- Free <C-q> from its built-in <C-v> alias so mini-clue can use it as a
+-- terminal prefix trigger.
+map("n", "<C-q>", "<Nop>")
+
+-- ---------------------------------------------------------------------------
+-- System clipboard
+-- ---------------------------------------------------------------------------
+
+map(
+  { "n", "v" },
+  "<Leader>p",
+  [["+p]],
+  { desc = "Paste from system clipboard" }
+)
+map(
+  { "n", "v" },
+  "<Leader>P",
+  [["+P]],
+  { desc = "Paste before from system clipboard" }
+)
+map({ "n", "v" }, "<Leader>yy", [["+y]], { desc = "Copy to system clipboard" })
+map(
+  { "n", "v" },
+  "<Leader>yY",
+  [["+Y]],
+  { desc = "Copy line to system clipboard" }
+)
+
+-- File path yank (mirrors oil's yn/yp/yP/yg for normal buffers)
+
+local function buf_path()
+  local name = vim.api.nvim_buf_get_name(0)
+  if name == "" then
+    return nil
+  end
+  return name
+end
+
+for _, m in ipairs({
+  { "yn", "name", "Copy filename" },
+  { "yp", "relative", "Copy relative path" },
+  { "yP", "absolute", "Copy absolute path" },
+  { "yg", "git", "Copy path from git root" },
+}) do
+  map("n", "<Leader>" .. m[1], function()
+    require("lib.yanker")[m[2]](buf_path())
+  end, { desc = m[3] })
+end
+
+map("n", "<Leader>yd", function()
+  local yanker = require("lib.yanker")
+  local diag = vim.diagnostic.get(0, { lnum = vim.fn.line(".") - 1 })
+  if #diag == 0 then
+    vim.notify("No diagnostics on this line", vim.log.levels.WARN)
+    return
+  end
+  local path = yanker.relpath(buf_path(), vim.fn.getcwd())
+  local parts = {}
+  for _, d in ipairs(diag) do
+    parts[#parts + 1] = string.format("%s:%d: %s", path, d.lnum + 1, d.message)
+  end
+  yanker.put(table.concat(parts, "\n"))
+end, { desc = "Copy diagnostic with path:line" })
+
+-- ---------------------------------------------------------------------------
+-- Center after search
+-- ---------------------------------------------------------------------------
+
+map("n", "n", "nzz")
+map("n", "N", "Nzz")
+map("n", "*", "*zz")
+map("n", "#", "#zz")
+
+-- ---------------------------------------------------------------------------
+-- Cmdline history navigation
+-- ---------------------------------------------------------------------------
+
+map("c", "<C-p>", "<Up>")
+map("c", "<C-n>", "<Down>")
+
+-- ---------------------------------------------------------------------------
+-- Create file from path under cursor
+-- ---------------------------------------------------------------------------
+
+--- Create the file under cursor if it doesn't exist, then open it.
+local function create_file()
+  local path = vim.fn.expand("<cfile>")
+  if path == "" then
+    return
+  end
+  if not vim.uv.fs_stat(path) then
+    local dir = vim.fn.fnamemodify(path, ":h")
+    if dir ~= "." and not vim.uv.fs_stat(dir) then
+      vim.fn.mkdir(dir, "p")
+    end
+  end
+  vim.cmd.edit(path)
+end
+
+map(
+  "n",
+  "<Leader>cn",
+  create_file,
+  { desc = "Create file from path under cursor" }
+)
+map("n", "<Leader>w", "<Cmd>Dirsv<CR>", { desc = "Dirsv" })
+
+-- ---------------------------------------------------------------------------
+-- File navigation (prev/next in same directory)
+-- ---------------------------------------------------------------------------
+
+--- Get sorted sibling files, return the path offset by `delta` from current.
+local function sibling_file(delta)
+  local cur = vim.api.nvim_buf_get_name(0)
+  if cur == "" then
+    return
+  end
+  local dir = vim.fn.fnamemodify(cur, ":h")
+  local entries = {}
+  for name, type in vim.fs.dir(dir) do
+    if type == "file" then
+      entries[#entries + 1] = name
+    end
+  end
+  table.sort(entries)
+  local base = vim.fn.fnamemodify(cur, ":t")
+  for i, name in ipairs(entries) do
+    if name == base then
+      local target = entries[((i - 1 + delta) % #entries) + 1]
+      vim.cmd.edit(dir .. "/" .. target)
+      return
+    end
+  end
+end
+
+map("n", "[f", function()
+  sibling_file(-1)
+end, { desc = "Previous file in directory" })
+map("n", "]f", function()
+  sibling_file(1)
+end, { desc = "Next file in directory" })
+
+-- ---------------------------------------------------------------------------
+-- Config editing / reloading
+-- ---------------------------------------------------------------------------
+
+local config_root = vim.fn.stdpath("config") --[[@as string]]
+
+--- Find the nearest .nvim.lua from cwd up to git root, or return git root path.
+local function find_project_exrc()
+  local root = vim.fs.root(0, ".git") or vim.uv.cwd()
+  local found = vim.fs.find(".nvim.lua", {
+    upward = true,
+    path = vim.uv.cwd(),
+    stop = vim.fn.fnamemodify(root, ":h"),
+  })
+  if found[1] then
+    return found[1]
+  end
+  return root .. "/.nvim.lua"
+end
+
+map("n", "<Leader>vl", function()
+  vim.cmd.edit(config_root .. "/lua/local/local.lua")
+end, { desc = "Edit machine-local config" })
+
+map("n", "<Leader>vp", function()
+  vim.cmd.edit(find_project_exrc())
+end, { desc = "Edit project .nvim.lua" })
+
+map("n", "<Leader>va", function()
+  local local_cfg = config_root .. "/lua/local/local.lua"
+  if vim.uv.fs_stat(local_cfg) then
+    vim.cmd.source(local_cfg)
+  end
+  local exrc = find_project_exrc()
+  if vim.uv.fs_stat(exrc) then
+    vim.cmd.source(exrc)
+  end
+  vim.notify("Reloaded local configs")
+end, { desc = "Reload local + project config" })
+
+-- ---------------------------------------------------------------------------
+-- LSP actions
+-- ---------------------------------------------------------------------------
+
+map("n", "<Leader>ca", lsp_buf("code_action"), { desc = "Code action" })
+map("n", "<Leader>cr", lsp_buf("rename"), { desc = "Rename" })
+map("n", "<Leader>cf", lsp_buf("format", { async = true }), { desc = "Format" })
+
+-- ---------------------------------------------------------------------------
+-- Diagnostics
+-- ---------------------------------------------------------------------------
+
+map("n", "<Leader>dd", function()
+  vim.diagnostic.open_float()
+end, { desc = "Line diagnostic" })
+map("n", "<Leader>dl", function()
+  vim.diagnostic.setloclist()
+end, { desc = "Diagnostic loclist" })
+map("n", "<Leader>dq", function()
+  vim.diagnostic.setqflist()
+end, { desc = "Diagnostic quickfix" })
+
+-- ---------------------------------------------------------------------------
+-- Go to (LSP)
+-- ---------------------------------------------------------------------------
+
+map("n", "gd", lsp_buf("definition"), { desc = "Go to definition" })
+map("n", "gD", lsp_buf("declaration"), { desc = "Go to declaration" })
+map("n", "gi", lsp_buf("implementation"), { desc = "Go to implementation" })
+map("n", "gI", lsp_buf("type_definition"), { desc = "Go to type definition" })

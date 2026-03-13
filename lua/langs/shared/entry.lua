@@ -47,7 +47,7 @@ function M.setup(key, bufnr, opts)
     end
   end
 
-  if bufnr then
+  local function setup_buffer()
     if opts.tools then
       require("lib.tools").check_now(opts.tools)
     end
@@ -59,6 +59,23 @@ function M.setup(key, bufnr, opts)
     if opts.each then
       opts.each(bufnr)
     end
+  end
+
+  if bufnr then
+    if vim.v.vim_did_enter == 0 then
+      vim.api.nvim_create_autocmd("User", {
+        pattern = "VeryLazy",
+        once = true,
+        callback = function()
+          if vim.api.nvim_buf_is_valid(bufnr) then
+            setup_buffer()
+          end
+        end,
+      })
+      return
+    end
+
+    setup_buffer()
   end
 end
 
