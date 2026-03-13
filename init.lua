@@ -124,7 +124,12 @@ local _themery_cs = _themery_load()
 require("lazy").setup({
   spec = {
     { import = "plugins" },
-    { import = "plugins.themes" },
+    {
+      name = "plugins.themes",
+      import = function()
+        return require("plugins.themes")
+      end,
+    },
     vim.uv.fs_stat(vim.fn.stdpath("config") .. "/lua/local/plugins") and {
       import = "local.plugins",
     } or nil,
