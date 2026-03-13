@@ -1,8 +1,8 @@
--- Slow linters excluded from InsertLeave (only run on BufWritePost/BufReadPost).
+-- Slow linters excluded from InsertLeave (only run on BufWritePost).
 -- Lang files should add entries here for linters that are too slow for real-time.
 local slow_linters = {
   golangcilint = true,
-  ["markdownlint-cli2"] = true,
+  rumdl = true,
 }
 
 -- Cache executable lookups so each linter is checked at most once per session.

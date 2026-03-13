@@ -44,7 +44,7 @@ taplo
 
 # Markdown
 marksman
-npm:markdownlint-cli2
+rumdl
 
 # Tailwind
 npm:tailwindcss-language-server
