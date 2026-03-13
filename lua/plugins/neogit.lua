@@ -22,6 +22,9 @@ return {
     },
   },
   opts = {
+    graph_style = "kitty",
+    remember_settings = true,
+    use_per_project_settings = true,
     integrations = { diffview = true },
   },
 }
