@@ -1,16 +1,18 @@
 return {
   "marko-cerovac/material.nvim",
   lazy = true,
-  opts = {
-    async_loading = true,
-    plugins = { "blink", "gitsigns", "mini" },
-    styles = {
-      comments = { italic = true },
-      keywords = { italic = true },
-      functions = { bold = true },
-      types = { bold = true },
-    },
-  },
+  opts = function()
+    return {
+      async_loading = true,
+      plugins = { "blink", "gitsigns", "mini" },
+      styles = {
+        comments = { italic = true },
+        keywords = { italic = true },
+        functions = { bold = true },
+        types = { bold = true },
+      },
+    }
+  end,
   themes = {
     {
       name = "Material Darker",

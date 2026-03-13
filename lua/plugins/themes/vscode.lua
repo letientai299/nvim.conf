@@ -1,9 +1,11 @@
 return {
   "Mofiqul/vscode.nvim",
   lazy = true,
-  opts = {
-    italic_comments = true,
-  },
+  opts = function()
+    return {
+      italic_comments = true,
+    }
+  end,
   themes = {
     {
       name = "VSCode Dark",

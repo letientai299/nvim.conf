@@ -1,26 +1,28 @@
 return {
   "EdenEast/nightfox.nvim",
   lazy = true,
-  opts = {
-    options = {
-      dim_inactive = true,
-      styles = {
-        comments = "italic",
-        keywords = "italic",
-        conditionals = "italic",
-        functions = "bold",
-        types = "bold",
+  opts = function()
+    return {
+      options = {
+        dim_inactive = true,
+        styles = {
+          comments = "italic",
+          keywords = "italic",
+          conditionals = "italic",
+          functions = "bold",
+          types = "bold",
+        },
+        modules = {
+          alpha = true,
+          gitsigns = true,
+          mini = true,
+          native_lsp = { enable = true },
+          neogit = true,
+          treesitter = true,
+        },
       },
-      modules = {
-        alpha = true,
-        gitsigns = true,
-        mini = true,
-        native_lsp = { enable = true },
-        neogit = true,
-        treesitter = true,
-      },
-    },
-  },
+    }
+  end,
   themes = {
     "nightfox",
     "dayfox",

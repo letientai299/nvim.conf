@@ -16,15 +16,17 @@ return {
       desc = "Hover (enter window)",
     },
   },
-  opts = {
-    providers = {
-      "hover.providers.diagnostic",
-      "hover.providers.lsp",
-      "lib.hover_vimhelp",
-      "hover.providers.man",
-      "hover.providers.dictionary",
-    },
-    preview_opts = { border = "rounded", max_width = 80, wrap = true },
-    title = true,
-  },
+  opts = function()
+    return {
+      providers = {
+        "hover.providers.diagnostic",
+        "hover.providers.lsp",
+        "lib.hover_vimhelp",
+        "hover.providers.man",
+        "hover.providers.dictionary",
+      },
+      preview_opts = { border = "rounded", max_width = 80, wrap = true },
+      title = true,
+    }
+  end,
 }

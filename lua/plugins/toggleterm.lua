@@ -234,17 +234,19 @@ return {
   "akinsho/toggleterm.nvim",
   version = "*",
   keys = keys,
-  opts = {
-    size = function(term)
-      return size(term.direction)
-    end,
-    shade_terminals = false,
-    float_opts = { border = "rounded", title_pos = "center" },
-    winbar = {
-      enabled = true,
-      name_formatter = function(term)
-        return "[" .. term.id .. "]"
+  opts = function()
+    return {
+      size = function(term)
+        return size(term.direction)
       end,
-    },
-  },
+      shade_terminals = false,
+      float_opts = { border = "rounded", title_pos = "center" },
+      winbar = {
+        enabled = true,
+        name_formatter = function(term)
+          return "[" .. term.id .. "]"
+        end,
+      },
+    }
+  end,
 }

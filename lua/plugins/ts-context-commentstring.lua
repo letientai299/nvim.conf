@@ -4,9 +4,11 @@
 return {
   "JoosepAlviste/nvim-ts-context-commentstring",
   lazy = true,
-  opts = {
-    enable_autocmd = false,
-  },
+  opts = function()
+    return {
+      enable_autocmd = false,
+    }
+  end,
   init = function()
     local get_option = vim.filetype.get_option
     vim.filetype.get_option = function(filetype, option)

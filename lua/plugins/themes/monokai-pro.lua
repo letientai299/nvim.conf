@@ -1,13 +1,15 @@
 return {
   "loctvl842/monokai-pro.nvim",
   lazy = true,
-  opts = {
-    styles = {
-      comment = { italic = true },
-      keyword = { italic = true },
-      type = { italic = true },
-    },
-  },
+  opts = function()
+    return {
+      styles = {
+        comment = { italic = true },
+        keyword = { italic = true },
+        type = { italic = true },
+      },
+    }
+  end,
   themes = {
     "monokai-pro",
     "monokai-pro-classic",

@@ -1,17 +1,19 @@
 return {
   "ellisonleao/gruvbox.nvim",
   lazy = true,
-  opts = {
-    dim_inactive = true,
-    bold = true,
-    italic = {
-      strings = true,
-      emphasis = true,
-      comments = true,
-      operators = false,
-      folds = true,
-    },
-  },
+  opts = function()
+    return {
+      dim_inactive = true,
+      bold = true,
+      italic = {
+        strings = true,
+        emphasis = true,
+        comments = true,
+        operators = false,
+        folds = true,
+      },
+    }
+  end,
   themes = {
     {
       name = "Gruvbox Dark",

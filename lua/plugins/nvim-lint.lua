@@ -35,9 +35,11 @@ end
 return {
   "mfussenegger/nvim-lint",
   event = { "BufWritePost", "InsertLeave" },
-  opts = {
-    linters_by_ft = {},
-  },
+  opts = function()
+    return {
+      linters_by_ft = {},
+    }
+  end,
   config = function(_, opts)
     require("lib.lang_registry").activate_lint(opts)
 

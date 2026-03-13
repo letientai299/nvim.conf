@@ -2,10 +2,12 @@ return {
   "neanias/everforest-nvim",
   lazy = true,
   main = "everforest",
-  opts = {
-    italics = true,
-    dim_inactive_windows = true,
-  },
+  opts = function()
+    return {
+      italics = true,
+      dim_inactive_windows = true,
+    }
+  end,
   themes = {
     {
       name = "Everforest Dark",

@@ -38,12 +38,14 @@ return {
       desc = "Select scratch buffer",
     },
   },
-  opts = {
-    gitbrowse = { enabled = true },
-    input = { enabled = true },
-    scratch = {
-      enabled = true,
-      ft = "markdown",
-    },
-  },
+  opts = function()
+    return {
+      gitbrowse = { enabled = true },
+      input = { enabled = true },
+      scratch = {
+        enabled = true,
+        ft = "markdown",
+      },
+    }
+  end,
 }

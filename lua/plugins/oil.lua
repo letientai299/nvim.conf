@@ -232,50 +232,52 @@ return {
         desc = "Oil: git root",
       },
     },
-    opts = {
-      columns = {},
-      win_options = {
-        signcolumn = "yes:2",
-      },
-      view_options = {
-        show_hidden = true,
-        highlight_filename = highlight_filename,
-      },
-      skip_confirm_for_simple_edits = true,
-      watch_for_changes = true,
-      keymaps = {
-        ["yn"] = { desc = "Yank filename", callback = M.yank_name },
-        ["yp"] = { desc = "Yank relative path", callback = M.yank_relative },
-        ["yP"] = { desc = "Yank absolute path", callback = M.yank_absolute },
-        ["yg"] = { desc = "Yank path from git root", callback = M.yank_git },
-        ["<C-p>"] = {
-          "actions.preview",
-          opts = { split = "belowright" },
+    opts = function()
+      return {
+        columns = {},
+        win_options = {
+          signcolumn = "yes:2",
         },
-        ["gd"] = {
-          desc = "Toggle file detail view",
-          callback = M.toggle_detail,
+        view_options = {
+          show_hidden = true,
+          highlight_filename = highlight_filename,
         },
-        ["g?"] = {
-          desc = "Show keymaps (sorted by key)",
-          callback = function()
-            local keymap_util = require("oil.keymap_util")
-            local original_sort = table.sort
-            rawset(table, "sort", function(t, fn)
-              if t[1] and t[1].str and t[1].desc then
-                original_sort(t, function(a, b)
-                  return a.str < b.str
-                end)
-              else
-                original_sort(t, fn)
-              end
-            end)
-            keymap_util.show_help(require("oil.config").keymaps)
-            rawset(table, "sort", original_sort)
-          end,
+        skip_confirm_for_simple_edits = true,
+        watch_for_changes = true,
+        keymaps = {
+          ["yn"] = { desc = "Yank filename", callback = M.yank_name },
+          ["yp"] = { desc = "Yank relative path", callback = M.yank_relative },
+          ["yP"] = { desc = "Yank absolute path", callback = M.yank_absolute },
+          ["yg"] = { desc = "Yank path from git root", callback = M.yank_git },
+          ["<C-p>"] = {
+            "actions.preview",
+            opts = { split = "belowright" },
+          },
+          ["gd"] = {
+            desc = "Toggle file detail view",
+            callback = M.toggle_detail,
+          },
+          ["g?"] = {
+            desc = "Show keymaps (sorted by key)",
+            callback = function()
+              local keymap_util = require("oil.keymap_util")
+              local original_sort = table.sort
+              rawset(table, "sort", function(t, fn)
+                if t[1] and t[1].str and t[1].desc then
+                  original_sort(t, function(a, b)
+                    return a.str < b.str
+                  end)
+                else
+                  original_sort(t, fn)
+                end
+              end)
+              keymap_util.show_help(require("oil.config").keymaps)
+              rawset(table, "sort", original_sort)
+            end,
+          },
         },
-      },
-    },
+      }
+    end,
     init = function()
       local group = vim.api.nvim_create_augroup("UserOilShim", { clear = true })
 

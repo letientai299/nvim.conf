@@ -1,11 +1,13 @@
 return {
   "yorik1984/newpaper.nvim",
   lazy = true,
-  opts = {
-    italic_comments = true,
-    italic_functions = true,
-    keywords = "italic",
-  },
+  opts = function()
+    return {
+      italic_comments = true,
+      italic_functions = true,
+      keywords = "italic",
+    }
+  end,
   themes = {
     {
       name = "Newpaper Light",

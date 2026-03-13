@@ -13,6 +13,7 @@ local M = {}
 
 local this_dir = vim.fs.dirname(debug.getinfo(1, "S").source:sub(2))
 local cache_path = vim.fn.stdpath("state") .. "/theme-spec_gen.lua"
+local refresh_scheduled = false
 
 local function title_case(s)
   return s:gsub("[_-]", " "):gsub("(%a)([%w]*)", function(first, rest)
@@ -140,17 +141,30 @@ local function load_fallback(files)
   return specs
 end
 
-function M.load_specs()
-  -- Fast path: load existing cache without staleness check.
-  -- Regeneration is scheduled for after startup so the next launch is current.
-  local ok, specs = pcall(dofile, cache_path)
-  if ok and type(specs) == "table" then
-    vim.schedule(function()
+local function schedule_refresh()
+  if refresh_scheduled then
+    return
+  end
+
+  refresh_scheduled = true
+  vim.api.nvim_create_autocmd("User", {
+    pattern = "VeryLazy",
+    once = true,
+    callback = function()
       local files = theme_files()
       if cache_stale(files) then
         write_cache(files)
       end
-    end)
+    end,
+  })
+end
+
+function M.load_specs()
+  -- Fast path: load existing cache without staleness check.
+  -- Regeneration is deferred until VeryLazy so the first paint stays quiet.
+  local ok, specs = pcall(dofile, cache_path)
+  if ok and type(specs) == "table" then
+    schedule_refresh()
     return specs
   end
 
