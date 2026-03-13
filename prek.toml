@@ -11,6 +11,15 @@ hooks = [
     stages = ["pre-commit"],
   },
   {
+    id = "clean",
+    name = "Delete stale spec caches",
+    language = "system",
+    entry = "mise run clean",
+    pass_filenames = false,
+    always_run = true,
+    stages = ["pre-commit"],
+  },
+  {
     id = "fmt",
     name = "Format staged files",
     language = "system",

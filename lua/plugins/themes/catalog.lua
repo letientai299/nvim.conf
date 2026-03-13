@@ -12,7 +12,7 @@ local M = {}
 ---@field themes? ThemeryTheme[]
 
 local this_dir = vim.fs.dirname(debug.getinfo(1, "S").source:sub(2))
-local cache_path = vim.fn.stdpath("state") .. "/theme-spec-cache.lua"
+local cache_path = vim.fn.stdpath("state") .. "/theme-spec.gen.lua"
 
 local function title_case(s)
   return s:gsub("[_-]", " "):gsub("(%a)([%w]*)", function(first, rest)

@@ -1,7 +1,7 @@
 local M = {}
 
 local this_dir = vim.fs.dirname(debug.getinfo(1, "S").source:sub(2))
-local cache_path = vim.fn.stdpath("state") .. "/plugin-spec-cache.lua"
+local cache_path = vim.fn.stdpath("state") .. "/plugin-spec.gen.lua"
 
 local function plugin_files()
   local files = {}
