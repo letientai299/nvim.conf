@@ -1,6 +1,5 @@
 local ls = require("luasnip")
 local s = ls.snippet
-local t = ls.text_node
 local i = ls.insert_node
 local f = ls.function_node
 
@@ -13,28 +12,22 @@ local function comment_prefix()
 end
 
 return {
-  s(
-    "td",
-    { f(function()
+  s("td", {
+    f(function()
       return comment_prefix() .. " TODO (tai): "
-    end), i(
-      0
-    ) }
-  ),
-  s(
-    "nt",
-    { f(function()
+    end),
+    i(0),
+  }),
+  s("nt", {
+    f(function()
       return comment_prefix() .. " NOTE (tai): "
-    end), i(
-      0
-    ) }
-  ),
-  s(
-    "fm",
-    { f(function()
+    end),
+    i(0),
+  }),
+  s("fm", {
+    f(function()
       return comment_prefix() .. " FIXME (tai): "
-    end), i(
-      0
-    ) }
-  ),
+    end),
+    i(0),
+  }),
 }

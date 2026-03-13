@@ -1,4 +1,9 @@
 std = "vim"
 
 [lints]
+# lazy.nvim specs, keymap tables, and plugin configs (lualine, mini.*, etc.)
+# all use mixed tables by design: array part for identity, hash part for options.
+# This is the standard Neovim Lua idiom, not a bug.
 mixed_table = "allow"
+# Off by default. Catches deeply branched functions early.
+high_cyclomatic_complexity = "warn"

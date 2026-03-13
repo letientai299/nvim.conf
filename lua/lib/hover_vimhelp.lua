@@ -14,7 +14,7 @@ return {
 
   ---@param params Hover.Provider.Params
   ---@param done fun(result?: false|Hover.Provider.Result)
-  execute = function(params, done)
+  execute = function(_params, done)
     local word = vim.fn.expand("<cword>")
     if word == "" then
       return done(false)

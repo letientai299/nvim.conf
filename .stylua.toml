@@ -1,3 +1,4 @@
+# Neovim Lua config style — matches community conventions (lazy.nvim, mini.*, etc.)
 column_width = 80
 line_endings = "Unix"
 indent_type = "Spaces"

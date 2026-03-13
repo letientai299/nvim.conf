@@ -1,6 +1,6 @@
 [tools]
 prek = "latest"
 stylua = "latest"
-"aqua:Kampfkarren/selene" = "latest"
+"cargo:selene" = { version = "latest", features = "selene-lib/luajit" }
 shfmt = "latest"
 shellcheck = "latest"

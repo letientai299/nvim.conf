@@ -1,5 +1,15 @@
 ---
 base: lua51
+lua_versions:
+  - luajit
 globals:
   vim:
     any: true
+  # LuaJIT includes package.searchpath (backported from Lua 5.2) but selene's
+  # luajit std doesn't define it.
+  package.searchpath:
+    args:
+      - type: string
+        required: true
+      - type: string
+        required: true
