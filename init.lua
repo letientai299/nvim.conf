@@ -123,7 +123,12 @@ local _themery_cs = _themery_load()
 
 require("lazy").setup({
   spec = {
-    { import = "plugins" },
+    {
+      name = "plugins",
+      import = function()
+        return require("plugins.catalog").load_specs()
+      end,
+    },
     {
       name = "plugins.themes",
       import = function()
@@ -136,6 +141,8 @@ require("lazy").setup({
   },
   install = { colorscheme = { _themery_cs or "default" } },
   change_detection = { enabled = false },
+  local_spec = false,
+  pkg = { enabled = false },
   rocks = { enabled = false },
   performance = {
     rtp = {
@@ -156,6 +163,17 @@ require("lazy").setup({
 if _themery_cs then
   pcall(vim.cmd.colorscheme, _themery_cs)
 end
+
+-- Match split and column borders to floating window border color
+local function _sync_border_highlights()
+  local fb = vim.api.nvim_get_hl(0, { name = "FloatBorder", link = false })
+  local fg = fb.fg
+  if not fg then
+    return
+  end
+  vim.api.nvim_set_hl(0, "WinSeparator", { fg = fg })
+end
+_sync_border_highlights()
 
 -- Strip local plugin entries from lockfile after lazy.nvim operations
 vim.api.nvim_create_autocmd("User", {
