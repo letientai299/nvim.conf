@@ -137,6 +137,17 @@ require("lazy").setup({
   install = { colorscheme = { _themery_cs or "default" } },
   change_detection = { enabled = false },
   rocks = { enabled = false },
+  performance = {
+    rtp = {
+      disabled_plugins = {
+        "gzip",
+        "tarPlugin",
+        "tohtml",
+        "tutor",
+        "zipPlugin",
+      },
+    },
+  },
   lockfile = vim.env.NVIM_TEST and vim.fn.stdpath("cache") .. "/lazy-lock.json"
     or vim.fn.stdpath("config") .. "/lazy-lock.json",
 })
