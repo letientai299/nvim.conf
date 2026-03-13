@@ -2,7 +2,6 @@
 -- Lang files should add entries here for linters that are too slow for real-time.
 local slow_linters = {
   golangcilint = true,
-  rumdl = true,
 }
 
 -- Cache executable lookups so each linter is checked at most once per session.

@@ -6,6 +6,7 @@ local disabled_rules = {
   "MD024", -- no-duplicate-heading: same heading in different sections is valid
   "MD033", -- no-inline-html: needed for <details>, <kbd>, etc.
   "MD041", -- first-line-h1: not all files start with h1
+  "MD034", -- no-bare-urls: false positive on multi-line reference link definitions
   "MD053", -- link-image-reference-definitions: false positives with footnotes
 }
 
@@ -41,9 +42,9 @@ function M.markdown(bufnr)
     tools = {
       { name = "marksman", bin = "marksman", kind = "lsp" },
       require("lib.prettier").tool(),
-      { name = "rumdl", bin = "rumdl", kind = "lint" },
+      { name = "rumdl", bin = "rumdl", kind = "lsp" },
     },
-    lsp = "marksman",
+    lsp = { "marksman", "rumdl" },
     formatter_fts = { "markdown", "markdown.mdx" },
     formatter_defs = {
       rumdl_fix = {
@@ -53,68 +54,14 @@ function M.markdown(bufnr)
           if not has_project_config(ctx.dirname) then
             vim.list_extend(base, { "--disable", disable_csv })
           end
-          base[#base + 1] = "--"
+          vim.list_extend(base, { "--", "$FILENAME" })
           return base
         end,
         stdin = false,
       },
     },
     formatters = { "rumdl_fix", "prettier" },
-    -- linter_fts excludes markdown.mdx intentionally; mdx_analyzer handles mdx
-    linter_fts = "markdown",
-    linters = { "rumdl" },
     parsers = { "markdown", "markdown_inline" },
-    once = function()
-      -- Register custom linter; nvim-lint has no built-in rumdl parser.
-      -- Output format (--stderr): file:line:col: [RULE] message [*]
-      --
-      -- nvim-lint evaluates each arg element at lint-time (string or function).
-      -- --disable "" is a no-op, so we always pass --disable and vary the value.
-      local function disable_value()
-        local name = vim.api.nvim_buf_get_name(0)
-        local bufdir = vim.fs.dirname(name)
-        if has_project_config(bufdir) then
-          return ""
-        end
-        return disable_csv
-      end
-
-      require("lint").linters.rumdl = {
-        name = "rumdl",
-        cmd = "rumdl",
-        args = {
-          "check",
-          "--stderr",
-          "--disable",
-          disable_value,
-          "--stdin",
-          "--stdin-filename",
-        },
-        stdin = true,
-        append_fname = true,
-        stream = "stderr",
-        parser = function(output)
-          local diagnostics = {}
-          for line in output:gmatch("[^\n]+") do
-            local lnum, col, rule, msg =
-              line:match(":(%d+):(%d+): %[([^%]]+)%] (.+)")
-            if lnum then
-              msg = msg:gsub(" %[%*%]$", "") -- strip fixable marker
-              diagnostics[#diagnostics + 1] = {
-                lnum = tonumber(lnum) - 1,
-                col = tonumber(col) - 1,
-                end_lnum = tonumber(lnum) - 1,
-                message = msg,
-                code = rule,
-                source = "rumdl",
-                severity = vim.diagnostic.severity.WARN,
-              }
-            end
-          end
-          return diagnostics
-        end,
-      }
-    end,
   })
 end
 
