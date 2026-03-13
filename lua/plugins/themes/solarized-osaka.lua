@@ -14,8 +14,6 @@ return {
   },
   themes = {
     "solarized-osaka",
-    "solarized-osaka-storm",
-    "solarized-osaka-moon",
     "solarized-osaka-day",
   },
 }

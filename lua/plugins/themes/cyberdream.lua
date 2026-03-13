@@ -8,7 +8,7 @@ return {
     cache = true,
     extensions = {
       alpha = true,
-      blink_cmp = true,
+      blinkcmp = true,
       gitsigns = true,
       mini = true,
       telescope = true,
