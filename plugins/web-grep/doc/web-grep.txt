@@ -63,27 +63,22 @@ Pass options to `setup()`. All fields are optional.
                                                      *web-grep-setup-opts*
 >lua
   require("web-grep").setup({
-    -- Full list of engines (replaces defaults when provided)
+    -- Name-keyed overrides/additions for engines.
+    -- Matching names patch the builtin; new names create engines.
     engines = {
-      { name = "Google",
-        url = "https://google.com/search?q={query}",
-        context = true },
-      { name = "Stack Overflow",
-        url = "https://stackoverflow.com/search?q={query}",
-        context = true },
-      { name = "Google Maps",
-        url = "https://google.com/maps/search/{query}",
-        context = false },
-    },
-
-    -- Append engines without replacing builtins
-    extra_engines = {
-      { name = "MDN",
+      -- Disable context for Stack Overflow
+      ["Stack Overflow"] = { context = false },
+      -- Add a new engine
+      ["MDN"] = {
         url = "https://developer.mozilla.org/en-US/search?q={query}",
         context = true },
     },
 
-    -- Context string prepended to queries for engines with context = true
+    -- Context string prepended to queries for engines with context enabled.
+    -- Per-engine `context` accepts boolean|string:
+    --   true   → use this global context
+    --   false  → no context prefix
+    --   string → use that string instead of the global context
     context = "",
 
     -- Skip the picker and use this engine by name
@@ -94,22 +89,30 @@ Pass options to `setup()`. All fields are optional.
                                                   *web-grep-engine-config*
 Engine fields:
 
-  `name`      (string)                  Display name in picker.
   `url`       (string|function)         URL template with `{query}` placeholder,
                                       or a function receiving the encoded query
                                       and returning a URL string.
-  `context`   (boolean, optional)       When `true` and `config.context` is
-                                      non-empty, the context string is
-                                      prepended to the query.
+  `context`   (boolean|string, default true)
+                                      `true` prepends the global `context`
+                                      string to the query. A string value
+                                      uses that string instead of the global
+                                      context. `false` disables the prefix.
+  `prompt`    (boolean, default false) When `true`, shows |vim.ui.input()|
+                                      pre-filled with the query so the user
+                                      can edit before searching. Useful for
+                                      AI engines where you want to refine
+                                      the question.
 
 When `url` is a string, `{query}` is replaced with the percent-encoded query.
 When `url` is a function, it receives the already-encoded query: >lua
 
-  { name = "Custom",
-    url = function(encoded_query)
-      return "https://example.com/q=" .. encoded_query
-    end,
-    context = true }
+  engines = {
+    ["Custom"] = {
+      url = function(encoded_query)
+        return "https://example.com/q=" .. encoded_query
+      end,
+    },
+  }
 <
 
 ==============================================================================
@@ -169,19 +172,22 @@ web-grep.search({opts})
 ==============================================================================
 7. PER-PROJECT CONFIG                                  *web-grep-per-project*
 
-Call `setup()` in your project's `.nvim.lua` to set context keywords or add
-project-specific engines. The builtin engines remain available.
+Call `setup()` in your project's `.nvim.lua` to set context keywords or
+override/add engines. The builtin engines remain available; matching names
+patch them, new names create engines.
 
 Example for a C#/.NET project: >lua
 
   -- .nvim.lua
   require("web-grep").setup({
     context = "C# .NET 8",
-    extra_engines = {
-      { name = "Microsoft Learn",
-        url = "https://learn.microsoft.com/en-us/search/?terms={query}",
-        context = true },
-      { name = "NuGet",
+    engines = {
+      -- Disable context for Stack Overflow in this project
+      ["Stack Overflow"] = { context = false },
+      -- Override Microsoft Learn context to be C#-specific
+      ["Microsoft Learn"] = { context = "C# .NET 8" },
+      -- Add a project-specific engine
+      ["NuGet"] = {
         url = "https://www.nuget.org/packages?q={query}",
         context = false },
     },
@@ -190,6 +196,9 @@ Example for a C#/.NET project: >lua
 
 With this config, searching "HttpClient" on Google produces:
   `https://google.com/search?q=C%23+.NET+8+HttpClient`
+
+Searching on Stack Overflow (context = false) produces:
+  `https://stackoverflow.com/search?q=HttpClient`
 
 Searching on NuGet (context = false) produces:
   `https://www.nuget.org/packages?q=HttpClient`

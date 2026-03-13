@@ -3,17 +3,17 @@ local M = {}
 ---@class WebGrepEngine
 ---@field name string
 ---@field url string|fun(query: string): string
----@field context? boolean prepend config.context to query when true
+---@field context? boolean|string per-engine context override (string = custom context, true = use global, false = disable)
 ---@field prompt? boolean force editable prompt before searching
 
 ---@class WebGrepConfig
----@field engines WebGrepEngine[]
+---@field engine_builtin WebGrepEngine[]
 ---@field context string per-project context keywords (set in .nvim.lua)
 ---@field default_engine? string skip picker when set
 
 ---@type WebGrepConfig
 local config = {
-  engines = {
+  engine_builtin = {
     {
       name = "Google",
       url = "https://google.com/search?q={query}",
@@ -31,9 +31,31 @@ local config = {
       prompt = true,
     },
     {
-      name = "Google Maps",
-      url = "https://google.com/maps/search/{query}",
+      name = "DuckDuckGo",
+      url = "https://duckduckgo.com/?q={query}",
+      context = true,
+    },
+    {
+      name = "GitHub",
+      url = "https://github.com/search?q={query}&type=code",
       context = false,
+    },
+    {
+      name = "Microsoft Learn",
+      url = "https://learn.microsoft.com/en-us/search/?terms={query}",
+      context = true,
+    },
+    {
+      name = "Gemini",
+      url = "https://www.google.com/ai?q={query}",
+      context = true,
+      prompt = true,
+    },
+    {
+      name = "Grok",
+      url = "https://grok.com/?q={query}",
+      context = true,
+      prompt = true,
     },
   },
   context = "",
@@ -65,8 +87,12 @@ end
 ---@param query string
 ---@return string
 local function build_url(engine, query)
-  if engine.context and config.context ~= "" then
-    query = config.context .. " " .. query
+  local ctx = engine.context
+  if ctx ~= false and ctx ~= nil then
+    local prefix = type(ctx) == "string" and ctx or config.context
+    if prefix ~= "" then
+      query = prefix .. " " .. query
+    end
   end
   local encoded = url_encode(query)
   if type(engine.url) == "function" then
@@ -81,7 +107,7 @@ end
 ---@param name string
 ---@return WebGrepEngine?
 local function find_engine(name)
-  for _, e in ipairs(config.engines) do
+  for _, e in ipairs(config.engine_builtin) do
     if e.name == name then
       return e
     end
@@ -133,7 +159,7 @@ local function resolve_engine_and_search(query, engine_name, prompted)
     end
   end
 
-  vim.ui.select(config.engines, {
+  vim.ui.select(config.engine_builtin, {
     prompt = "Search engine > ",
     format_item = function(e)
       return e.name
@@ -168,17 +194,63 @@ function M.search(opts)
   resolve_engine_and_search(query, opts.engine, false)
 end
 
----@class WebGrepSetupOpts : WebGrepConfig
----@field extra_engines? WebGrepEngine[] append to existing engines
+---@class WebGrepSetupOpts
+---@field engines? table<string, table> name-keyed overrides/additions for engines
+---@field context? string per-project context keywords
+---@field default_engine? string skip picker when set
 
 ---@param opts? WebGrepSetupOpts
 function M.setup(opts)
   opts = opts or {}
-  local extra = opts.extra_engines
-  opts.extra_engines = nil
-  config = vim.tbl_extend("force", config, opts)
-  if extra then
-    vim.list_extend(config.engines, extra)
+  local engine_overrides = opts.engines
+  opts.engines = nil
+
+  -- Apply non-engine options
+  if opts.context ~= nil then
+    config.context = opts.context
+  end
+  if opts.default_engine ~= nil then
+    config.default_engine = opts.default_engine
+  end
+
+  -- Apply engine overrides/additions
+  if engine_overrides then
+    for name, patch in pairs(engine_overrides) do
+      local found = false
+      for _, builtin in ipairs(config.engine_builtin) do
+        if builtin.name == name then
+          -- Patch existing builtin
+          for k, v in pairs(patch) do
+            builtin[k] = v
+          end
+          found = true
+          break
+        end
+      end
+      if not found then
+        -- Guard against duplicate appends on repeated setup() calls
+        if find_engine(name) then
+          -- Already added in a previous setup() call; patch instead
+          local existing = find_engine(name)
+          for k, v in pairs(patch) do
+            existing[k] = v
+          end
+        else
+          if not patch.url then
+            vim.notify(
+              "web-grep: new engine " .. name .. " is missing url",
+              vim.log.levels.WARN
+            )
+          end
+          -- Shallow-copy to avoid mutating caller's table
+          local engine = { name = name }
+          for k, v in pairs(patch) do
+            engine[k] = v
+          end
+          table.insert(config.engine_builtin, engine)
+        end
+      end
+    end
   end
 
   vim.api.nvim_create_user_command("WebGrep", function()
