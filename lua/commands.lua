@@ -17,8 +17,15 @@ vim.api.nvim_create_user_command("Reload", function()
       package.loaded[mod] = nil
     end
   end
-  dofile(vim.fn.stdpath("config") .. "/init.lua")
-  vim.notify("Config reloaded", vim.log.levels.INFO)
+  -- Re-source non-plugin modules only; lazy.nvim cannot be re-setup at runtime.
+  local modules = { "options", "keymaps", "commands" }
+  for _, mod in ipairs(modules) do
+    local ok, err = pcall(require, mod)
+    if not ok then
+      vim.notify("Reload failed (" .. mod .. "): " .. err, vim.log.levels.ERROR)
+      return
+    end
+  end
 end, { desc = "Invalidate Lua cache and reload config" })
 
 vim.api.nvim_create_user_command("AutoFormat", function()
