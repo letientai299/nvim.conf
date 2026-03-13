@@ -68,6 +68,19 @@ end, { desc = "Copy absolute path" })
 map("n", "<Leader>yg", function()
   yank_path.yank_git(buf_path())
 end, { desc = "Copy path from git root" })
+map("n", "<Leader>yd", function()
+  local diag = vim.diagnostic.get(0, { lnum = vim.fn.line(".") - 1 })
+  if #diag == 0 then
+    vim.notify("No diagnostics on this line", vim.log.levels.WARN)
+    return
+  end
+  local path = yank_path.relpath(buf_path(), vim.fn.getcwd())
+  local parts = {}
+  for _, d in ipairs(diag) do
+    parts[#parts + 1] = string.format("%s:%d: %s", path, d.lnum + 1, d.message)
+  end
+  yank_path.yank(table.concat(parts, "\n"))
+end, { desc = "Copy diagnostic with path:line" })
 
 -- ---------------------------------------------------------------------------
 -- Center after search
