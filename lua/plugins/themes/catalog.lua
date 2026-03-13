@@ -134,6 +134,20 @@ local function load_fallback(files)
 end
 
 function M.load_specs()
+  -- Fast path: load existing cache without staleness check.
+  -- Regeneration is scheduled for after startup so the next launch is current.
+  local ok, specs = pcall(dofile, cache_path)
+  if ok and type(specs) == "table" then
+    vim.schedule(function()
+      local files = theme_files()
+      if cache_stale(files) then
+        write_cache(files)
+      end
+    end)
+    return specs
+  end
+
+  -- Cold start: no cache exists yet.
   local files = theme_files()
   ---@type ThemePluginSpec[]
   return load_cache(files) or load_fallback(files)

@@ -1,3 +1,5 @@
+vim.loader.enable()
+
 -- Ensure config dir is on rtp (not always present with nvim -u)
 vim.opt.rtp:prepend(vim.fn.stdpath("config"))
 
@@ -148,6 +150,11 @@ require("lazy").setup({
     rtp = {
       disabled_plugins = {
         "gzip",
+        "man",
+        "matchit",
+        "matchparen",
+        "osc52",
+        "rplugin",
         "tarPlugin",
         "tohtml",
         "tutor",
