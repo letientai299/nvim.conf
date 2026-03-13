@@ -1,45 +1,5 @@
--- Hardcoded blink.cmp completion capabilities so servers start with them
--- immediately — no lazy-load dependency, no restart needed.
--- Source: blink.cmp/lua/blink/cmp/sources/lib/init.lua get_lsp_capabilities()
-vim.lsp.config("*", {
-  capabilities = {
-    textDocument = {
-      completion = {
-        completionItem = {
-          snippetSupport = true,
-          commitCharactersSupport = false,
-          documentationFormat = { "markdown", "plaintext" },
-          deprecatedSupport = true,
-          preselectSupport = false,
-          tagSupport = { valueSet = { 1 } },
-          insertReplaceSupport = true,
-          resolveSupport = {
-            properties = {
-              "documentation",
-              "detail",
-              "additionalTextEdits",
-              "command",
-              "data",
-            },
-          },
-          insertTextModeSupport = { valueSet = { 1 } },
-          labelDetailsSupport = true,
-        },
-        completionList = {
-          itemDefaults = {
-            "commitCharacters",
-            "editRange",
-            "insertTextFormat",
-            "insertTextMode",
-            "data",
-          },
-        },
-        contextSupport = true,
-        insertTextMode = 1,
-      },
-    },
-  },
-})
+-- LSP defaults live in lib.lsp and are applied on first enable so the cold
+-- startup path does not need to load vim.lsp up front.
 
 vim.api.nvim_create_user_command("LspInfo", function()
   local clients = vim.lsp.get_clients({ bufnr = 0 })

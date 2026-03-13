@@ -40,14 +40,6 @@ vim.opt.foldexpr = "v:lua.vim.treesitter.foldexpr()"
 vim.opt.foldtext = "" -- render first line with syntax highlighting (0.10+)
 vim.opt.foldlevelstart = 99
 
--- Register treesitter language names for filetypes where Neovim's defaults
--- don't match (nvim-treesitter normally does this but loads later).
-vim.treesitter.language.register("tsx", { "typescriptreact", "javascriptreact" })
-vim.treesitter.language.register("bash", { "sh" })
-vim.treesitter.language.register("json", { "jsonc" })
-vim.treesitter.language.register("c_sharp", { "cs" })
-vim.treesitter.language.register("markdown", { "mdx" })
-
 -- Skip runtime syntax scripts when a treesitter parser is installed.
 -- synload.vim registers an ungrouped `Syntax *` → `s:SynSet()` handler that
 -- sources runtime syntax files. We replace it after synload.vim finishes.

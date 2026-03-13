@@ -92,6 +92,61 @@ local function highlight_filename(
   return file_highlight(entry.name)
 end
 
+local function directory_buffer_path(bufnr)
+  if not vim.api.nvim_buf_is_valid(bufnr) then
+    return nil
+  end
+
+  local bufname = vim.api.nvim_buf_get_name(bufnr)
+  if bufname == "" or bufname:find("://", 1, true) then
+    return nil
+  end
+
+  if vim.fn.isdirectory(bufname) == 0 then
+    return nil
+  end
+
+  return vim.fn.fnamemodify(bufname, ":p")
+end
+
+local function open_directory_with_oil(bufnr)
+  if not directory_buffer_path(bufnr) then
+    return false
+  end
+
+  vim.schedule(function()
+    if not vim.api.nvim_buf_is_valid(bufnr) then
+      return
+    end
+
+    if not directory_buffer_path(bufnr) then
+      return
+    end
+
+    require("lazy").load({ plugins = { "oil.nvim" } })
+
+    if not directory_buffer_path(bufnr) then
+      return
+    end
+
+    local winid = vim.fn.bufwinid(bufnr)
+    local open = function()
+      local path = directory_buffer_path(bufnr)
+      if path then
+        require("oil").open(path)
+      end
+    end
+
+    if winid ~= -1 and vim.api.nvim_win_is_valid(winid) then
+      vim.api.nvim_win_call(winid, open)
+    else
+      open()
+    end
+  end)
+
+  return true
+end
+
 --- Save the current search register, set it to the current filename,
 --- then open oil at `dir`. Pressing `n` in oil jumps to that file entry.
 function M.save_search_and_open(dir)
@@ -134,8 +189,8 @@ end
 
 return {
   "stevearc/oil.nvim",
-  lazy = false,
   priority = 900,
+  cmd = "Oil",
   keys = {
     {
       [[<C-\>]],
@@ -167,9 +222,17 @@ return {
       ["gd"] = { desc = "Toggle file detail view", callback = M.toggle_detail },
     },
   },
-  -- No init needed: lazy = false lets oil register its own BufAdd
-  -- handler at startup, which hijacks directory buffers for both
-  -- `nvim <dir>` and `:e <dir>` cases.
+  init = function()
+    local group = vim.api.nvim_create_augroup("UserOilShim", { clear = true })
+
+    vim.api.nvim_create_autocmd("BufEnter", {
+      group = group,
+      pattern = "*",
+      callback = function(args)
+        open_directory_with_oil(args.buf)
+      end,
+    })
+  end,
   config = function(_, opts)
     local oil_util = require("oil.util")
     oil_util.get_icon_provider = function()

@@ -1,5 +1,54 @@
 local M = {}
 
+local defaults_applied = false
+
+local default_capabilities = {
+  textDocument = {
+    completion = {
+      completionItem = {
+        snippetSupport = true,
+        commitCharactersSupport = false,
+        documentationFormat = { "markdown", "plaintext" },
+        deprecatedSupport = true,
+        preselectSupport = false,
+        tagSupport = { valueSet = { 1 } },
+        insertReplaceSupport = true,
+        resolveSupport = {
+          properties = {
+            "documentation",
+            "detail",
+            "additionalTextEdits",
+            "command",
+            "data",
+          },
+        },
+        insertTextModeSupport = { valueSet = { 1 } },
+        labelDetailsSupport = true,
+      },
+      completionList = {
+        itemDefaults = {
+          "commitCharacters",
+          "editRange",
+          "insertTextFormat",
+          "insertTextMode",
+          "data",
+        },
+      },
+      contextSupport = true,
+      insertTextMode = 1,
+    },
+  },
+}
+
+local function apply_defaults()
+  if defaults_applied then
+    return
+  end
+
+  defaults_applied = true
+  vim.lsp.config("*", { capabilities = default_capabilities })
+end
+
 local function attach_enabled_configs(bufnr)
   pcall(vim.api.nvim_exec_autocmds, "FileType", {
     group = "nvim.lsp.enable",
@@ -12,6 +61,7 @@ end
 --- @param name string
 --- @param bufnr integer|nil
 function M.enable(name, bufnr)
+  apply_defaults()
   vim.lsp.enable(name)
 
   if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
@@ -35,6 +85,10 @@ function M.enable(name, bufnr)
       end
     end,
   })
+end
+
+function M.ensure_defaults()
+  apply_defaults()
 end
 
 return M
