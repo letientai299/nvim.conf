@@ -59,7 +59,7 @@ local config = {
     },
   },
   context = "",
-  default_engine = nil,
+  default_engine = "Google",
 }
 
 ---@param str string
@@ -144,19 +144,6 @@ local function resolve_engine_and_search(query, engine_name, prompted)
     end
     open_engine(engine, query, prompted)
     return
-  end
-
-  if config.default_engine then
-    local engine = find_engine(config.default_engine)
-    if not engine then
-      vim.notify(
-        "web-grep: unknown default_engine " .. config.default_engine,
-        vim.log.levels.WARN
-      )
-    else
-      open_engine(engine, query, prompted)
-      return
-    end
   end
 
   vim.ui.select(config.engine_builtin, {
@@ -260,6 +247,11 @@ function M.setup(opts)
   vim.api.nvim_create_user_command("WebGrepPrompt", function()
     M.search({ prompt = true })
   end, { desc = "Search with editable prompt in browser" })
+end
+
+---@return string
+function M.get_default_engine()
+  return config.default_engine
 end
 
 return M

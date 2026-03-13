@@ -20,6 +20,15 @@ hooks = [
     stages = ["pre-commit"],
   },
   {
+    id = "gen-lang-registry",
+    name = "Regenerate lang_registry.gen.lua",
+    language = "system",
+    entry = "mise run gen-lang-registry",
+    pass_filenames = false,
+    types_or = ["lua"],
+    stages = ["pre-commit"],
+  },
+  {
     id = "fmt",
     name = "Format staged files",
     language = "system",

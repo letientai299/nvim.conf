@@ -36,10 +36,21 @@ Features:
 Using lazy.nvim with a local plugin (the default spec is provided): >lua
 
   -- lua/plugins/web-grep.lua
+  local function default_search(o)
+    local wg = require("web-grep")
+    o = o or {}
+    o.engine = wg.get_default_engine()
+    wg.search(o)
+  end
+
   return {
     dir = vim.fn.stdpath("config"),
     name = "web-grep.nvim",
     keys = {
+      { "<Leader>ss", function() default_search() end,
+        mode = "n", desc = "Web search cword (default engine)" },
+      { "<Leader>ss", function() default_search({ visual = true }) end,
+        mode = "x", desc = "Web search selection (default engine)" },
       { "<Leader>sw", function() require("web-grep").search() end,
         mode = "n", desc = "Web search cword" },
       { "<Leader>sw", function() require("web-grep").search({ visual = true }) end,
@@ -81,8 +92,8 @@ Pass options to `setup()`. All fields are optional.
     --   string → use that string instead of the global context
     context = "",
 
-    -- Skip the picker and use this engine by name
-    default_engine = nil,
+    -- Engine used by <Leader>ss and get_default_engine()
+    default_engine = "Google",
   })
 <
 
@@ -119,8 +130,8 @@ When `url` is a function, it receives the already-encoded query: >lua
 4. COMMANDS                                              *web-grep-commands*
 
                                                                   *:WebGrep*
-:WebGrep            Search the word under cursor. Opens the engine picker
-                    (unless `default_engine` is set), then opens the browser.
+:WebGrep            Search the word under cursor. Opens the engine picker,
+                    then opens the browser.
 
                                                             *:WebGrepPrompt*
 :WebGrepPrompt      Same as |:WebGrep| but shows |vim.ui.input()| pre-filled
@@ -132,6 +143,8 @@ When `url` is a function, it receives the already-encoded query: >lua
 Default mappings (registered via the lazy.nvim spec):
 
   Mode   Key            Action ~
+  n      `<Leader>ss`   Search |cword| → default engine → browser
+  x      `<Leader>ss`   Search selection → default engine → browser
   n      `<Leader>sw`   Search |cword| → engine picker → browser
   x      `<Leader>sw`   Search selection → engine picker → browser
   n      `<Leader>sW`   Editable prompt (cword) → engine picker → browser

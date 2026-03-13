@@ -3,6 +3,24 @@ return {
   name = "web-grep.nvim",
   keys = {
     {
+      "<Leader>ss",
+      function()
+        local wg = require("web-grep")
+        wg.search({ engine = wg.get_default_engine() })
+      end,
+      mode = "n",
+      desc = "Web search cword (default engine)",
+    },
+    {
+      "<Leader>ss",
+      function()
+        local wg = require("web-grep")
+        wg.search({ engine = wg.get_default_engine(), visual = true })
+      end,
+      mode = "x",
+      desc = "Web search selection (default engine)",
+    },
+    {
       "<Leader>sw",
       function()
         require("web-grep").search()
