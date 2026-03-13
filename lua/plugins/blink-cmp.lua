@@ -9,6 +9,11 @@ return {
     keymap = { preset = "default" },
     completion = {
       documentation = { auto_show = true },
+      menu = {
+        draw = {
+          columns = { { "kind_icon" }, { "label", "label_description", gap = 1 }, { "source_name" } },
+        },
+      },
     },
     snippets = { preset = "luasnip" },
     sources = {
@@ -22,8 +27,18 @@ return {
           module = "lazydev.integrations.blink",
           score_offset = 100,
         },
+        kitty_pane = {
+          name = "kitty",
+          module = "blink.sources.kitty-pane",
+          score_offset = 5,
+        },
       },
     },
     fuzzy = { implementation = "prefer_rust" },
   },
+  config = function(_, opts)
+    -- Append kitty_pane to whatever sources.default ends up being after all specs merge
+    table.insert(opts.sources.default, "kitty_pane")
+    require("blink.cmp").setup(opts)
+  end,
 }
