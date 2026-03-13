@@ -3,7 +3,8 @@
 local M = {}
 
 local prev_search ---@type string?
-local detail_columns = { "permissions", "size", "mtime" }
+local base_columns = { "icon" }
+local detail_columns = { "icon", "permissions", "size", "mtime" }
 
 local oil_filetype_hl_links = {
   OilFileCss = "Special",
@@ -203,8 +204,8 @@ end
 function M.toggle_detail()
   local oil = require("oil")
   local cols = oil.get_columns and oil.get_columns() or {}
-  if #cols > 0 then
-    oil.set_columns({})
+  if #cols > 1 then
+    oil.set_columns(base_columns)
   else
     oil.set_columns(detail_columns)
   end
@@ -215,6 +216,7 @@ return {
   {
     "stevearc/oil.nvim",
     priority = 900,
+    dependencies = { "nvim-tree/nvim-web-devicons" },
     cmd = "Oil",
     keys = {
       {
@@ -234,7 +236,7 @@ return {
     },
     opts = function()
       return {
-        columns = {},
+        columns = base_columns,
         win_options = {
           signcolumn = "yes:2",
         },
@@ -290,11 +292,6 @@ return {
       })
     end,
     config = function(_, opts)
-      local oil_util = require("oil.util")
-      oil_util.get_icon_provider = function()
-        return nil
-      end
-
       set_filetype_highlights()
       require("oil").setup(opts)
       require("oil-git-status").setup()

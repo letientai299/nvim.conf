@@ -38,15 +38,40 @@ vim.opt.signcolumn = "yes:1"
 vim.opt.ignorecase = true
 vim.opt.smartcase = true
 
--- Treesitter-based folding, start with all folds open
-vim.opt.foldmethod = "expr"
-vim.opt.foldexpr = "v:lua.vim.treesitter.foldexpr()"
-vim.opt.foldtext = "" -- render first line with syntax highlighting (0.10+)
-vim.opt.foldlevelstart = 99
+-- Spell-check language (activate per buffer with :set spell)
+vim.opt.spelllang = "en_us"
 
--- Skip runtime syntax scripts when a treesitter parser is installed.
--- synload.vim registers an ungrouped `Syntax *` → `s:SynSet()` handler that
--- sources runtime syntax files. We replace it after synload.vim finishes.
+-- Never fall back to runtime syntax for normal file buffers. Replace the
+-- default `Syntax *` handler with a treesitter-only startup path.
+vim.api.nvim_create_autocmd({ "BufReadPre", "BufNewFile" }, {
+  callback = function(args)
+    if vim.bo[args.buf].buftype == "" then
+      vim.b[args.buf].ts_highlight = false
+    end
+  end,
+})
+
+local function is_normal_file_buffer(bufnr)
+  if not vim.api.nvim_buf_is_valid(bufnr) then
+    return false
+  end
+
+  if vim.bo[bufnr].buftype ~= "" then
+    return false
+  end
+
+  local name = vim.api.nvim_buf_get_name(bufnr)
+  if name:find("://", 1, true) then
+    return false
+  end
+
+  if name ~= "" and vim.fn.isdirectory(name) == 1 then
+    return false
+  end
+
+  return true
+end
+
 vim.api.nvim_create_autocmd("SourcePost", {
   pattern = "*/syntax/synload.vim",
   once = true,
@@ -59,20 +84,19 @@ vim.api.nvim_create_autocmd("SourcePost", {
         if syntax == "" or syntax == "ON" or syntax == "OFF" then
           return
         end
-        local lang = vim.treesitter.language.get_lang(syntax)
-        if lang and pcall(vim.treesitter.language.inspect, lang) then
-          vim.b.current_syntax = syntax
+
+        local buf = vim.api.nvim_get_current_buf()
+        if is_normal_file_buffer(buf) then
+          require("lib.treesitter").enable_highlight(buf, syntax)
           return
         end
+
         vim.cmd.syntax("clear")
         vim.cmd("runtime! syntax/" .. vim.fn.fnameescape(syntax) .. ".vim")
       end,
     })
   end,
 })
-
--- Spell-check language (activate per buffer with :set spell)
-vim.opt.spelllang = "en_us"
 
 -- Shorter timeout for mapped key sequences (default 1000ms)
 vim.opt.timeoutlen = 300
@@ -123,6 +147,14 @@ vim.api.nvim_create_autocmd("User", {
   pattern = "VeryLazy",
   once = true,
   callback = function()
+    -- Delay treesitter fold setup so startup doesn't pull in parser code just to
+    -- render the first screen. Folds still start open once enabled.
+    vim.opt.foldmethod = "expr"
+    vim.opt.foldexpr = "v:lua.vim.treesitter.foldexpr()"
+    vim.opt.foldtext = "" -- render first line with syntax highlighting (0.10+)
+    vim.opt.foldlevel = 99
+    vim.opt.foldlevelstart = 99
+
     vim.diagnostic.config({
       jump = { float = true },
       virtual_text = { spacing = 4, prefix = "●" },
