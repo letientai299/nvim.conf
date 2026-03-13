@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Launch Neovim using this repo's config instead of the default ~/.config/nvim
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+NVIM_APPNAME="nv-$(basename "$SCRIPT_DIR")"
+
+# Symlink repo into a temp XDG config dir so NVIM_APPNAME can have any prefix
+XDG_DIR="${TMPDIR:-/tmp}/nvim-xdg-$$"
+mkdir -p "$XDG_DIR"
+ln -sfn "$SCRIPT_DIR" "$XDG_DIR/$NVIM_APPNAME"
+trap 'rm -rf "$XDG_DIR"' EXIT
+
+XDG_CONFIG_HOME="$XDG_DIR" NVIM_APPNAME="$NVIM_APPNAME" exec nvim "$@"
