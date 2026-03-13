@@ -1,7 +1,13 @@
 vim.loader.enable()
 
+-- Cache stdpath results (each call crosses the Lua→Vimscript bridge)
+local _dir_config = vim.fn.stdpath("config") --[[@as string]]
+local _dir_data = vim.fn.stdpath("data") --[[@as string]]
+local _dir_state = vim.fn.stdpath("state") --[[@as string]]
+local _dir_cache = vim.fn.stdpath("cache") --[[@as string]]
+
 -- Ensure config dir is on rtp (not always present with nvim -u)
-vim.opt.rtp:prepend(vim.fn.stdpath("config"))
+vim.opt.rtp:prepend(_dir_config)
 
 -- Options and keymaps first (leader must be set before lazy.nvim)
 require("options")
@@ -14,7 +20,7 @@ end, { desc = "Open/append to today's diary note" })
 vim.keymap.set("n", "<Leader>td", function()
   require("notes").note_today()
 end, { desc = "Open today's diary note" })
-if vim.uv.fs_stat(vim.fn.stdpath("config") .. "/lua/local/init.lua") then
+if vim.uv.fs_stat(_dir_config .. "/lua/local/init.lua") then
   require("local")
 end
 
@@ -23,7 +29,7 @@ vim.g.loaded_netrw = 1
 vim.g.loaded_netrwPlugin = 1
 
 -- Bootstrap lazy.nvim
-local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
+local lazypath = _dir_data .. "/lazy/lazy.nvim"
 if not vim.uv.fs_stat(lazypath) then
   vim.fn.system({
     "git",
@@ -38,8 +44,8 @@ vim.opt.rtp:prepend(lazypath)
 
 -- Cache Themery's JSON state as a tiny Lua chunk so the hot startup path avoids
 -- JSON decode and repeated loadstring work.
-local _themery_state = vim.fn.stdpath("data") .. "/themery/state.json"
-local _themery_cache = vim.fn.stdpath("state") .. "/themery-startup.lua"
+local _themery_state = _dir_data .. "/themery/state.json"
+local _themery_cache = _dir_state .. "/themery-startup.lua"
 
 local function _themery_mtime(path)
   local stat = vim.uv.fs_stat(path)
@@ -137,7 +143,7 @@ require("lazy").setup({
         return require("plugins.themes")
       end,
     },
-    vim.uv.fs_stat(vim.fn.stdpath("config") .. "/lua/local/plugins") and {
+    vim.uv.fs_stat(_dir_config .. "/lua/local/plugins") and {
       import = "local.plugins",
     } or nil,
   },
@@ -162,8 +168,8 @@ require("lazy").setup({
       },
     },
   },
-  lockfile = vim.env.NVIM_TEST and vim.fn.stdpath("cache") .. "/lazy-lock.json"
-    or vim.fn.stdpath("config") .. "/lazy-lock.json",
+  lockfile = vim.env.NVIM_TEST and _dir_cache .. "/lazy-lock.json"
+    or _dir_config .. "/lazy-lock.json",
 })
 
 -- Apply persisted colorscheme (lazy.nvim auto-loads the theme plugin)

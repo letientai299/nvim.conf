@@ -46,7 +46,6 @@ map(
 )
 
 -- File path yank (mirrors oil's yn/yp/yP/yg for normal buffers)
-local yank_path = require("lib.yank_path")
 
 local function buf_path()
   local name = vim.api.nvim_buf_get_name(0)
@@ -56,30 +55,30 @@ local function buf_path()
   return name
 end
 
-map("n", "<Leader>yn", function()
-  yank_path.yank_name(buf_path())
-end, { desc = "Copy filename" })
-map("n", "<Leader>yp", function()
-  yank_path.yank_relative(buf_path())
-end, { desc = "Copy relative path" })
-map("n", "<Leader>yP", function()
-  yank_path.yank_absolute(buf_path())
-end, { desc = "Copy absolute path" })
-map("n", "<Leader>yg", function()
-  yank_path.yank_git(buf_path())
-end, { desc = "Copy path from git root" })
+for _, m in ipairs({
+  { "yn", "name", "Copy filename" },
+  { "yp", "relative", "Copy relative path" },
+  { "yP", "absolute", "Copy absolute path" },
+  { "yg", "git", "Copy path from git root" },
+}) do
+  map("n", "<Leader>" .. m[1], function()
+    require("lib.yanker")[m[2]](buf_path())
+  end, { desc = m[3] })
+end
+
 map("n", "<Leader>yd", function()
+  local yanker = require("lib.yanker")
   local diag = vim.diagnostic.get(0, { lnum = vim.fn.line(".") - 1 })
   if #diag == 0 then
     vim.notify("No diagnostics on this line", vim.log.levels.WARN)
     return
   end
-  local path = yank_path.relpath(buf_path(), vim.fn.getcwd())
+  local path = yanker.relpath(buf_path(), vim.fn.getcwd())
   local parts = {}
   for _, d in ipairs(diag) do
     parts[#parts + 1] = string.format("%s:%d: %s", path, d.lnum + 1, d.message)
   end
-  yank_path.yank(table.concat(parts, "\n"))
+  yanker.put(table.concat(parts, "\n"))
 end, { desc = "Copy diagnostic with path:line" })
 
 -- ---------------------------------------------------------------------------

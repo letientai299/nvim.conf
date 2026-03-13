@@ -165,10 +165,8 @@ function M.restore_search()
   prev_search = nil
 end
 
-local yank_path = require("lib.yank_path")
-
 function M.git_root()
-  return yank_path.git_root()
+  return vim.fs.root(0, ".git")
 end
 
 --- Return the absolute path of the entry under cursor, or nil.
@@ -185,20 +183,20 @@ end
 function M.yank_name()
   local entry = require("oil").get_cursor_entry()
   if entry then
-    yank_path.yank(entry.name)
+    require("lib.yanker").put(entry.name)
   end
 end
 
 function M.yank_relative()
-  yank_path.yank_relative(cursor_entry_path())
+  require("lib.yanker").relative(cursor_entry_path())
 end
 
 function M.yank_absolute()
-  yank_path.yank_absolute(cursor_entry_path())
+  require("lib.yanker").absolute(cursor_entry_path())
 end
 
 function M.yank_git()
-  yank_path.yank_git(cursor_entry_path())
+  require("lib.yanker").git(cursor_entry_path())
 end
 
 --- Toggle between filename-only and detail columns (permissions, size, mtime).

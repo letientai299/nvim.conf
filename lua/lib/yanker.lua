@@ -1,4 +1,4 @@
--- Shared file-path yank helpers used by oil keymaps and normal-buffer keymaps.
+-- Yank helpers for file paths and text, used by oil and normal-buffer keymaps.
 
 local M = {}
 
@@ -24,52 +24,47 @@ function M.relpath(target, base)
   return table.concat(parts, "/")
 end
 
---- Return the git repo root for cwd, or nil outside a repo.
-function M.git_root()
-  return vim.fs.root(0, ".git")
-end
-
---- Yank `text` to the system clipboard and echo it.
-function M.yank(text)
+--- Yank `text` to the system clipboard and notify.
+function M.put(text)
   vim.fn.setreg("+", text)
   vim.notify(text, vim.log.levels.INFO)
 end
 
 --- Yank just the filename of `path`.
-function M.yank_name(path)
+function M.name(path)
   if not path then
     return
   end
-  M.yank(vim.fn.fnamemodify(path, ":t"))
+  M.put(vim.fn.fnamemodify(path, ":t"))
 end
 
 --- Yank `path` relative to cwd.
-function M.yank_relative(path)
+function M.relative(path)
   if not path then
     return
   end
-  M.yank(M.relpath(path, vim.fn.getcwd()))
+  M.put(M.relpath(path, vim.fn.getcwd()))
 end
 
 --- Yank the absolute `path`.
-function M.yank_absolute(path)
+function M.absolute(path)
   if not path then
     return
   end
-  M.yank(path)
+  M.put(path)
 end
 
 --- Yank `path` relative to git root (falls back to cwd-relative).
-function M.yank_git(path)
+function M.git(path)
   if not path then
     return
   end
-  local root = M.git_root()
+  local root = vim.fs.root(0, ".git")
   if root then
     root = root:gsub("/?$", "/")
-    M.yank(path:sub(#root + 1))
+    M.put(path:sub(#root + 1))
   else
-    M.yank(vim.fn.fnamemodify(path, ":."))
+    M.put(vim.fn.fnamemodify(path, ":."))
   end
 end
 
