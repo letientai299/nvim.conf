@@ -22,7 +22,12 @@ tool, append it to `tools.txt` and re-run `mise run sync`.
 Neovim bootstraps [lazy.nvim][lazy] on first launch — open `nvim` and let it
 finish installing plugins.
 
+## Custom Plugins
+
+- **web-grep** (`plugins/web-grep/`) — search the word under cursor or visual
+  selection in a browser. Supports multiple engines (Google, Stack Overflow,
+  ChatGPT, GitHub, etc.) and per-project context keywords via `.nvim.lua`.
+
 [jq]: https://jqlang.github.io/jq/
 [lazy]: https://github.com/folke/lazy.nvim
-[mini-surround]: https://github.com/nvim-mini/mini.surround
 [mise]: https://mise.jdx.dev/
