@@ -111,7 +111,7 @@ local function resolve_engine_and_search(query, engine_name)
   end
 
   vim.ui.select(config.engines, {
-    prompt = "Search engine",
+    prompt = "Search engine > ",
     format_item = function(e)
       return e.name
     end,
@@ -145,9 +145,18 @@ function M.search(opts)
   resolve_engine_and_search(query, opts.engine)
 end
 
----@param opts? WebGrepConfig
+---@class WebGrepSetupOpts : WebGrepConfig
+---@field extra_engines? WebGrepEngine[] append to existing engines
+
+---@param opts? WebGrepSetupOpts
 function M.setup(opts)
-  config = vim.tbl_extend("force", config, opts or {})
+  opts = opts or {}
+  local extra = opts.extra_engines
+  opts.extra_engines = nil
+  config = vim.tbl_extend("force", config, opts)
+  if extra then
+    vim.list_extend(config.engines, extra)
+  end
 
   vim.api.nvim_create_user_command("WebGrep", function()
     M.search()

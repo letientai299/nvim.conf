@@ -1,5 +1,5 @@
 return {
-  dir = vim.fn.stdpath("config"),
+  dir = vim.fn.stdpath("config") .. "/plugins/web-grep",
   name = "web-grep.nvim",
   keys = {
     {

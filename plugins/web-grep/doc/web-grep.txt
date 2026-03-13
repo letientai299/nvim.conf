@@ -1,0 +1,198 @@
+*web-grep.txt*  Search text in a browser from Neovim
+
+Author:  tai
+License: MIT
+Requires: Neovim >= 0.10
+
+==============================================================================
+CONTENTS                                                   *web-grep-contents*
+
+  1. Introduction ................ |web-grep-introduction|
+  2. Setup ....................... |web-grep-setup|
+  3. Configuration ............... |web-grep-configuration|
+  4. Commands .................... |web-grep-commands|
+  5. Mappings .................... |web-grep-mappings|
+  6. API ......................... |web-grep-api|
+  7. Per-project config .......... |web-grep-per-project|
+
+==============================================================================
+1. INTRODUCTION                                        *web-grep-introduction*
+
+web-grep.nvim searches the word under cursor or visual selection in a browser
+using configurable search engines. It supports per-project context keywords
+that are prepended to queries for relevant engines.
+
+Features:
+- Search |cword| or visual selection
+- Editable prompt via |vim.ui.input()|
+- Engine picker via |vim.ui.select()|
+- Per-engine context toggle
+- Per-project context keywords via `.nvim.lua`
+- Custom engines (string templates or functions)
+
+==============================================================================
+2. SETUP                                                    *web-grep-setup*
+
+Using lazy.nvim with a local plugin (the default spec is provided): >lua
+
+  -- lua/plugins/web-grep.lua
+  return {
+    dir = vim.fn.stdpath("config"),
+    name = "web-grep.nvim",
+    keys = {
+      { "<Leader>sw", function() require("web-grep").search() end,
+        mode = "n", desc = "Web search cword" },
+      { "<Leader>sw", function() require("web-grep").search({ visual = true }) end,
+        mode = "x", desc = "Web search selection" },
+      { "<Leader>sW", function() require("web-grep").search({ prompt = true }) end,
+        mode = "n", desc = "Web search (prompt)" },
+      { "<Leader>sW", function() require("web-grep").search({ prompt = true, visual = true }) end,
+        mode = "x", desc = "Web search selection (prompt)" },
+    },
+    config = function()
+      require("web-grep").setup()
+    end,
+  }
+<
+
+==============================================================================
+3. CONFIGURATION                                    *web-grep-configuration*
+
+Pass options to `setup()`. All fields are optional.
+
+                                                     *web-grep-setup-opts*
+>lua
+  require("web-grep").setup({
+    -- Full list of engines (replaces defaults when provided)
+    engines = {
+      { name = "Google",
+        url = "https://google.com/search?q={query}",
+        context = true },
+      { name = "Stack Overflow",
+        url = "https://stackoverflow.com/search?q={query}",
+        context = true },
+      { name = "Google Maps",
+        url = "https://google.com/maps/search/{query}",
+        context = false },
+    },
+
+    -- Append engines without replacing builtins
+    extra_engines = {
+      { name = "MDN",
+        url = "https://developer.mozilla.org/en-US/search?q={query}",
+        context = true },
+    },
+
+    -- Context string prepended to queries for engines with context = true
+    context = "",
+
+    -- Skip the picker and use this engine by name
+    default_engine = nil,
+  })
+<
+
+                                                  *web-grep-engine-config*
+Engine fields:
+
+  `name`      (string)                  Display name in picker.
+  `url`       (string|function)         URL template with `{query}` placeholder,
+                                      or a function receiving the encoded query
+                                      and returning a URL string.
+  `context`   (boolean, optional)       When `true` and `config.context` is
+                                      non-empty, the context string is
+                                      prepended to the query.
+
+When `url` is a string, `{query}` is replaced with the percent-encoded query.
+When `url` is a function, it receives the already-encoded query: >lua
+
+  { name = "Custom",
+    url = function(encoded_query)
+      return "https://example.com/q=" .. encoded_query
+    end,
+    context = true }
+<
+
+==============================================================================
+4. COMMANDS                                              *web-grep-commands*
+
+                                                                  *:WebGrep*
+:WebGrep            Search the word under cursor. Opens the engine picker
+                    (unless `default_engine` is set), then opens the browser.
+
+                                                            *:WebGrepPrompt*
+:WebGrepPrompt      Same as |:WebGrep| but shows |vim.ui.input()| pre-filled
+                    with the word under cursor so you can edit the query.
+
+==============================================================================
+5. MAPPINGS                                              *web-grep-mappings*
+
+Default mappings (registered via the lazy.nvim spec):
+
+  Mode   Key            Action ~
+  n      `<Leader>sw`   Search |cword| → engine picker → browser
+  x      `<Leader>sw`   Search selection → engine picker → browser
+  n      `<Leader>sW`   Editable prompt (cword) → engine picker → browser
+  x      `<Leader>sW`   Editable prompt (selection) → engine picker → browser
+
+==============================================================================
+6. API                                                        *web-grep-api*
+
+                                                       *web-grep.setup()*
+web-grep.setup({opts})
+    Initialize the plugin. See |web-grep-configuration| for options.
+    Registers |:WebGrep| and |:WebGrepPrompt| commands.
+    Can be called multiple times (e.g., from `.nvim.lua`) to override
+    settings per project.
+
+                                                      *web-grep.search()*
+web-grep.search({opts})
+    Perform a search. Fields in {opts}:
+
+    `engine`   (string, optional)    Engine name to use directly, skipping
+                                   the picker.
+    `prompt`   (boolean, optional)   Show |vim.ui.input()| to edit the query
+                                   before searching.
+    `visual`   (boolean, optional)   Use the visual selection as the query
+                                   instead of |cword|.
+
+    Examples: >lua
+      -- Search cword with picker
+      require("web-grep").search()
+
+      -- Search visual selection on Google directly
+      require("web-grep").search({ visual = true, engine = "Google" })
+
+      -- Editable prompt
+      require("web-grep").search({ prompt = true })
+<
+
+==============================================================================
+7. PER-PROJECT CONFIG                                  *web-grep-per-project*
+
+Call `setup()` in your project's `.nvim.lua` to set context keywords or add
+project-specific engines. The builtin engines remain available.
+
+Example for a C#/.NET project: >lua
+
+  -- .nvim.lua
+  require("web-grep").setup({
+    context = "C# .NET 8",
+    extra_engines = {
+      { name = "Microsoft Learn",
+        url = "https://learn.microsoft.com/en-us/search/?terms={query}",
+        context = true },
+      { name = "NuGet",
+        url = "https://www.nuget.org/packages?q={query}",
+        context = false },
+    },
+  })
+<
+
+With this config, searching "HttpClient" on Google produces:
+  `https://google.com/search?q=C%23+.NET+8+HttpClient`
+
+Searching on NuGet (context = false) produces:
+  `https://www.nuget.org/packages?q=HttpClient`
+
+==============================================================================
+ vim:tw=78:ts=8:ft=help:norl:
