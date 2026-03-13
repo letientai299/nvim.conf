@@ -21,7 +21,7 @@ hooks = [
   },
   {
     id = "gen-lang-registry",
-    name = "Regenerate lang_registry.gen.lua",
+    name = "Regenerate lang_registry_gen.lua",
     language = "system",
     entry = "mise run gen-lang-registry",
     pass_filenames = false,

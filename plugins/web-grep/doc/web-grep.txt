@@ -92,14 +92,19 @@ Pass options to `setup()`. All fields are optional.
     --   string → use that string instead of the global context
     context = "",
 
-    -- Engine used by <Leader>ss and get_default_engine()
-    default_engine = "Google",
+    -- Engine id used by <Leader>ss and get_default_engine()
+    default_engine = "google",
   })
 <
 
                                                   *web-grep-engine-config*
 Engine fields:
 
+  `id`        (string, auto-derived)    Snake-case identifier used by the
+                                      `engine=` command argument and
+                                      tab-completion. Auto-derived from `name`
+                                      as `name:lower():gsub(" ", "-")` when
+                                      not set explicitly.
   `url`       (string|function)         URL template with `{query}` placeholder,
                                       or a function receiving the encoded query
                                       and returning a URL string.
@@ -130,12 +135,27 @@ When `url` is a function, it receives the already-encoded query: >lua
 4. COMMANDS                                              *web-grep-commands*
 
                                                                   *:WebGrep*
-:WebGrep            Search the word under cursor. Opens the engine picker,
-                    then opens the browser.
+:[range]WebGrep [engine=<id>] [query ...]
+                    Search text in a browser. Without arguments, searches
+                    |cword| (or visual selection if a range is given) using
+                    the default engine.
+
+                    `engine=<id>` selects an engine by its snake-case id
+                    (tab-completable). Without it the default engine is used.
+
+                    Any remaining arguments form the query. When no query
+                    text is given, |cword| or visual selection is used.
+
+                    Examples: >
+                      :WebGrep hello world
+                      :WebGrep engine=stack-overflow hello world
+                      :'<,'>WebGrep engine=github
+<
 
                                                             *:WebGrepPrompt*
-:WebGrepPrompt      Same as |:WebGrep| but shows |vim.ui.input()| pre-filled
-                    with the word under cursor so you can edit the query.
+:[range]WebGrepPrompt [engine=<id>] [query ...]
+                    Same as |:WebGrep| but shows |vim.ui.input()| pre-filled
+                    with the query so you can edit before searching.
 
 ==============================================================================
 5. MAPPINGS                                              *web-grep-mappings*
