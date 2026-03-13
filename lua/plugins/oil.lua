@@ -197,7 +197,8 @@ end
 
 --- Compute a relative path from `base` to `target`, including `../` segments.
 local function relpath(target, base)
-  local t = vim.split(vim.fn.fnamemodify(target, ":p"), "/", { trimempty = true })
+  local t =
+    vim.split(vim.fn.fnamemodify(target, ":p"), "/", { trimempty = true })
   local b = vim.split(vim.fn.fnamemodify(base, ":p"), "/", { trimempty = true })
   local common = 0
   for i = 1, math.min(#t, #b) do
@@ -291,7 +292,30 @@ return {
       ["yp"] = { desc = "Yank relative path", callback = M.yank_relative },
       ["yP"] = { desc = "Yank absolute path", callback = M.yank_absolute },
       ["yg"] = { desc = "Yank path from git root", callback = M.yank_git },
+      ["<C-p>"] = {
+        "actions.preview",
+        opts = { split = "belowright" },
+      },
       ["gd"] = { desc = "Toggle file detail view", callback = M.toggle_detail },
+      ["g?"] = {
+        desc = "Show keymaps (sorted by key)",
+        callback = function()
+          local keymap_util = require("oil.keymap_util")
+          local original_sort = table.sort
+          ---@diagnostic disable-next-line: duplicate-set-field
+          table.sort = function(t, fn)
+            if t[1] and t[1].str and t[1].desc then
+              original_sort(t, function(a, b)
+                return a.str < b.str
+              end)
+            else
+              original_sort(t, fn)
+            end
+          end
+          keymap_util.show_help(require("oil.config").keymaps)
+          table.sort = original_sort
+        end,
+      },
     },
   },
   init = function()
