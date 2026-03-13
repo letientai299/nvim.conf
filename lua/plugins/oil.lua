@@ -260,6 +260,8 @@ function M.toggle_detail()
 end
 
 return {
+  { "refractalize/oil-git-status.nvim", lazy = true },
+  {
   "stevearc/oil.nvim",
   priority = 900,
   cmd = "Oil",
@@ -281,6 +283,9 @@ return {
   },
   opts = {
     columns = {},
+    win_options = {
+      signcolumn = "yes:2",
+    },
     view_options = {
       show_hidden = true,
       highlight_filename = highlight_filename,
@@ -337,6 +342,7 @@ return {
 
     set_filetype_highlights()
     require("oil").setup(opts)
+    require("oil-git-status").setup()
 
     local group = vim.api.nvim_create_augroup("UserOilConfig", { clear = true })
     vim.api.nvim_create_autocmd("ColorScheme", {
@@ -349,4 +355,5 @@ return {
       callback = M.restore_search,
     })
   end,
+  },
 }
