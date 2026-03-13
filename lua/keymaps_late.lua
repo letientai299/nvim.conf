@@ -68,7 +68,10 @@ map("n", "<Leader>yd", function()
   local path = yanker.relpath(buf_path(), vim.fn.getcwd())
   local parts = {}
   for _, d in ipairs(diag) do
-    parts[#parts + 1] = string.format("%s:%d: %s", path, d.lnum + 1, d.message)
+    local code = d.code and ("[" .. d.code .. "]") or ""
+    local src = d.source and (" (" .. d.source .. ")") or ""
+    parts[#parts + 1] =
+      string.format("%s:%d: %s %s%s", path, d.lnum + 1, d.message, code, src)
   end
   yanker.put(table.concat(parts, "\n"))
 end, { desc = "Copy diagnostic with path:line" })

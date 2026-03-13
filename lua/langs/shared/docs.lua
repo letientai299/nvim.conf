@@ -30,7 +30,7 @@ local function fallback_flags(path)
   if has_project_config(path) then
     return {}
   end
-  return { "--no-config", "--config", fallback_config }
+  return { "--config", fallback_config }
 end
 
 function M.markdown(bufnr)
@@ -46,7 +46,7 @@ function M.markdown(bufnr)
       rumdl_fix = {
         command = "rumdl",
         args = function(_, ctx)
-          local args = { "check", "--fix" }
+          local args = { "check", "--fix", "--fail-on", "never" }
           vim.list_extend(args, fallback_flags(ctx.dirname))
           vim.list_extend(args, { "--", "$FILENAME" })
           return args
