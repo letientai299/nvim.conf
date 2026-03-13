@@ -2,4 +2,4 @@
 #MISE description="Delete generated spec caches so next nvim launch rebuilds them"
 
 state="${XDG_STATE_HOME:-$HOME/.local/state}/nvim"
-rm -f "$state/plugin-spec.gen.lua" "$state/theme-spec.gen.lua"
+rm -f "$state/plugin-spec_gen.lua" "$state/theme-spec_gen.lua"

@@ -2,4 +2,4 @@
 lua/local.lua
 lua/local/
 .local-plugin-names
-*.gen.lua
+*_gen.lua

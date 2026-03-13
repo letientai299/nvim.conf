@@ -16,10 +16,6 @@ function M.setup(key, bufnr, opts)
   if not initialized[key] then
     initialized[key] = true
 
-    if opts.tools then
-      require("lib.tools").check_now(opts.tools)
-    end
-
     local registry = require("lib.lang_registry")
 
     if opts.formatter_defs then
@@ -51,12 +47,18 @@ function M.setup(key, bufnr, opts)
     end
   end
 
-  for _, name in ipairs(listify(opts.lsps or opts.lsp)) do
-    require("lib.lsp").enable(name, bufnr)
-  end
+  if bufnr then
+    if opts.tools then
+      require("lib.tools").check_now(opts.tools)
+    end
 
-  if opts.each then
-    opts.each(bufnr)
+    for _, name in ipairs(listify(opts.lsps or opts.lsp)) do
+      require("lib.lsp").enable(name, bufnr)
+    end
+
+    if opts.each then
+      opts.each(bufnr)
+    end
   end
 end
 

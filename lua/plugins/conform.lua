@@ -46,6 +46,7 @@ return {
           end)
         end,
       },
+      injected = { options = { ignore_errors = true } },
     },
     formatters_by_ft = {
       ["*"] = { "trim_whitespace", "trim_newlines", "injected" },
@@ -64,5 +65,6 @@ return {
   config = function(_, opts)
     require("lib.lang_registry").activate_conform(opts)
     require("conform").setup(opts)
+    require("lib.lang_registry").install_lazy_formatters()
   end,
 }

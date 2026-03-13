@@ -1,0 +1,4 @@
+#!/bin/sh
+#MISE description="Generate lua/lib/lang_registry_gen.lua from ftplugin/ and lang modules"
+
+nvim -l scripts/gen-lang-registry.lua

@@ -27,35 +27,36 @@ local function merge_lists(dst, src)
 end
 
 function M.add_formatters(fts, names)
+  fts = listify(fts)
   names = listify(names)
-  for _, ft in ipairs(listify(fts)) do
+  for _, ft in ipairs(fts) do
     local dst = M.formatters_by_ft[ft] or {}
     merge_lists(dst, names)
     M.formatters_by_ft[ft] = dst
   end
 
   local conform = package.loaded["conform"]
-  if conform then
-    conform.formatters_by_ft = vim.tbl_deep_extend(
-      "force",
-      conform.formatters_by_ft or {},
-      M.formatters_by_ft
-    )
+  if conform and conform.formatters_by_ft then
+    for _, ft in ipairs(fts) do
+      rawset(conform.formatters_by_ft, ft, M.formatters_by_ft[ft])
+    end
   end
 end
 
 function M.add_linter(fts, names)
+  fts = listify(fts)
   names = listify(names)
-  for _, ft in ipairs(listify(fts)) do
+  for _, ft in ipairs(fts) do
     local dst = M.linters_by_ft[ft] or {}
     merge_lists(dst, names)
     M.linters_by_ft[ft] = dst
   end
 
   local lint = package.loaded["lint"]
-  if lint then
-    lint.linters_by_ft =
-      vim.tbl_deep_extend("force", lint.linters_by_ft or {}, M.linters_by_ft)
+  if lint and lint.linters_by_ft then
+    for _, ft in ipairs(fts) do
+      rawset(lint.linters_by_ft, ft, M.linters_by_ft[ft])
+    end
   end
 end
 
@@ -63,9 +64,8 @@ function M.add_formatter(name, config)
   M.formatters[name] = config
 
   local conform = package.loaded["conform"]
-  if conform then
-    conform.formatters =
-      vim.tbl_deep_extend("force", conform.formatters or {}, M.formatters)
+  if conform and conform.formatters then
+    conform.formatters[name] = config
   end
 end
 
@@ -108,6 +108,43 @@ function M.activate_treesitter()
   if #parsers > 0 then
     require("nvim-treesitter").install(parsers, { summary = false })
   end
+end
+
+--- Install lazy formatter lookup on conform.formatters_by_ft.
+--- Pre-populates static mappings from the generated registry and installs an
+--- __index metatable for filetypes that need custom formatter_defs loaded on
+--- demand (e.g., rumdl_fix in docs.lua).
+function M.install_lazy_formatters()
+  local ok, gen = pcall(require, "lib.lang_registry_gen")
+  if not ok then
+    return
+  end
+
+  local fbt = require("conform").formatters_by_ft
+
+  -- Merge static formatters_by_ft. Skip fts with ft_loaders so __index fires
+  -- and registers their custom formatter_defs on first access.
+  for ft, names in pairs(gen.formatters_by_ft) do
+    if rawget(fbt, ft) == nil and not gen.ft_loaders[ft] then
+      rawset(fbt, ft, names)
+    end
+  end
+
+  -- Install __index for fts with custom formatter_defs
+  if not next(gen.ft_loaders) or getmetatable(fbt) then
+    return
+  end
+  setmetatable(fbt, {
+    __index = function(t, ft)
+      local loader = gen.ft_loaders[ft]
+      if not loader then
+        return nil
+      end
+      gen.ft_loaders[ft] = nil -- prevent re-entry
+      loader()
+      return rawget(t, ft)
+    end,
+  })
 end
 
 return M
