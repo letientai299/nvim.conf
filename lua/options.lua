@@ -10,6 +10,10 @@ vim.opt.tabstop = 2
 vim.opt.softtabstop = 2
 vim.opt.shiftwidth = 2
 
+-- stable UI, no layout shifts
+vim.opt.laststatus = 2
+vim.opt.showtabline = 2
+
 -- Line numbers: absolute + relative for easy jump-counting
 vim.opt.number = true
 -- vim.opt.relativenumber = true
