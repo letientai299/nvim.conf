@@ -4,6 +4,7 @@ local M = {}
 ---@field name string
 ---@field url string|fun(query: string): string
 ---@field context? boolean prepend config.context to query when true
+---@field prompt? boolean force editable prompt before searching
 
 ---@class WebGrepConfig
 ---@field engines WebGrepEngine[]
@@ -22,6 +23,12 @@ local config = {
       name = "Stack Overflow",
       url = "https://stackoverflow.com/search?q={query}",
       context = true,
+    },
+    {
+      name = "ChatGPT",
+      url = "https://chatgpt.com/?q={query}&temporary-chat=true",
+      context = true,
+      prompt = true,
     },
     {
       name = "Google Maps",
@@ -81,9 +88,25 @@ local function find_engine(name)
   end
 end
 
+---@param engine WebGrepEngine
+---@param query string
+---@param prompted boolean whether vim.ui.input was already shown
+local function open_engine(engine, query, prompted)
+  if engine.prompt and not prompted then
+    vim.ui.input({ prompt = "Search: ", default = query }, function(input)
+      if input and input ~= "" then
+        vim.ui.open(build_url(engine, input))
+      end
+    end)
+    return
+  end
+  vim.ui.open(build_url(engine, query))
+end
+
 ---@param query string
 ---@param engine_name? string
-local function resolve_engine_and_search(query, engine_name)
+---@param prompted boolean
+local function resolve_engine_and_search(query, engine_name, prompted)
   if engine_name then
     local engine = find_engine(engine_name)
     if not engine then
@@ -93,7 +116,7 @@ local function resolve_engine_and_search(query, engine_name)
       )
       return
     end
-    vim.ui.open(build_url(engine, query))
+    open_engine(engine, query, prompted)
     return
   end
 
@@ -105,7 +128,7 @@ local function resolve_engine_and_search(query, engine_name)
         vim.log.levels.WARN
       )
     else
-      vim.ui.open(build_url(engine, query))
+      open_engine(engine, query, prompted)
       return
     end
   end
@@ -117,7 +140,7 @@ local function resolve_engine_and_search(query, engine_name)
     end,
   }, function(engine)
     if engine then
-      vim.ui.open(build_url(engine, query))
+      open_engine(engine, query, prompted)
     end
   end)
 end
@@ -131,7 +154,7 @@ function M.search(opts)
   if opts.prompt then
     vim.ui.input({ prompt = "Search: ", default = query }, function(input)
       if input and input ~= "" then
-        resolve_engine_and_search(input, opts.engine)
+        resolve_engine_and_search(input, opts.engine, true)
       end
     end)
     return
@@ -142,7 +165,7 @@ function M.search(opts)
     return
   end
 
-  resolve_engine_and_search(query, opts.engine)
+  resolve_engine_and_search(query, opts.engine, false)
 end
 
 ---@class WebGrepSetupOpts : WebGrepConfig

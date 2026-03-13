@@ -9,7 +9,9 @@ end
 --- @param fts string|string[]
 --- @return table lazy.nvim plugin spec
 function M.conform(fts)
-  if type(fts) == "string" then fts = { fts } end
+  if type(fts) == "string" then
+    fts = { fts }
+  end
   local by_ft = {}
   for _, ft in ipairs(fts) do
     by_ft[ft] = { "prettier" }

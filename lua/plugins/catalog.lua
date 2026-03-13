@@ -7,7 +7,12 @@ local function plugin_files()
   local files = {}
 
   for name, ftype in vim.fs.dir(this_dir) do
-    if ftype == "file" and name:match("%.lua$") and name ~= "catalog.lua" and name ~= "init.lua" then
+    if
+      ftype == "file"
+      and name:match("%.lua$")
+      and name ~= "catalog.lua"
+      and name ~= "init.lua"
+    then
       files[#files + 1] = name
     end
   end
@@ -55,9 +60,12 @@ local function read_file(path)
 end
 
 local function indent(text)
-  return table.concat(vim.tbl_map(function(line)
-    return "    " .. line
-  end, vim.split(text, "\n", { plain = true })), "\n")
+  return table.concat(
+    vim.tbl_map(function(line)
+      return "    " .. line
+    end, vim.split(text, "\n", { plain = true })),
+    "\n"
+  )
 end
 
 local function write_cache(files)

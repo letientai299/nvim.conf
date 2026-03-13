@@ -31,7 +31,10 @@ function M.toggle()
   if name == "" then
     name = "[No Name]"
   end
-  vim.notify("AutoCopy ON: " .. vim.fn.fnamemodify(name, ":t"), vim.log.levels.INFO)
+  vim.notify(
+    "AutoCopy ON: " .. vim.fn.fnamemodify(name, ":t"),
+    vim.log.levels.INFO
+  )
 end
 
 return M

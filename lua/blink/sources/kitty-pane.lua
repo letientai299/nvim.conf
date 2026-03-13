@@ -40,7 +40,8 @@ local function copy_items(items)
   local out = {}
   for i = 1, #items do
     local it = items[i]
-    out[i] = { label = it.label, kind = it.kind, score_offset = it.score_offset }
+    out[i] =
+      { label = it.label, kind = it.kind, score_offset = it.score_offset }
   end
   return out
 end
@@ -53,17 +54,25 @@ end
 ---@param Kind table  CompletionItemKind enum from blink.cmp
 ---@return string?, number?, number?, number?
 local function extract_token(text, pos, Kind)
-  local url, url_end = text:match("^(https?://[%w%-%.%_%~%:%/%?#%[%]@!%$&'%(%)%*%+,;%%=]+)()", pos)
-  if url then return url, Kind.Reference, 10, url_end end
+  local url, url_end =
+    text:match("^(https?://[%w%-%.%_%~%:%/%?#%[%]@!%$&'%(%)%*%+,;%%=]+)()", pos)
+  if url then
+    return url, Kind.Reference, 10, url_end
+  end
 
-  local path, path_end = text:match("^([~/%.][%w%-%.%_%~/]+/[%w%-%.%_%~/]*[%w%.%_])()", pos)
+  local path, path_end =
+    text:match("^([~/%.][%w%-%.%_%~/]+/[%w%-%.%_%~/]*[%w%.%_])()", pos)
   if path then
     path = path:gsub("%.+$", "") -- strip trailing sentence punctuation
-    if #path >= 4 then return path, Kind.File, 8, path_end end
+    if #path >= 4 then
+      return path, Kind.File, 8, path_end
+    end
   end
 
   local word, word_end = text:match("^([%w][%w%-_]+[%w])()", pos)
-  if word and #word >= 4 then return word, Kind.Text, 0, word_end end
+  if word and #word >= 4 then
+    return word, Kind.Text, 0, word_end
+  end
 
   return nil
 end
@@ -86,7 +95,8 @@ local function parse_items(text)
     if label then
       if not seen[label] then
         seen[label] = true
-        items[#items + 1] = { label = label, kind = kind, score_offset = offset }
+        items[#items + 1] =
+          { label = label, kind = kind, score_offset = offset }
       end
       pos = next_pos
     else
@@ -106,14 +116,20 @@ local function parse_items(text)
     end
   end
   table.sort(linkable, function(a, b)
-    if a.kind ~= b.kind then return a.kind < b.kind end
+    if a.kind ~= b.kind then
+      return a.kind < b.kind
+    end
     return a.label < b.label
   end)
   local out = {}
   for i, it in ipairs(linkable) do
     local nxt = linkable[i + 1]
-    local is_prefix = nxt and nxt.kind == it.kind and nxt.label:sub(1, #it.label) == it.label
-    if not is_prefix then out[#out + 1] = it end
+    local is_prefix = nxt
+      and nxt.kind == it.kind
+      and nxt.label:sub(1, #it.label) == it.label
+    if not is_prefix then
+      out[#out + 1] = it
+    end
   end
   vim.list_extend(out, rest)
 
@@ -144,16 +160,26 @@ local function fetch_recent_panes(listen_on, on_done)
       texts[#texts + 1] = result.stdout
     end
     remaining = remaining - 1
-    if remaining > 0 or cancelled then return end
-    vim.schedule(function() on_done(table.concat(texts, "\n")) end)
+    if remaining > 0 or cancelled then
+      return
+    end
+    vim.schedule(function()
+      on_done(table.concat(texts, "\n"))
+    end)
   end
 
   for i = 1, MAX_WINDOWS do
-    local j = vim.system(
-      { "kitty", "@", "--to", listen_on, "get-text", "--match", "recent:" .. i, "--extent", "screen" },
-      { text = true },
-      on_exit
-    )
+    local j = vim.system({
+      "kitty",
+      "@",
+      "--to",
+      listen_on,
+      "get-text",
+      "--match",
+      "recent:" .. i,
+      "--extent",
+      "screen",
+    }, { text = true }, on_exit)
     jobs[#jobs + 1] = j
   end
 
@@ -162,7 +188,11 @@ end
 
 ---@param items lsp.CompletionItem[]
 local function make_response(items)
-  return { items = items, is_incomplete_forward = false, is_incomplete_backward = false }
+  return {
+    items = items,
+    is_incomplete_forward = false,
+    is_incomplete_backward = false,
+  }
 end
 
 function source:get_completions(_, callback)

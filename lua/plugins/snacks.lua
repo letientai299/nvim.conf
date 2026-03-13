@@ -1,5 +1,6 @@
 return {
   "folke/snacks.nvim",
+  event = "VeryLazy",
   keys = {
     {
       "<Leader>go",
@@ -39,6 +40,7 @@ return {
   },
   opts = {
     gitbrowse = { enabled = true },
+    input = { enabled = true },
     scratch = {
       enabled = true,
       ft = "markdown",

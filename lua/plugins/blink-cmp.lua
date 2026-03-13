@@ -11,7 +11,11 @@ return {
       documentation = { auto_show = true },
       menu = {
         draw = {
-          columns = { { "kind_icon" }, { "label", "label_description", gap = 1 }, { "source_name" } },
+          columns = {
+            { "kind_icon" },
+            { "label", "label_description", gap = 1 },
+            { "source_name" },
+          },
         },
       },
     },

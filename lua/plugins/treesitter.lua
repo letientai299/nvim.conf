@@ -1,5 +1,8 @@
 local function register_default_languages()
-  vim.treesitter.language.register("tsx", { "typescriptreact", "javascriptreact" })
+  vim.treesitter.language.register(
+    "tsx",
+    { "typescriptreact", "javascriptreact" }
+  )
   vim.treesitter.language.register("bash", { "sh" })
   vim.treesitter.language.register("json", { "jsonc" })
   vim.treesitter.language.register("c_sharp", { "cs" })
@@ -18,7 +21,9 @@ return {
       once = true,
       callback = function()
         local buf = vim.api.nvim_get_current_buf()
-        if vim.bo[buf].buftype ~= "" or vim.api.nvim_buf_get_name(buf) == "" then
+        if
+          vim.bo[buf].buftype ~= "" or vim.api.nvim_buf_get_name(buf) == ""
+        then
           return
         end
 
@@ -29,7 +34,8 @@ return {
     })
   end,
   config = function(_, opts)
-    local group = vim.api.nvim_create_augroup("UserTreesitter", { clear = true })
+    local group =
+      vim.api.nvim_create_augroup("UserTreesitter", { clear = true })
     local ts = require("nvim-treesitter")
 
     register_default_languages()
@@ -41,7 +47,10 @@ return {
     end)
 
     local current = vim.api.nvim_get_current_buf()
-    if vim.bo[current].buftype == "" and vim.api.nvim_buf_get_name(current) ~= "" then
+    if
+      vim.bo[current].buftype == ""
+      and vim.api.nvim_buf_get_name(current) ~= ""
+    then
       vim.schedule(function()
         if vim.api.nvim_buf_is_valid(current) then
           pcall(vim.treesitter.start, current)

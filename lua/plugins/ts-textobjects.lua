@@ -19,9 +19,13 @@ end
 --- Collect 0-based row numbers of all symbol declarations in the buffer.
 local function get_symbol_rows(bufnr)
   local ok, parser = pcall(vim.treesitter.get_parser, bufnr)
-  if not ok or not parser then return {} end
+  if not ok or not parser then
+    return {}
+  end
   local trees = parser:parse()
-  if not trees or not trees[1] then return {} end
+  if not trees or not trees[1] then
+    return {}
+  end
 
   local rows, seen = {}, {}
   local function add(node)
@@ -34,7 +38,9 @@ local function get_symbol_rows(bufnr)
 
   local function walk(node)
     for child in node:iter_children() do
-      if not child:named() then goto continue end
+      if not child:named() then
+        goto continue
+      end
       local t = child:type()
       if is_decl(t) then
         add(child)
@@ -42,7 +48,12 @@ local function get_symbol_rows(bufnr)
         if not (t:match("func") or t:match("method")) then
           walk(child)
         end
-      elseif t:match("body") or t:match("declaration_list") or t:match("^export") or t == "section" then
+      elseif
+        t:match("body")
+        or t:match("declaration_list")
+        or t:match("^export")
+        or t == "section"
+      then
         -- Descend into structural wrapper nodes
         walk(child)
       end
@@ -58,19 +69,29 @@ end
 --- Jump to the next (dir=1) or previous (dir=-1) symbol from cursor.
 local function jump_symbol(dir)
   local rows = get_symbol_rows(0)
-  if #rows == 0 then return end
+  if #rows == 0 then
+    return
+  end
   local cur = vim.api.nvim_win_get_cursor(0)[1] - 1
   local target
   if dir == 1 then
     for _, r in ipairs(rows) do
-      if r > cur then target = r; break end
+      if r > cur then
+        target = r
+        break
+      end
     end
   else
     for i = #rows, 1, -1 do
-      if rows[i] < cur then target = rows[i]; break end
+      if rows[i] < cur then
+        target = rows[i]
+        break
+      end
     end
   end
-  if not target then return end
+  if not target then
+    return
+  end
   vim.cmd("normal! m'")
   vim.api.nvim_win_set_cursor(0, { target + 1, 0 })
   vim.cmd("normal! ^")
@@ -138,8 +159,12 @@ return {
     local jump_sym = ts_repeat.make_repeatable_move(function(opts)
       jump_symbol(opts.forward and 1 or -1)
     end)
-    vim.keymap.set(modes, "<C-j>", function() jump_sym({ forward = true }) end, { desc = "Next symbol" })
-    vim.keymap.set(modes, "<C-k>", function() jump_sym({ forward = false }) end, { desc = "Prev symbol" })
+    vim.keymap.set(modes, "<C-j>", function()
+      jump_sym({ forward = true })
+    end, { desc = "Next symbol" })
+    vim.keymap.set(modes, "<C-k>", function()
+      jump_sym({ forward = false })
+    end, { desc = "Prev symbol" })
 
     -- Make ; and , repeat the last treesitter move (and builtin f/F/t/T).
     vim.keymap.set(modes, ";", ts_repeat.repeat_last_move_next)

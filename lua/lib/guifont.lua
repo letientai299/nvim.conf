@@ -80,8 +80,12 @@ function M.map_zoom(store)
     store.save({ guifont = new })
   end
 
-  vim.keymap.set("n", "<D-=>", function() zoom(1.1) end, { desc = "Zoom in" })
-  vim.keymap.set("n", "<D-->", function() zoom(1 / 1.1) end, { desc = "Zoom out" })
+  vim.keymap.set("n", "<D-=>", function()
+    zoom(1.1)
+  end, { desc = "Zoom in" })
+  vim.keymap.set("n", "<D-->", function()
+    zoom(1 / 1.1)
+  end, { desc = "Zoom out" })
 end
 
 return M

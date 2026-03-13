@@ -13,7 +13,9 @@ end
 --- Convert an fd glob pattern to a full-path regex.
 --- e.g. "**/local" -> "/local/"
 local function glob_to_path_regex(pat)
-  return "/" .. pat:gsub("%*%*/", ""):gsub("%.", "\\."):gsub("%*", "[^/]*") .. "/"
+  return "/"
+    .. pat:gsub("%*%*/", ""):gsub("%.", "\\."):gsub("%*", "[^/]*")
+    .. "/"
 end
 
 --- Build an fd command that respects .gitignore but also finds the exceptions.

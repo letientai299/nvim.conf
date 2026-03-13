@@ -2,7 +2,8 @@ return {
   "lewis6991/gitsigns.nvim",
   lazy = true,
   init = function()
-    local augroup = vim.api.nvim_create_augroup("defer_gitsigns", { clear = true })
+    local augroup =
+      vim.api.nvim_create_augroup("defer_gitsigns", { clear = true })
 
     local function load_gitsigns(bufnr)
       if vim.g.defer_gitsigns_loaded then
