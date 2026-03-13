@@ -170,10 +170,81 @@ function M.git_root()
   return vim.fs.root(0, ".git")
 end
 
---- Copy the entry path under cursor to the system clipboard (`+` register).
-function M.copy_filepath()
-  require("oil.actions").copy_entry_path.callback()
-  vim.fn.setreg("+", vim.fn.getreg(vim.v.register))
+--- Return the absolute path of the entry under cursor, or nil.
+local function cursor_entry_path()
+  local oil = require("oil")
+  local entry = oil.get_cursor_entry()
+  local dir = oil.get_current_dir()
+  if not entry or not dir then
+    return nil
+  end
+  return dir .. entry.name
+end
+
+--- Yank `text` to the system clipboard and echo it.
+local function yank(text)
+  vim.fn.setreg("+", text)
+  vim.notify(text, vim.log.levels.INFO)
+end
+
+--- Copy just the filename.
+function M.yank_name()
+  local entry = require("oil").get_cursor_entry()
+  if entry then
+    yank(entry.name)
+  end
+end
+
+--- Compute a relative path from `base` to `target`, including `../` segments.
+local function relpath(target, base)
+  local t = vim.split(vim.fn.fnamemodify(target, ":p"), "/", { trimempty = true })
+  local b = vim.split(vim.fn.fnamemodify(base, ":p"), "/", { trimempty = true })
+  local common = 0
+  for i = 1, math.min(#t, #b) do
+    if t[i] ~= b[i] then
+      break
+    end
+    common = i
+  end
+  local parts = {}
+  for _ = common + 1, #b do
+    parts[#parts + 1] = ".."
+  end
+  for i = common + 1, #t do
+    parts[#parts + 1] = t[i]
+  end
+  return table.concat(parts, "/")
+end
+
+--- Copy path relative to cwd.
+function M.yank_relative()
+  local path = cursor_entry_path()
+  if path then
+    yank(relpath(path, vim.fn.getcwd()))
+  end
+end
+
+--- Copy absolute path.
+function M.yank_absolute()
+  local path = cursor_entry_path()
+  if path then
+    yank(path)
+  end
+end
+
+--- Copy path relative to git root.
+function M.yank_git()
+  local path = cursor_entry_path()
+  if not path then
+    return
+  end
+  local root = M.git_root()
+  if root then
+    root = root:gsub("/?$", "/")
+    yank(path:sub(#root + 1))
+  else
+    yank(vim.fn.fnamemodify(path, ":."))
+  end
 end
 
 --- Toggle between filename-only and detail columns (permissions, size, mtime).
@@ -214,11 +285,12 @@ return {
       highlight_filename = highlight_filename,
     },
     skip_confirm_for_simple_edits = true,
+    watch_for_changes = true,
     keymaps = {
-      ["yp"] = {
-        desc = "Copy filepath to system clipboard",
-        callback = M.copy_filepath,
-      },
+      ["yn"] = { desc = "Yank filename", callback = M.yank_name },
+      ["yp"] = { desc = "Yank relative path", callback = M.yank_relative },
+      ["yP"] = { desc = "Yank absolute path", callback = M.yank_absolute },
+      ["yg"] = { desc = "Yank path from git root", callback = M.yank_git },
       ["gd"] = { desc = "Toggle file detail view", callback = M.toggle_detail },
     },
   },
