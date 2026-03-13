@@ -9,6 +9,8 @@ local M = {}
 ---@alias ThemeryTheme string|ThemeryThemeEntry
 
 ---@class ThemePluginSpec
+---@field [1]? string
+---@field name? string
 ---@field themes? ThemeryTheme[]
 
 local this_dir = vim.fs.dirname(debug.getinfo(1, "S").source:sub(2))
