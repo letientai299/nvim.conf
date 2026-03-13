@@ -1,0 +1,11 @@
+# Default rumdl rules for the editor. Project-level .rumdl.toml takes precedence.
+
+[global]
+disable = [
+  "MD013", # line-length: prettier handles wrapping
+  "MD024", # no-duplicate-heading: same heading in different sections is valid
+  "MD033", # no-inline-html: needed for <details>, <kbd>, etc.
+  "MD034", # no-bare-urls: false positive on multi-line reference link definitions
+  "MD041", # first-line-h1: not all files start with h1
+  "MD053", # link-image-reference-definitions: false positives with footnotes
+]

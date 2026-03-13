@@ -1,40 +1,36 @@
 local M = {}
 
--- stylua: ignore
-local disabled_rules = {
-  "MD013", -- line-length: prettier handles wrapping
-  "MD024", -- no-duplicate-heading: same heading in different sections is valid
-  "MD033", -- no-inline-html: needed for <details>, <kbd>, etc.
-  "MD041", -- first-line-h1: not all files start with h1
-  "MD034", -- no-bare-urls: false positive on multi-line reference link definitions
-  "MD053", -- link-image-reference-definitions: false positives with footnotes
-}
-
-local disable_csv = table.concat(disabled_rules, ",")
+local fallback_config = vim.fn.stdpath("config") .. "/rumdl.toml"
 
 --- Check if a project-level rumdl config exists near `path`.
 --- When present, the project controls its own rules — our defaults don't apply.
---- Checks .rumdl.toml, rumdl.toml (upward walk), and .config/rumdl.toml at root.
---- pyproject.toml ([tool.rumdl]) is not checked — requires reading file contents.
+--- @param path string
+--- @return boolean
 local function has_project_config(path)
   local root = vim.fs.root(path, ".git")
   local stop = root or vim.env.HOME
-  -- Standard config files found via upward walk
-  local found = vim.fs.find({ ".rumdl.toml", "rumdl.toml" }, {
-    path = path,
-    upward = true,
-    stop = stop,
-    type = "file",
-    limit = 1,
-  })
-  if #found > 0 then
+  if
+    #vim.fs.find({ ".rumdl.toml", "rumdl.toml" }, {
+      path = path,
+      upward = true,
+      stop = stop,
+      type = "file",
+      limit = 1,
+    }) > 0
+  then
     return true
   end
-  -- .config/rumdl.toml at the project root (not in upward walk — nested path)
-  if root then
-    return vim.uv.fs_stat(root .. "/.config/rumdl.toml") ~= nil
+  return root ~= nil and vim.uv.fs_stat(root .. "/.config/rumdl.toml") ~= nil
+end
+
+--- Build rumdl CLI flags that apply the fallback config when needed.
+--- @param path string file or directory to check for project config
+--- @return string[]
+local function fallback_flags(path)
+  if has_project_config(path) then
+    return {}
   end
-  return false
+  return { "--no-config", "--config", fallback_config }
 end
 
 function M.markdown(bufnr)
@@ -50,18 +46,25 @@ function M.markdown(bufnr)
       rumdl_fix = {
         command = "rumdl",
         args = function(_, ctx)
-          local base = { "check", "--fix" }
-          if not has_project_config(ctx.dirname) then
-            vim.list_extend(base, { "--disable", disable_csv })
-          end
-          vim.list_extend(base, { "--", "$FILENAME" })
-          return base
+          local args = { "check", "--fix" }
+          vim.list_extend(args, fallback_flags(ctx.dirname))
+          vim.list_extend(args, { "--", "$FILENAME" })
+          return args
         end,
         stdin = false,
       },
     },
     formatters = { "rumdl_fix", "prettier" },
     parsers = { "markdown", "markdown_inline" },
+    once = function()
+      local path = bufnr and vim.api.nvim_buf_get_name(bufnr) or ""
+      local flags = fallback_flags(path)
+      if #flags > 0 then
+        local cmd = { "rumdl", "server", "--stdio" }
+        vim.list_extend(cmd, flags)
+        vim.lsp.config("rumdl", { cmd = cmd })
+      end
+    end,
   })
 end
 
