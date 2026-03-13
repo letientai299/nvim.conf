@@ -66,8 +66,12 @@ return {
         miniclue.gen_clues.z(),
 
         ce_postkeys,
+        { mode = "n", keys = "<Leader>y", desc = "+Copy" },
+        { mode = "x", keys = "<Leader>y", desc = "+Copy" },
         { mode = "n", keys = "<Leader>g", desc = "+Git" },
         { mode = "x", keys = "<Leader>g", desc = "+Git" },
+        { mode = "n", keys = "<Leader>s", desc = "+Search" },
+        { mode = "x", keys = "<Leader>s", desc = "+Search" },
         { mode = "n", keys = "<Leader>c", desc = "+Code" },
         { mode = "n", keys = "<Leader>d", desc = "+Diagnostics" },
         { mode = "n", keys = "<C-q>", desc = "+Terminal" },

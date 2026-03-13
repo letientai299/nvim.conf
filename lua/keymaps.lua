@@ -37,13 +37,37 @@ map(
   [["+P]],
   { desc = "Paste before from system clipboard" }
 )
-map({ "n", "v" }, "<Leader>y", [["+y]], { desc = "Copy to system clipboard" })
+map({ "n", "v" }, "<Leader>yy", [["+y]], { desc = "Copy to system clipboard" })
 map(
   { "n", "v" },
-  "<Leader>Y",
+  "<Leader>yY",
   [["+Y]],
   { desc = "Copy line to system clipboard" }
 )
+
+-- File path yank (mirrors oil's yn/yp/yP/yg for normal buffers)
+local yank_path = require("lib.yank_path")
+
+local function buf_path()
+  local name = vim.api.nvim_buf_get_name(0)
+  if name == "" then
+    return nil
+  end
+  return name
+end
+
+map("n", "<Leader>yn", function()
+  yank_path.yank_name(buf_path())
+end, { desc = "Copy filename" })
+map("n", "<Leader>yp", function()
+  yank_path.yank_relative(buf_path())
+end, { desc = "Copy relative path" })
+map("n", "<Leader>yP", function()
+  yank_path.yank_absolute(buf_path())
+end, { desc = "Copy absolute path" })
+map("n", "<Leader>yg", function()
+  yank_path.yank_git(buf_path())
+end, { desc = "Copy path from git root" })
 
 -- ---------------------------------------------------------------------------
 -- Center after search
@@ -116,8 +140,12 @@ local function sibling_file(delta)
   end
 end
 
-map("n", "[f", function() sibling_file(-1) end, { desc = "Previous file in directory" })
-map("n", "]f", function() sibling_file(1) end, { desc = "Next file in directory" })
+map("n", "[f", function()
+  sibling_file(-1)
+end, { desc = "Previous file in directory" })
+map("n", "]f", function()
+  sibling_file(1)
+end, { desc = "Next file in directory" })
 
 -- ---------------------------------------------------------------------------
 -- Config editing / reloading

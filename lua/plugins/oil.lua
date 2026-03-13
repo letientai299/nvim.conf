@@ -165,9 +165,10 @@ function M.restore_search()
   prev_search = nil
 end
 
---- Return the git repo root for cwd, or nil outside a repo.
+local yank_path = require("lib.yank_path")
+
 function M.git_root()
-  return vim.fs.root(0, ".git")
+  return yank_path.git_root()
 end
 
 --- Return the absolute path of the entry under cursor, or nil.
@@ -181,71 +182,23 @@ local function cursor_entry_path()
   return dir .. entry.name
 end
 
---- Yank `text` to the system clipboard and echo it.
-local function yank(text)
-  vim.fn.setreg("+", text)
-  vim.notify(text, vim.log.levels.INFO)
-end
-
---- Copy just the filename.
 function M.yank_name()
   local entry = require("oil").get_cursor_entry()
   if entry then
-    yank(entry.name)
+    yank_path.yank(entry.name)
   end
 end
 
---- Compute a relative path from `base` to `target`, including `../` segments.
-local function relpath(target, base)
-  local t =
-    vim.split(vim.fn.fnamemodify(target, ":p"), "/", { trimempty = true })
-  local b = vim.split(vim.fn.fnamemodify(base, ":p"), "/", { trimempty = true })
-  local common = 0
-  for i = 1, math.min(#t, #b) do
-    if t[i] ~= b[i] then
-      break
-    end
-    common = i
-  end
-  local parts = {}
-  for _ = common + 1, #b do
-    parts[#parts + 1] = ".."
-  end
-  for i = common + 1, #t do
-    parts[#parts + 1] = t[i]
-  end
-  return table.concat(parts, "/")
-end
-
---- Copy path relative to cwd.
 function M.yank_relative()
-  local path = cursor_entry_path()
-  if path then
-    yank(relpath(path, vim.fn.getcwd()))
-  end
+  yank_path.yank_relative(cursor_entry_path())
 end
 
---- Copy absolute path.
 function M.yank_absolute()
-  local path = cursor_entry_path()
-  if path then
-    yank(path)
-  end
+  yank_path.yank_absolute(cursor_entry_path())
 end
 
---- Copy path relative to git root.
 function M.yank_git()
-  local path = cursor_entry_path()
-  if not path then
-    return
-  end
-  local root = M.git_root()
-  if root then
-    root = root:gsub("/?$", "/")
-    yank(path:sub(#root + 1))
-  else
-    yank(vim.fn.fnamemodify(path, ":."))
-  end
+  yank_path.yank_git(cursor_entry_path())
 end
 
 --- Toggle between filename-only and detail columns (permissions, size, mtime).
@@ -262,98 +215,101 @@ end
 return {
   { "refractalize/oil-git-status.nvim", lazy = true },
   {
-  "stevearc/oil.nvim",
-  priority = 900,
-  cmd = "Oil",
-  keys = {
-    {
-      [[<C-\>]],
-      function()
-        M.save_search_and_open(vim.fn.expand("%:p:h"))
-      end,
-      desc = "Oil: current file's directory",
-    },
-    {
-      [[<A-\>]],
-      function()
-        M.save_search_and_open(M.git_root())
-      end,
-      desc = "Oil: git root",
-    },
-  },
-  opts = {
-    columns = {},
-    win_options = {
-      signcolumn = "yes:2",
-    },
-    view_options = {
-      show_hidden = true,
-      highlight_filename = highlight_filename,
-    },
-    skip_confirm_for_simple_edits = true,
-    watch_for_changes = true,
-    keymaps = {
-      ["yn"] = { desc = "Yank filename", callback = M.yank_name },
-      ["yp"] = { desc = "Yank relative path", callback = M.yank_relative },
-      ["yP"] = { desc = "Yank absolute path", callback = M.yank_absolute },
-      ["yg"] = { desc = "Yank path from git root", callback = M.yank_git },
-      ["<C-p>"] = {
-        "actions.preview",
-        opts = { split = "belowright" },
-      },
-      ["gd"] = { desc = "Toggle file detail view", callback = M.toggle_detail },
-      ["g?"] = {
-        desc = "Show keymaps (sorted by key)",
-        callback = function()
-          local keymap_util = require("oil.keymap_util")
-          local original_sort = table.sort
-          ---@diagnostic disable-next-line: duplicate-set-field
-          table.sort = function(t, fn)
-            if t[1] and t[1].str and t[1].desc then
-              original_sort(t, function(a, b)
-                return a.str < b.str
-              end)
-            else
-              original_sort(t, fn)
-            end
-          end
-          keymap_util.show_help(require("oil.config").keymaps)
-          table.sort = original_sort
+    "stevearc/oil.nvim",
+    priority = 900,
+    cmd = "Oil",
+    keys = {
+      {
+        [[<C-\>]],
+        function()
+          M.save_search_and_open(vim.fn.expand("%:p:h"))
         end,
+        desc = "Oil: current file's directory",
+      },
+      {
+        [[<A-\>]],
+        function()
+          M.save_search_and_open(M.git_root())
+        end,
+        desc = "Oil: git root",
       },
     },
-  },
-  init = function()
-    local group = vim.api.nvim_create_augroup("UserOilShim", { clear = true })
+    opts = {
+      columns = {},
+      win_options = {
+        signcolumn = "yes:2",
+      },
+      view_options = {
+        show_hidden = true,
+        highlight_filename = highlight_filename,
+      },
+      skip_confirm_for_simple_edits = true,
+      watch_for_changes = true,
+      keymaps = {
+        ["yn"] = { desc = "Yank filename", callback = M.yank_name },
+        ["yp"] = { desc = "Yank relative path", callback = M.yank_relative },
+        ["yP"] = { desc = "Yank absolute path", callback = M.yank_absolute },
+        ["yg"] = { desc = "Yank path from git root", callback = M.yank_git },
+        ["<C-p>"] = {
+          "actions.preview",
+          opts = { split = "belowright" },
+        },
+        ["gd"] = {
+          desc = "Toggle file detail view",
+          callback = M.toggle_detail,
+        },
+        ["g?"] = {
+          desc = "Show keymaps (sorted by key)",
+          callback = function()
+            local keymap_util = require("oil.keymap_util")
+            local original_sort = table.sort
+            rawset(table, "sort", function(t, fn)
+              if t[1] and t[1].str and t[1].desc then
+                original_sort(t, function(a, b)
+                  return a.str < b.str
+                end)
+              else
+                original_sort(t, fn)
+              end
+            end)
+            keymap_util.show_help(require("oil.config").keymaps)
+            rawset(table, "sort", original_sort)
+          end,
+        },
+      },
+    },
+    init = function()
+      local group = vim.api.nvim_create_augroup("UserOilShim", { clear = true })
 
-    vim.api.nvim_create_autocmd("BufEnter", {
-      group = group,
-      pattern = "*",
-      callback = function(args)
-        open_directory_with_oil(args.buf)
-      end,
-    })
-  end,
-  config = function(_, opts)
-    local oil_util = require("oil.util")
-    oil_util.get_icon_provider = function()
-      return nil
-    end
+      vim.api.nvim_create_autocmd("BufEnter", {
+        group = group,
+        pattern = "*",
+        callback = function(args)
+          open_directory_with_oil(args.buf)
+        end,
+      })
+    end,
+    config = function(_, opts)
+      local oil_util = require("oil.util")
+      oil_util.get_icon_provider = function()
+        return nil
+      end
 
-    set_filetype_highlights()
-    require("oil").setup(opts)
-    require("oil-git-status").setup()
+      set_filetype_highlights()
+      require("oil").setup(opts)
+      require("oil-git-status").setup()
 
-    local group = vim.api.nvim_create_augroup("UserOilConfig", { clear = true })
-    vim.api.nvim_create_autocmd("ColorScheme", {
-      group = group,
-      callback = set_filetype_highlights,
-    })
-    vim.api.nvim_create_autocmd("BufLeave", {
-      group = group,
-      pattern = "oil://*",
-      callback = M.restore_search,
-    })
-  end,
+      local group =
+        vim.api.nvim_create_augroup("UserOilConfig", { clear = true })
+      vim.api.nvim_create_autocmd("ColorScheme", {
+        group = group,
+        callback = set_filetype_highlights,
+      })
+      vim.api.nvim_create_autocmd("BufLeave", {
+        group = group,
+        pattern = "oil://*",
+        callback = M.restore_search,
+      })
+    end,
   },
 }
