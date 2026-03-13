@@ -1,5 +1,5 @@
 #!/bin/sh
-# Strip local plugin entries from lazy-lock.json before committing.
+#MISE description="Strip local plugin entries from lazy-lock.json"
 # Reads plugin names cached by lua/lib/lockfile.lua.
 
 NAMES_FILE=".local-plugin-names"
@@ -13,11 +13,11 @@ filter=""
 while IFS= read -r name; do
   [ -n "$name" ] || continue
   filter="${filter} | del(.\"${name}\")"
-done < "$NAMES_FILE"
+done <"$NAMES_FILE"
 [ -z "$filter" ] && exit 0
 filter="${filter# | }"
 
 # Apply filter to the staged lockfile and re-stage
-git show ":${LOCKFILE}" | jq "$filter" > "${LOCKFILE}.tmp" \
-  && mv "${LOCKFILE}.tmp" "$LOCKFILE" \
-  && git add "$LOCKFILE"
+git show ":${LOCKFILE}" | jq "$filter" >"${LOCKFILE}.tmp" &&
+  mv "${LOCKFILE}.tmp" "$LOCKFILE" &&
+  git add "$LOCKFILE"

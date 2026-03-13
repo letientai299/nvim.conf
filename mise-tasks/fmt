@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+#MISE description="Format Lua, Markdown, and Shell files"
+set -euo pipefail
+
+if [ $# -eq 0 ]; then
+  stylua lua/
+  prettier --write '**/*.md'
+  shfmt -w mise-tasks/
+  exit 0
+fi
+
+lua_files=()
+md_files=()
+sh_files=()
+for f in "$@"; do
+  case "$f" in
+  *.lua) lua_files+=("$f") ;;
+  *.md) md_files+=("$f") ;;
+  *.sh | mise-tasks/*) sh_files+=("$f") ;;
+  esac
+done
+
+[ ${#lua_files[@]} -gt 0 ] && stylua "${lua_files[@]}"
+[ ${#md_files[@]} -gt 0 ] && prettier --write "${md_files[@]}"
+[ ${#sh_files[@]} -gt 0 ] && shfmt -w "${sh_files[@]}"
+exit 0

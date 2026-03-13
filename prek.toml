@@ -1,0 +1,29 @@
+[[repos]]
+repo = "local"
+hooks = [
+  {
+    id = "strip-local-plugins",
+    name = "Strip local plugin entries from lazy-lock.json",
+    language = "system",
+    entry = "mise run strip-local-plugins",
+    pass_filenames = false,
+    always_run = true,
+    stages = ["pre-commit"],
+  },
+  {
+    id = "fmt",
+    name = "Format staged files",
+    language = "system",
+    entry = "mise run fmt --",
+    types_or = ["lua", "markdown", "bash", "sh"],
+    stages = ["pre-commit"],
+  },
+  {
+    id = "lint",
+    name = "Lint staged files",
+    language = "system",
+    entry = "mise run lint --",
+    types_or = ["lua", "bash", "sh"],
+    stages = ["pre-commit"],
+  },
+]

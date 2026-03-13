@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+#MISE description="Install all tools globally and handle non-mise deps"
 set -euo pipefail
 
 # --- Mise tools ---

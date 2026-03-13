@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+#MISE description="Lint Lua and Shell files"
+set -euo pipefail
+
+if [ $# -eq 0 ]; then
+  selene lua/
+  shellcheck mise-tasks/*
+  exit 0
+fi
+
+lua_files=()
+sh_files=()
+for f in "$@"; do
+  case "$f" in
+  *.lua) lua_files+=("$f") ;;
+  *.sh | mise-tasks/*) sh_files+=("$f") ;;
+  esac
+done
+
+[ ${#lua_files[@]} -gt 0 ] && selene "${lua_files[@]}"
+[ ${#sh_files[@]} -gt 0 ] && shellcheck "${sh_files[@]}"
+exit 0
