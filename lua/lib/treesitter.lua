@@ -41,6 +41,30 @@ end
 
 patch_highlighter_destroy()
 
+--- Custom tree-sitter parsers not in nvim-treesitter's built-in list.
+local custom_parsers = {
+  log = {
+    install_info = {
+      url = "https://github.com/Tudyx/tree-sitter-log",
+      branch = "main",
+    },
+  },
+}
+
+--- Register custom parsers into nvim-treesitter's table.
+--- Called on init and on User TSUpdate (nvim-treesitter reloads the table).
+local function register_custom_parsers()
+  local ok, parsers = pcall(require, "nvim-treesitter.parsers")
+  if not ok then
+    return
+  end
+  for lang, spec in pairs(custom_parsers) do
+    if not parsers[lang] then
+      parsers[lang] = spec
+    end
+  end
+end
+
 function M.register_default_languages()
   if registered then
     return
@@ -55,6 +79,15 @@ function M.register_default_languages()
   vim.treesitter.language.register("json", { "jsonc" })
   vim.treesitter.language.register("c_sharp", { "cs" })
   vim.treesitter.language.register("markdown", { "mdx" })
+
+  register_custom_parsers()
+
+  -- nvim-treesitter reloads the parsers table on install/update, wiping our
+  -- custom entries.  Re-register via the documented User TSUpdate hook.
+  api.nvim_create_autocmd("User", {
+    pattern = "TSUpdate",
+    callback = register_custom_parsers,
+  })
 end
 
 function M.enable_highlight(bufnr, filetype)
