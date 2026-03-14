@@ -134,6 +134,50 @@ end
 
 local installing = {} ---@type table<string, true?>
 
+--- Ensure a C compiler is available before treesitter parser compilation.
+--- Checks cc, gcc, clang, zig in order. When only zig is found, sets CC so
+--- treesitter uses it. When nothing is found, installs zig via mise.
+---@param callback fun()
+local function ensure_c_compiler(callback)
+  for _, cc in ipairs({ "cc", "gcc", "clang" }) do
+    if vim.fn.executable(cc) == 1 then
+      callback()
+      return
+    end
+  end
+
+  -- zig present but no traditional compiler — set CC so treesitter finds it
+  if vim.fn.executable("zig") == 1 then
+    vim.env.CC = "zig cc"
+    callback()
+    return
+  end
+
+  vim.notify(
+    "Installing zig (C compiler for treesitter)...",
+    vim.log.levels.INFO
+  )
+  vim.system({ "mise", "use", "-g", "zig" }, {}, function(result)
+    vim.schedule(function()
+      if result.code == 0 then
+        vim.env.CC = "zig cc"
+        vim.notify(
+          "zig installed. Treesitter parsers will compile now.",
+          vim.log.levels.INFO
+        )
+        callback()
+      else
+        vim.notify(
+          "Failed to install zig: "
+            .. (result.stderr or "")
+            .. "\nTreesitter parsers won't compile. Install a C compiler manually.",
+          vim.log.levels.ERROR
+        )
+      end
+    end)
+  end)
+end
+
 --- Auto-install a missing parser for the buffer's filetype, then enable
 --- highlighting. Uses nvim-treesitter's async install; re-triggers
 --- enable_highlight on completion.
@@ -159,18 +203,20 @@ function M.auto_install(bufnr)
   end
 
   installing[lang] = true
-  require("nvim-treesitter")
-    .install({ lang }, {
-      summary = false,
-    })
-    :await(function()
-      installing[lang] = nil
-      vim.schedule(function()
-        if vim.api.nvim_buf_is_valid(bufnr) then
-          M.enable_highlight(bufnr)
-        end
+  ensure_c_compiler(function()
+    require("nvim-treesitter")
+      .install({ lang }, {
+        summary = false,
+      })
+      :await(function()
+        installing[lang] = nil
+        vim.schedule(function()
+          if vim.api.nvim_buf_is_valid(bufnr) then
+            M.enable_highlight(bufnr)
+          end
+        end)
       end)
-    end)
+  end)
 end
 
 return M
