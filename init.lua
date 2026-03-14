@@ -371,6 +371,7 @@ require("lazy").setup({
     } or nil,
   },
   install = {
+    missing = false,
     colorscheme = { (_themery and _themery.colorscheme) or "default" },
   },
   change_detection = { enabled = false },
@@ -395,6 +396,9 @@ require("lazy").setup({
   },
   lockfile = _lazy_lockfile,
 })
+
+-- Auto-clone missing plugins when their lazy-load trigger fires
+require("lib.lazy_ondemand").enable()
 
 -- Apply persisted colorscheme (lazy.nvim auto-loads the theme plugin)
 if _themery and _themery.colorscheme then

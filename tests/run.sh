@@ -38,6 +38,36 @@ nvim --headless +qa
 echo "PASS: nvim launches cleanly"
 PASS=$((PASS + 1))
 
+# 5. On-demand plugin cloning test
+echo "=== lazy_ondemand tests ==="
+FIXTURES="$CONF/tests/fixtures"
+
+# Use NVIM_TEST=1 to redirect lockfile to cache dir (writable).
+# Open a file so BufReadPre fires — plenary (BufReadPre) should auto-clone,
+# virtcolumn (cmd-only) should not.
+PLUGIN_DIR="$HOME/.local/share/nvim/lazy"
+rm -rf "$PLUGIN_DIR/plenary.nvim" "$PLUGIN_DIR/virtcolumn.nvim"
+
+NVIM_TEST=1 nvim --headless -u "$FIXTURES/minimal-plugins.lua" \
+  +"qa!" \
+  "$FIXTURES/test.sh"
+
+if [ -d "$PLUGIN_DIR/plenary.nvim" ]; then
+  echo "PASS: plenary.nvim auto-cloned on BufReadPre"
+  PASS=$((PASS + 1))
+else
+  echo "FAIL: plenary.nvim not cloned"
+  FAIL=$((FAIL + 1))
+fi
+# virtcolumn triggers on :VirtcolumnToggle command only — should not clone
+if [ ! -d "$PLUGIN_DIR/virtcolumn.nvim" ]; then
+  echo "PASS: virtcolumn.nvim correctly not cloned (cmd not run)"
+  PASS=$((PASS + 1))
+else
+  echo "FAIL: virtcolumn.nvim cloned unexpectedly"
+  FAIL=$((FAIL + 1))
+fi
+
 echo "---"
 echo "Results: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ] || exit 1

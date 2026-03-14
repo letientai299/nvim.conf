@@ -1,6 +1,6 @@
 return {
   "echasnovski/mini.hipatterns",
-  event = "VeryLazy",
+  event = { "BufReadPre", "BufNewFile" },
   opts = function()
     local hipatterns = require("mini.hipatterns")
     return {

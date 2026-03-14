@@ -1,6 +1,9 @@
 return {
   "nvim-mini/mini.ai",
-  event = "VeryLazy",
+  keys = {
+    { "a", mode = { "o", "x" } },
+    { "i", mode = { "o", "x" } },
+  },
   opts = function()
     return {
       -- Search the whole buffer; default 50 breaks large classes (C#, Java).

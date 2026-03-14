@@ -101,7 +101,7 @@ return {
   "nvim-treesitter/nvim-treesitter-textobjects",
   branch = "main",
   dependencies = { "nvim-treesitter/nvim-treesitter" },
-  event = "VeryLazy",
+  event = { "BufReadPre", "BufNewFile" },
   config = function()
     require("nvim-treesitter-textobjects").setup({
       move = { set_jumps = true },
