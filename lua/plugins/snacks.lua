@@ -2,24 +2,51 @@ return {
   "folke/snacks.nvim",
   lazy = true,
   init = function()
-    -- Queue notifications until snacks loads, then replay them
+    -- Queue notifications until snacks loads, then replay them.
+    -- With on-demand plugin install, snacks may not be available immediately
+    -- after require("lazy").load() — it may be cloning async. In that case,
+    -- keep queueing and replay once snacks is loaded (via LazyLoad event).
     local queue = {}
+    local load_requested = false
+
+    local function replay()
+      if not package.loaded["snacks"] or not queue then
+        return
+      end
+      local items = queue
+      queue = nil ---@diagnostic disable-line: cast-local-type
+      for _, item in ipairs(items) do
+        vim.notify(item.msg, item.level, item.opts)
+      end
+    end
+
     ---@diagnostic disable-next-line: duplicate-set-field
     vim.notify = function(msg, level, o)
+      if not queue then
+        -- snacks already loaded and replayed; this is the real vim.notify
+        -- from snacks. Shouldn't happen, but guard anyway.
+        return
+      end
       table.insert(queue, { msg = msg, level = level, opts = o })
-      -- Trigger lazy-load on first notification
-      if #queue == 1 then
+      if not load_requested then
+        load_requested = true
         vim.schedule(function()
           require("lazy").load({ plugins = { "snacks.nvim" } })
-          vim.schedule(function()
-            for _, item in ipairs(queue) do
-              vim.notify(item.msg, item.level, item.opts)
-            end
-            queue = nil ---@diagnostic disable-line: cast-local-type
-          end)
+          vim.schedule(replay)
         end)
       end
     end
+
+    -- Replay when snacks finishes async install + load.
+    vim.api.nvim_create_autocmd("User", {
+      pattern = "LazyLoad",
+      callback = function(ev)
+        if ev.data == "snacks.nvim" then
+          vim.schedule(replay)
+          return true -- remove this autocmd
+        end
+      end,
+    })
   end,
   config = function(_, opts)
     require("snacks").setup(opts)
