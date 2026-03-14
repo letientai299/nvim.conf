@@ -7,6 +7,10 @@ REPO_URL="https://github.com/letientai299/nvim.conf"
 NVIM_CONFIG="${HOME}/.config/nvim"
 MISE_SHIMS="${HOME}/.local/share/mise/shims"
 
+# Detect if we're running from a local repo checkout
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+LOCAL_REPO="$(cd "$SCRIPT_DIR/.." && pwd)"
+
 # --- helpers ----------------------------------------------------------------
 
 log() { printf '==> %s\n' "$*"; }
@@ -123,11 +127,40 @@ install_cli_tools() {
 
 # --- 5. Handle ~/.config/nvim -----------------------------------------------
 
+# True when the script lives inside a local repo clone (has init.lua at root)
+is_local_repo() { [ -f "$LOCAL_REPO/init.lua" ]; }
+
+install_config_fresh() {
+  mkdir -p "$(dirname "$NVIM_CONFIG")"
+  if is_local_repo; then
+    if should_prompt; then
+      printf 'Symlink %s to local repo %s? [Y/n] ' "$NVIM_CONFIG" "$LOCAL_REPO"
+      read -r answer
+      case "$answer" in
+      [Nn]*)
+        log "Cloning config to $NVIM_CONFIG"
+        git clone "$REPO_URL" "$NVIM_CONFIG"
+        return
+        ;;
+      esac
+    fi
+    ln -s "$LOCAL_REPO" "$NVIM_CONFIG"
+    log "Config symlinked: $NVIM_CONFIG -> $LOCAL_REPO"
+  else
+    log "Cloning config to $NVIM_CONFIG"
+    git clone "$REPO_URL" "$NVIM_CONFIG"
+  fi
+}
+
 setup_config() {
   if [ ! -e "$NVIM_CONFIG" ]; then
-    log "Cloning config to $NVIM_CONFIG"
-    mkdir -p "$(dirname "$NVIM_CONFIG")"
-    git clone "$REPO_URL" "$NVIM_CONFIG"
+    install_config_fresh
+    return
+  fi
+
+  # Already symlinked to the local repo — nothing to do
+  if [ -L "$NVIM_CONFIG" ] && [ "$(readlink "$NVIM_CONFIG")" = "$LOCAL_REPO" ]; then
+    log "Config already symlinked to $LOCAL_REPO"
     return
   fi
 
@@ -163,8 +196,8 @@ setup_config() {
   fi
 
   mv "$NVIM_CONFIG" "$backup"
-  git clone "$REPO_URL" "$NVIM_CONFIG"
-  log "Config cloned. Previous config backed up to $backup"
+  log "Previous config backed up to $backup"
+  install_config_fresh
 }
 
 # --- 6. Optionally ignore lazy-lock.json changes --------------------------

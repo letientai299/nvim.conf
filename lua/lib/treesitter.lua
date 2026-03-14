@@ -134,9 +134,31 @@ end
 
 local installing = {} ---@type table<string, true?>
 
+--- Install a tool via mise, then call `on_done(ok)`.
+---@param tool string   mise package name
+---@param label string  human-readable name for notifications
+---@param on_done fun(ok: boolean)
+local function mise_install(tool, label, on_done)
+  vim.notify("Installing " .. label .. "...", vim.log.levels.INFO)
+  vim.system({ "mise", "use", "-g", tool }, {}, function(result)
+    vim.schedule(function()
+      if result.code == 0 then
+        vim.notify(label .. " installed.", vim.log.levels.INFO)
+        on_done(true)
+      else
+        vim.notify(
+          "Failed to install " .. label .. ": " .. (result.stderr or ""),
+          vim.log.levels.ERROR
+        )
+        on_done(false)
+      end
+    end)
+  end)
+end
+
 --- Ensure a C compiler is available before treesitter parser compilation.
---- Checks cc, gcc, clang, zig in order. When only zig is found, sets CC so
---- treesitter uses it. When nothing is found, installs zig via mise.
+--- Checks cc, gcc, clang, zig in order. When nothing is found, installs zig
+--- via mise.
 ---@param callback fun()
 local function ensure_c_compiler(callback)
   for _, cc in ipairs({ "cc", "gcc", "clang" }) do
@@ -146,35 +168,41 @@ local function ensure_c_compiler(callback)
     end
   end
 
-  -- zig present but no traditional compiler — set CC so treesitter finds it
   if vim.fn.executable("zig") == 1 then
     vim.env.CC = "zig cc"
     callback()
     return
   end
 
-  vim.notify(
-    "Installing zig (C compiler for treesitter)...",
-    vim.log.levels.INFO
-  )
-  vim.system({ "mise", "use", "-g", "zig" }, {}, function(result)
-    vim.schedule(function()
-      if result.code == 0 then
-        vim.env.CC = "zig cc"
-        vim.notify(
-          "zig installed. Treesitter parsers will compile now.",
-          vim.log.levels.INFO
-        )
-        callback()
-      else
-        vim.notify(
-          "Failed to install zig: "
-            .. (result.stderr or "")
-            .. "\nTreesitter parsers won't compile. Install a C compiler manually.",
-          vim.log.levels.ERROR
-        )
-      end
-    end)
+  mise_install("zig", "zig (C compiler for treesitter)", function(ok)
+    if ok then
+      vim.env.CC = "zig cc"
+      callback()
+    end
+  end)
+end
+
+--- Ensure the tree-sitter CLI is available (nvim-treesitter shells out to
+--- `tree-sitter build` to compile parser .so files).
+---@param callback fun()
+local function ensure_ts_cli(callback)
+  if vim.fn.executable("tree-sitter") == 1 then
+    callback()
+    return
+  end
+
+  mise_install("tree-sitter", "tree-sitter CLI", function(ok)
+    if ok then
+      callback()
+    end
+  end)
+end
+
+--- Ensure all treesitter build prerequisites are met, then call `callback`.
+---@param callback fun()
+local function ensure_build_deps(callback)
+  ensure_ts_cli(function()
+    ensure_c_compiler(callback)
   end)
 end
 
@@ -203,7 +231,7 @@ function M.auto_install(bufnr)
   end
 
   installing[lang] = true
-  ensure_c_compiler(function()
+  ensure_build_deps(function()
     require("nvim-treesitter")
       .install({ lang }, {
         summary = false,
