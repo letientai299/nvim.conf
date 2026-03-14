@@ -1,6 +1,20 @@
 #!/bin/sh
 # Bootstrap script for nvim.conf — installs mise, neovim, and global CLI tools
 # on a bare machine. Requires sh + curl (or wget) + git.
+#
+# Usage:
+#   curl -fsSL <raw-url>/scripts/install.sh | sh   # remote install
+#   ./scripts/install.sh                            # from a local clone
+#   ./scripts/install.sh -y                         # unattended / CI
+#
+# Local development:
+#   When run from a local clone, the script offers to symlink ~/.config/nvim
+#   to the repo instead of cloning. This is useful for contributors and for
+#   testing inside Docker containers (see tests/run.sh). The container mounts
+#   the repo read-only at ~/work; the symlink lets nvim find the config while
+#   host edits are immediately visible without restarting the container.
+#   Read-only mounts are handled gracefully: git index updates are skipped,
+#   and init.lua redirects lazy-lock.json to a writable path automatically.
 set -eu
 
 REPO_URL="https://github.com/letientai299/nvim.conf"
@@ -202,11 +216,14 @@ setup_config() {
 
 # --- 6. Optionally ignore lazy-lock.json changes --------------------------
 #
-# On-demand plugin installs rewrite lazy-lock.json. In containers this makes
-# the working tree dirty and blocks subsequent git pull. Using
+# On-demand plugin installs rewrite lazy-lock.json. In writable clones this
+# makes the working tree dirty and blocks subsequent git pull. Using
 # --assume-unchanged hides local changes from git status / diff while still
-# allowing upstream changes to overwrite the file on pull (unless both sides
-# changed, which is unlikely for a consumer-only checkout).
+# allowing upstream changes to overwrite the file on pull.
+#
+# On read-only mounts (e.g., tests/run.sh containers), git update-index
+# fails harmlessly. init.lua separately handles this by redirecting the
+# lockfile to ~/.cache/nvim/ when the config dir isn't writable.
 
 configure_lockfile() {
   lockfile="$NVIM_CONFIG/lazy-lock.json"
@@ -225,8 +242,11 @@ configure_lockfile() {
     esac
   fi
 
-  git -C "$NVIM_CONFIG" update-index --assume-unchanged lazy-lock.json
-  log "lazy-lock.json changes hidden from git (assume-unchanged)"
+  if git -C "$NVIM_CONFIG" update-index --assume-unchanged lazy-lock.json 2>/dev/null; then
+    log "lazy-lock.json changes hidden from git (assume-unchanged)"
+  else
+    log "WARNING: could not update git index (read-only filesystem?). Skipping."
+  fi
 }
 
 # --- 7. Bootstrap essential plugins ----------------------------------------

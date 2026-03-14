@@ -48,8 +48,27 @@ local _themery_state = _dir_data .. "/themery/state.json"
 local _themery_cache = _dir_state .. "/themery-startup.lua"
 local _theme_hl_cache = _dir_state .. "/theme-highlight-startup.lua"
 local _theme_spec_cache = _dir_state .. "/theme-spec_gen.lua"
-local _lazy_lockfile = vim.env.NVIM_TEST and _dir_cache .. "/lazy-lock.json"
-  or _dir_config .. "/lazy-lock.json"
+-- Lockfile path — writable location for lazy.nvim to record plugin versions.
+--
+-- tests/run.sh mounts the repo read-only into a container so host edits are
+-- visible without restart. lazy.nvim needs to write lazy-lock.json after
+-- plugin installs, which fails on a read-only mount. We probe writability at
+-- startup and redirect to ~/.cache/nvim/ when the config dir is read-only.
+-- NVIM_TEST also forces the redirect (used by CI / test harnesses).
+local _lazy_lockfile = (function()
+  if vim.env.NVIM_TEST then
+    return _dir_cache .. "/lazy-lock.json"
+  end
+  local default = _dir_config .. "/lazy-lock.json"
+  local probe = _dir_config .. "/.write-probe"
+  local f = io.open(probe, "w")
+  if f then
+    f:close()
+    os.remove(probe)
+    return default
+  end
+  return _dir_cache .. "/lazy-lock.json"
+end)()
 
 local function _mtime(path)
   local stat = vim.uv.fs_stat(path)
