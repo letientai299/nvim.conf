@@ -1,9 +1,11 @@
 local M = {}
 
 ---@class lib.tools.Tool
----@field name string
+---@field name? string       -- display name for notifications (defaults to bin)
 ---@field bin string
 ---@field kind string
+---@field mise? string       -- mise install spec, e.g. "go:golang.org/x/tools/gopls"
+---@field script? string     -- script name in scripts/ dir, e.g. "install-pgformatter.sh"
 
 local CACHE_TTL = 3600 -- 1 hour
 local cache_path = vim.fn.stdpath("cache") .. "/tool-check.json"
@@ -50,55 +52,180 @@ local function is_executable(bin)
   return result
 end
 
-local function missing_tools(tools)
-  local missing = {}
-  for _, t in ipairs(tools) do
-    if not is_executable(t.bin) then
-      table.insert(
-        missing,
-        string.format("  %s (%s): %s", t.kind, t.name, t.bin)
-      )
+--- Mise backends like go: and npm: need their runtime pre-installed.
+--- Returns the mise runtime spec (e.g. "go", "node") or nil.
+---@param mise_spec string
+---@return string?
+local function runtime_for(mise_spec)
+  local runtimes = {
+    ["go:"] = "go",
+    ["npm:"] = "node",
+    ["cargo:"] = "rust",
+    ["dotnet:"] = "dotnet",
+  }
+  for prefix, runtime in pairs(runtimes) do
+    if vim.startswith(mise_spec, prefix) then
+      return runtime
     end
   end
-  save_cache()
-  return missing
+  return nil
 end
 
-local function notify_missing(tools)
-  local missing = missing_tools(tools)
-  if #missing == 0 then
+--- Install prerequisite runtimes for mise backend specs, then call `proceed`.
+--- Passes a set of failed runtime names so callers can skip dependent tools.
+---@param missing lib.tools.Tool[]
+---@param proceed fun(failed_runtimes: table<string, true>)
+local function ensure_runtimes(missing, proceed)
+  local needed = {}
+  for _, t in ipairs(missing) do
+    if t.mise then
+      local rt = runtime_for(t.mise)
+      if rt and not needed[rt] and vim.fn.executable(rt) ~= 1 then
+        needed[rt] = true
+      end
+    end
+  end
+
+  local runtimes = {}
+  for rt in pairs(needed) do
+    runtimes[#runtimes + 1] = rt
+  end
+
+  if #runtimes == 0 then
+    proceed({})
     return
   end
 
-  vim.notify(
-    "Missing tools:\n" .. table.concat(missing, "\n"),
-    vim.log.levels.WARN
-  )
+  local failed = {}
+  local remaining = #runtimes
+  for _, rt in ipairs(runtimes) do
+    vim.notify("Installing " .. rt .. " runtime...", vim.log.levels.INFO)
+    vim.system({ "mise", "use", "-g", rt }, {}, function(result)
+      vim.schedule(function()
+        if result.code == 0 then
+          load_cache()[rt] = true
+          _cache_dirty = true
+          vim.notify(rt .. " runtime ready.", vim.log.levels.INFO)
+        else
+          failed[rt] = true
+          vim.notify(
+            "Failed to install " .. rt .. " runtime: " .. (result.stderr or ""),
+            vim.log.levels.ERROR
+          )
+        end
+        remaining = remaining - 1
+        if remaining == 0 then
+          save_cache()
+          proceed(failed)
+        end
+      end)
+    end)
+  end
 end
 
---- Check tool binaries when a matching filetype is first opened.
---- @param ft string|string[] filetype(s) to trigger the check
+--- Ensure tools are installed. Missing tools with a `mise` or `script` field
+--- are auto-installed asynchronously. Installs prerequisite runtimes (Go, Node)
+--- first when needed. Invokes `on_complete` once all installs finish (or
+--- immediately if nothing is missing).
 --- @param tools lib.tools.Tool[]
-function M.check(ft, tools)
-  local group = vim.api.nvim_create_augroup(
-    "ToolCheck_" .. (type(ft) == "table" and ft[1] or ft),
-    {}
-  )
-  vim.api.nvim_create_autocmd("FileType", {
-    pattern = ft,
-    group = group,
-    once = true,
-    callback = function()
-      notify_missing(tools)
-    end,
-  })
-end
+--- @param on_complete? fun()
+function M.ensure(tools, on_complete)
+  local missing = {}
+  for _, t in ipairs(tools) do
+    if not is_executable(t.bin) then
+      missing[#missing + 1] = t
+    end
+  end
+  save_cache()
 
---- Check tool binaries on next event-loop tick (non-blocking).
---- @param tools lib.tools.Tool[]
-function M.check_now(tools)
-  vim.schedule(function()
-    notify_missing(tools)
+  if #missing == 0 then
+    if on_complete then
+      on_complete()
+    end
+    return
+  end
+
+  ensure_runtimes(missing, function(failed_runtimes)
+    local remaining = #missing
+    local config_dir = vim.fn.stdpath("config") --[[@as string]]
+    -- Group tools by mise spec to deduplicate installs
+    -- (e.g. npm:vscode-langservers-extracted provides multiple binaries)
+    local mise_groups = {} ---@type table<string, lib.tools.Tool[]>
+
+    for _, t in ipairs(missing) do
+      -- Skip tools whose runtime failed to install
+      if t.mise and failed_runtimes[runtime_for(t.mise)] then
+        remaining = remaining - 1
+        if remaining == 0 and on_complete then
+          on_complete()
+        end
+        goto continue
+      end
+
+      local cmd
+      if t.mise then
+        if mise_groups[t.mise] then
+          -- Already queued — just add to the group for post-install cache update
+          mise_groups[t.mise][#mise_groups[t.mise] + 1] = t
+          remaining = remaining - 1
+          if remaining == 0 and on_complete then
+            on_complete()
+          end
+          goto continue
+        end
+        mise_groups[t.mise] = { t }
+        cmd = { "mise", "use", "-g", t.mise }
+      elseif t.script then
+        cmd = { config_dir .. "/scripts/" .. t.script }
+      else
+        remaining = remaining - 1
+        vim.notify(
+          "No installer for " .. (t.name or t.bin),
+          vim.log.levels.WARN
+        )
+        if remaining == 0 and on_complete then
+          on_complete()
+        end
+        goto continue
+      end
+
+      vim.notify(
+        "Installing " .. (t.name or t.bin) .. "...",
+        vim.log.levels.INFO
+      )
+      vim.system(cmd, {}, function(result)
+        vim.schedule(function()
+          -- Cache all binaries provided by this install (handles shared mise specs)
+          local group = t.mise and mise_groups[t.mise] or { t }
+          if result.code == 0 then
+            local cache = load_cache()
+            for _, gt in ipairs(group) do
+              if vim.fn.executable(gt.bin) == 1 then
+                cache[gt.bin] = true
+                _cache_dirty = true
+              end
+            end
+            vim.notify((t.name or t.bin) .. " ready.", vim.log.levels.INFO)
+          else
+            vim.notify(
+              "Failed to install "
+                .. (t.name or t.bin)
+                .. ": "
+                .. (result.stderr or ""),
+              vim.log.levels.ERROR
+            )
+          end
+          remaining = remaining - 1
+          if remaining == 0 then
+            save_cache()
+            if on_complete then
+              on_complete()
+            end
+          end
+        end)
+      end)
+      ::continue::
+    end
   end)
 end
 

@@ -4,9 +4,9 @@ function M.setup(bufnr)
   require("langs.shared.entry").setup("html", bufnr, {
     tools = {
       {
-        name = "vscode-html-language-server",
         bin = "vscode-html-language-server",
         kind = "lsp",
+        mise = "npm:vscode-langservers-extracted",
       },
       require("lib.prettier").tool(),
     },

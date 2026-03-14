@@ -5,12 +5,12 @@ function M.setup(bufnr)
     filetypes = { "css", "scss", "less" },
     tools = {
       {
-        name = "vscode-css-language-server",
         bin = "vscode-css-language-server",
         kind = "lsp",
+        mise = "npm:vscode-langservers-extracted",
       },
       require("lib.prettier").tool(),
-      { name = "biome", bin = "biome", kind = "lint" },
+      require("lib.biome").tool(),
     },
     lsp = "cssls",
     formatter_fts = { "css", "scss", "less" },

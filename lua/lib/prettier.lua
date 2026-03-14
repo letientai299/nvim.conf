@@ -1,8 +1,8 @@
 local M = {}
 
---- @return { name: string, bin: string, kind: string }
+--- @return lib.tools.Tool
 function M.tool()
-  return { name = "prettier", bin = "prettier", kind = "fmt" }
+  return { bin = "prettier", kind = "fmt", mise = "npm:prettier" }
 end
 
 --- Build a conform.nvim spec that maps filetypes to prettier.

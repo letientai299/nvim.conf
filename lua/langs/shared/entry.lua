@@ -44,16 +44,23 @@ function M.setup(key, bufnr, opts)
   end
 
   local function setup_buffer()
-    if opts.tools then
-      require("lib.tools").check_now(opts.tools)
-    end
-
     for _, name in ipairs(listify(opts.lsps or opts.lsp)) do
       require("lib.lsp").enable(name, bufnr)
     end
 
     if opts.each then
       opts.each(bufnr)
+    end
+
+    if opts.tools then
+      require("lib.tools").ensure(opts.tools, function()
+        if not vim.api.nvim_buf_is_valid(bufnr) then
+          return
+        end
+        for _, name in ipairs(listify(opts.lsps or opts.lsp)) do
+          require("lib.lsp").enable(name, bufnr)
+        end
+      end)
     end
   end
 

@@ -5,13 +5,13 @@ local fts = { "javascript", "javascriptreact", "typescript", "typescriptreact" }
 function M.setup(bufnr)
   require("langs.shared.entry").setup("js_ts", bufnr, {
     tools = {
-      { name = "vtsls", bin = "vtsls", kind = "lsp" },
+      { bin = "vtsls", kind = "lsp", mise = "npm:@vtsls/language-server" },
       require("lib.prettier").tool(),
-      { name = "biome", bin = "biome", kind = "lint" },
+      require("lib.biome").tool(),
       {
-        name = "cssmodules-language-server",
         bin = "cssmodules-language-server",
         kind = "lsp",
+        mise = "npm:cssmodules-language-server",
       },
     },
     lsps = { "vtsls", "cssmodules_ls" },

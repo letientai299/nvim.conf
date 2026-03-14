@@ -4,12 +4,12 @@ function M.setup(bufnr)
   require("langs.shared.entry").setup("vue", bufnr, {
     tools = {
       {
-        name = "vue-language-server",
         bin = "vue-language-server",
         kind = "lsp",
+        mise = "npm:@vue/language-server",
       },
       require("lib.prettier").tool(),
-      { name = "biome", bin = "biome", kind = "lint" },
+      require("lib.biome").tool(),
     },
     lsp = "vls",
     formatters = { "prettier" },

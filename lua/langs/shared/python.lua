@@ -3,7 +3,7 @@ local M = {}
 function M.setup(bufnr)
   require("langs.shared.entry").setup("python", bufnr, {
     tools = {
-      { name = "ruff", bin = "ruff", kind = "lsp" },
+      { bin = "ruff", kind = "lsp", mise = "ruff" },
     },
     lsp = "ruff",
     formatters = { "ruff_format", "ruff_organize_imports" },

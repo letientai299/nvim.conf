@@ -5,11 +5,11 @@ function M.setup(bufnr)
     filetypes = { "bash", "sh", "zsh" },
     tools = {
       {
-        name = "bash-language-server",
         bin = "bash-language-server",
         kind = "lsp",
+        mise = "npm:bash-language-server",
       },
-      { name = "shfmt", bin = "shfmt", kind = "fmt" },
+      { bin = "shfmt", kind = "fmt", mise = "shfmt" },
     },
     lsp = "bashls",
     formatters = { "shfmt" },

@@ -4,9 +4,9 @@ function M.setup(bufnr)
   require("langs.shared.entry").setup("json", bufnr, {
     tools = {
       {
-        name = "vscode-json-languageserver",
         bin = "vscode-json-languageserver",
         kind = "lsp",
+        mise = "npm:vscode-json-languageserver",
       },
       require("lib.prettier").tool(),
     },

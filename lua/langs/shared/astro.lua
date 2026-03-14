@@ -3,7 +3,7 @@ local M = {}
 function M.setup(bufnr)
   require("langs.shared.entry").setup("astro", bufnr, {
     tools = {
-      { name = "astro-ls", bin = "astro-ls", kind = "lsp" },
+      { bin = "astro-ls", kind = "lsp", mise = "npm:@astrojs/language-server" },
       require("lib.prettier").tool(),
     },
     lsp = "astro",

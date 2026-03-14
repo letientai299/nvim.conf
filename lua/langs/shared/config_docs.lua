@@ -3,7 +3,7 @@ local M = {}
 function M.toml(bufnr)
   require("langs.shared.entry").setup("toml", bufnr, {
     tools = {
-      { name = "taplo", bin = "taplo", kind = "lsp/fmt" },
+      { bin = "taplo", kind = "lsp/fmt", mise = "taplo" },
     },
     lsp = "taplo",
     formatters = { "taplo" },
@@ -14,9 +14,9 @@ function M.yaml(bufnr)
   require("langs.shared.entry").setup("yaml", bufnr, {
     tools = {
       {
-        name = "yaml-language-server",
         bin = "yaml-language-server",
         kind = "lsp",
+        mise = "npm:yaml-language-server",
       },
       require("lib.prettier").tool(),
     },

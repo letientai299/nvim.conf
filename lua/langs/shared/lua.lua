@@ -4,11 +4,11 @@ function M.setup(bufnr)
   require("langs.shared.entry").setup("lua", bufnr, {
     tools = {
       {
-        name = "lua-language-server",
         bin = "lua-language-server",
         kind = "lsp",
+        mise = "lua-language-server",
       },
-      { name = "stylua", bin = "stylua", kind = "fmt" },
+      { bin = "stylua", kind = "fmt", mise = "stylua" },
     },
     lsp = "lua_ls",
     formatters = { "stylua" },

@@ -36,9 +36,9 @@ end
 function M.markdown(bufnr)
   require("langs.shared.entry").setup("markdown", bufnr, {
     tools = {
-      { name = "marksman", bin = "marksman", kind = "lsp" },
+      { bin = "marksman", kind = "lsp", mise = "marksman" },
       require("lib.prettier").tool(),
-      { name = "rumdl", bin = "rumdl", kind = "lsp" },
+      { bin = "rumdl", kind = "lsp", mise = "rumdl" },
     },
     lsp = { "marksman", "rumdl" },
     formatter_fts = { "markdown", "markdown.mdx" },
@@ -55,8 +55,15 @@ function M.markdown(bufnr)
       },
     },
     formatters = { "rumdl_fix", "prettier" },
-    once = function()
-      local path = bufnr and vim.api.nvim_buf_get_name(bufnr) or ""
+    each = function(buf)
+      if M._rumdl_configured then
+        return
+      end
+      local path = vim.api.nvim_buf_get_name(buf)
+      if path == "" then
+        return
+      end
+      M._rumdl_configured = true
       local flags = fallback_flags(path)
       if #flags > 0 then
         local cmd = { "rumdl", "server", "--stdio" }
@@ -71,9 +78,9 @@ function M.mdx(bufnr)
   require("langs.shared.entry").setup("mdx", bufnr, {
     tools = {
       {
-        name = "mdx-language-server",
         bin = "mdx-language-server",
         kind = "lsp",
+        mise = "npm:@mdx-js/language-server",
       },
       require("lib.prettier").tool(),
     },
