@@ -60,4 +60,45 @@ function M.enable_highlight(bufnr, filetype)
   return ok
 end
 
+local installing = {} ---@type table<string, true?>
+
+--- Auto-install a missing parser for the buffer's filetype, then enable
+--- highlighting. Uses nvim-treesitter's async install; re-triggers
+--- enable_highlight on completion.
+function M.auto_install(bufnr)
+  local ft = vim.bo[bufnr].filetype
+  if ft == "" then
+    return
+  end
+
+  local lang = vim.treesitter.language.get_lang(ft) or ft
+  if installing[lang] then
+    return
+  end
+
+  -- In-memory check: if the parser .so is already loaded, skip install
+  if pcall(vim.treesitter.language.inspect, lang) then
+    return
+  end
+
+  local parsers = require("nvim-treesitter.parsers")
+  if not parsers[lang] then
+    return -- no parser definition exists in nvim-treesitter
+  end
+
+  installing[lang] = true
+  require("nvim-treesitter")
+    .install({ lang }, {
+      summary = false,
+    })
+    :await(function()
+      installing[lang] = nil
+      vim.schedule(function()
+        if vim.api.nvim_buf_is_valid(bufnr) then
+          M.enable_highlight(bufnr)
+        end
+      end)
+    end)
+end
+
 return M

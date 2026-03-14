@@ -26,7 +26,13 @@ return {
           return
         end
 
-        require("lib.treesitter").enable_highlight(args.buf)
+        local lib_ts = require("lib.treesitter")
+        if lib_ts.enable_highlight(args.buf) then
+          return
+        end
+
+        -- Parser missing — try to auto-install it
+        lib_ts.auto_install(args.buf)
       end,
     })
   end,
