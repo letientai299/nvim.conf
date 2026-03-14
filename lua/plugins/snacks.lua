@@ -1,3 +1,5 @@
+local lazy_require = require("lib.lazy_ondemand").lazy_require
+
 return {
   "folke/snacks.nvim",
   lazy = true,
@@ -58,7 +60,7 @@ return {
     {
       "<Leader>go",
       function()
-        require("snacks").gitbrowse()
+        lazy_require("snacks").gitbrowse()
       end,
       mode = { "n", "v" },
       desc = "Open in browser",
@@ -66,7 +68,7 @@ return {
     {
       "<Leader>gO",
       function()
-        require("snacks").gitbrowse({
+        lazy_require("snacks").gitbrowse({
           open = function(url)
             vim.fn.setreg("+", url)
             vim.notify("Copied: " .. url, vim.log.levels.INFO)
@@ -79,14 +81,14 @@ return {
     {
       "<Leader>.",
       function()
-        require("snacks").scratch()
+        lazy_require("snacks").scratch()
       end,
       desc = "Toggle scratch buffer",
     },
     {
       "<Leader>,",
       function()
-        require("snacks").scratch.select()
+        lazy_require("snacks").scratch.select()
       end,
       desc = "Select scratch buffer",
     },

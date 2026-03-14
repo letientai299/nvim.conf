@@ -1,3 +1,5 @@
+local lazy_require = require("lib.lazy_ondemand").lazy_require
+
 return {
   dir = vim.fn.stdpath("config") .. "/plugins/web-grep",
   name = "web-grep.nvim",
@@ -5,7 +7,7 @@ return {
     {
       "<Leader>ss",
       function()
-        local wg = require("web-grep")
+        local wg = lazy_require("web-grep")
         wg.search({ engine = wg.get_default_engine() })
       end,
       mode = "n",
@@ -14,7 +16,7 @@ return {
     {
       "<Leader>ss",
       function()
-        local wg = require("web-grep")
+        local wg = lazy_require("web-grep")
         wg.search({ engine = wg.get_default_engine(), visual = true })
       end,
       mode = "x",
@@ -23,7 +25,7 @@ return {
     {
       "<Leader>sw",
       function()
-        require("web-grep").search()
+        lazy_require("web-grep").search()
       end,
       mode = "n",
       desc = "Web search cword",
@@ -31,7 +33,7 @@ return {
     {
       "<Leader>sw",
       function()
-        require("web-grep").search({ visual = true })
+        lazy_require("web-grep").search({ visual = true })
       end,
       mode = "x",
       desc = "Web search selection",
@@ -39,7 +41,7 @@ return {
     {
       "<Leader>sW",
       function()
-        require("web-grep").search({ prompt = true })
+        lazy_require("web-grep").search({ prompt = true })
       end,
       mode = "n",
       desc = "Web search (prompt)",
@@ -47,7 +49,7 @@ return {
     {
       "<Leader>sW",
       function()
-        require("web-grep").search({ prompt = true, visual = true })
+        lazy_require("web-grep").search({ prompt = true, visual = true })
       end,
       mode = "x",
       desc = "Web search selection (prompt)",
