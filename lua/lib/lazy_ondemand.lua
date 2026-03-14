@@ -30,6 +30,10 @@ function M.enable()
       -- Defensive: lazy's git.clone sets this, but guard against edge cases
       -- where the flag wasn't propagated back.
       plugin._.installed = true
+      -- Reset module cache so the loader re-indexes the newly cloned lua/ dir.
+      -- Without this, require() inside plugin/*.lua files fails because the
+      -- cache still has stale rtp/module state from before the clone.
+      require("lazy.core.cache").reset(plugin.dir)
       vim.notify(plugin.name .. " installed.", vim.log.levels.INFO)
     end
     return orig_load(plugin, reason, opts)
