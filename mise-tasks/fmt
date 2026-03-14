@@ -5,7 +5,7 @@ set -euo pipefail
 if [ $# -eq 0 ]; then
   stylua lua/
   prettier --write '**/*.md'
-  shfmt -w mise-tasks/
+  shfmt -w mise-tasks/ perf/utils/
   exit 0
 fi
 
@@ -16,7 +16,7 @@ for f in "$@"; do
   case "$f" in
   *.lua) lua_files+=("$f") ;;
   *.md) md_files+=("$f") ;;
-  *.sh | mise-tasks/*) sh_files+=("$f") ;;
+  *.sh | mise-tasks/* | perf/utils/*) sh_files+=("$f") ;;
   esac
 done
 

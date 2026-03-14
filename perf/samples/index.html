@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dashboard — Event Analytics</title>
+    <link rel="stylesheet" href="/styles/main.css" />
+    <script type="module" src="/scripts/dashboard.js" defer></script>
+  </head>
+  <body class="bg-gray-50 text-gray-900 antialiased">
+    <header class="sticky top-0 z-40 border-b bg-white/80 backdrop-blur-sm">
+      <nav class="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
+        <a href="/" class="text-lg font-semibold tracking-tight">EventFlow</a>
+        <div class="flex items-center gap-4">
+          <button
+            type="button"
+            id="theme-toggle"
+            class="rounded-md p-2 hover:bg-gray-100"
+            aria-label="Toggle dark mode"
+          >
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+              />
+            </svg>
+          </button>
+          <div class="relative">
+            <img
+              src="/avatars/user.jpg"
+              alt="User avatar"
+              class="h-8 w-8 rounded-full ring-2 ring-gray-200"
+            />
+            <span
+              class="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-green-400"
+            ></span>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="mx-auto max-w-7xl px-6 py-8">
+      <section aria-labelledby="stats-heading" class="mb-10">
+        <h2 id="stats-heading" class="sr-only">Key metrics</h2>
+        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <article class="rounded-xl border bg-white p-5 shadow-sm">
+            <p class="text-sm font-medium text-gray-500">Total Events</p>
+            <p class="mt-1 text-3xl font-bold tabular-nums" data-metric="events">—</p>
+            <p class="mt-2 text-xs text-green-600">+12.5% from last week</p>
+          </article>
+          <article class="rounded-xl border bg-white p-5 shadow-sm">
+            <p class="text-sm font-medium text-gray-500">Unique Users</p>
+            <p class="mt-1 text-3xl font-bold tabular-nums" data-metric="users">—</p>
+            <p class="mt-2 text-xs text-green-600">+3.2% from last week</p>
+          </article>
+          <article class="rounded-xl border bg-white p-5 shadow-sm">
+            <p class="text-sm font-medium text-gray-500">Conversion Rate</p>
+            <p class="mt-1 text-3xl font-bold tabular-nums" data-metric="conversion">—</p>
+            <p class="mt-2 text-xs text-red-600">-0.8% from last week</p>
+          </article>
+          <article class="rounded-xl border bg-white p-5 shadow-sm">
+            <p class="text-sm font-medium text-gray-500">Avg. Session</p>
+            <p class="mt-1 text-3xl font-bold tabular-nums" data-metric="session">—</p>
+            <p class="mt-2 text-xs text-gray-500">No change</p>
+          </article>
+        </div>
+      </section>
+
+      <section aria-labelledby="chart-heading" class="mb-10">
+        <div class="flex items-center justify-between">
+          <h2 id="chart-heading" class="text-lg font-semibold">Event Timeline</h2>
+          <fieldset class="flex gap-1 rounded-lg border p-0.5">
+            <legend class="sr-only">Time range</legend>
+            <label class="cursor-pointer rounded-md px-3 py-1 text-sm has-[:checked]:bg-gray-900 has-[:checked]:text-white">
+              <input type="radio" name="range" value="7d" class="sr-only" checked />
+              7d
+            </label>
+            <label class="cursor-pointer rounded-md px-3 py-1 text-sm has-[:checked]:bg-gray-900 has-[:checked]:text-white">
+              <input type="radio" name="range" value="30d" class="sr-only" />
+              30d
+            </label>
+            <label class="cursor-pointer rounded-md px-3 py-1 text-sm has-[:checked]:bg-gray-900 has-[:checked]:text-white">
+              <input type="radio" name="range" value="90d" class="sr-only" />
+              90d
+            </label>
+          </fieldset>
+        </div>
+        <div
+          id="chart-container"
+          class="mt-4 aspect-[3/1] w-full rounded-xl border bg-white p-4"
+          role="img"
+          aria-label="Event count over time"
+        >
+          <p class="flex h-full items-center justify-center text-sm text-gray-400">
+            Loading chart…
+          </p>
+        </div>
+      </section>
+
+      <section aria-labelledby="table-heading">
+        <h2 id="table-heading" class="mb-4 text-lg font-semibold">Recent Events</h2>
+        <div class="overflow-x-auto rounded-xl border bg-white">
+          <table class="w-full text-left text-sm">
+            <thead class="border-b bg-gray-50 text-xs uppercase text-gray-500">
+              <tr>
+                <th scope="col" class="px-4 py-3">Event</th>
+                <th scope="col" class="px-4 py-3">User</th>
+                <th scope="col" class="px-4 py-3">Source</th>
+                <th scope="col" class="px-4 py-3">Time</th>
+              </tr>
+            </thead>
+            <tbody id="events-table" class="divide-y">
+              <tr>
+                <td colspan="4" class="px-4 py-8 text-center text-gray-400">
+                  Loading events…
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <footer class="mt-16 border-t py-6 text-center text-xs text-gray-400">
+      <p>&copy; 2025 EventFlow Inc. All rights reserved.</p>
+    </footer>
+  </body>
+</html>
