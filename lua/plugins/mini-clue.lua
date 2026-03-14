@@ -46,6 +46,7 @@ return {
         { mode = "n", keys = "`" },
         { mode = "x", keys = "'" },
         { mode = "x", keys = "`" },
+        { mode = "n", keys = "<LocalLeader>" },
         { mode = "i", keys = "<C-x>" },
         { mode = "n", keys = "<C-q>" },
         { mode = "t", keys = "<C-q>" },

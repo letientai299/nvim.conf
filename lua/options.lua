@@ -1,5 +1,5 @@
 vim.g.mapleader = " "
-vim.g.maplocalleader = " "
+vim.g.maplocalleader = "\\"
 
 -- Write a copy instead of rename, preserves file watchers and hard links
 vim.opt.backupcopy = "yes"
