@@ -43,12 +43,16 @@ end
 
 local function is_executable(bin)
   local cache = load_cache()
-  if cache[bin] ~= nil then
-    return cache[bin]
+  -- Only trust cached false (avoids re-checking known-missing tools).
+  -- Cached true is re-verified: tools can be uninstalled externally.
+  if cache[bin] == false then
+    return false
   end
   local result = vim.fn.executable(bin) == 1
-  cache[bin] = result
-  _cache_dirty = true
+  if cache[bin] ~= result then
+    cache[bin] = result
+    _cache_dirty = true
+  end
   return result
 end
 
