@@ -93,7 +93,7 @@ install_neovim() {
   mise use -g neovim
 }
 
-# --- 5. Install global CLI tools --------------------------------------------
+# --- 4. Install global CLI tools --------------------------------------------
 
 install_cli_tools() {
   missing=""
@@ -113,7 +113,7 @@ install_cli_tools() {
   mise use -g $missing
 }
 
-# --- 6. Handle ~/.config/nvim -----------------------------------------------
+# --- 5. Handle ~/.config/nvim -----------------------------------------------
 
 setup_config() {
   if [ ! -e "$NVIM_CONFIG" ]; then
@@ -129,7 +129,8 @@ setup_config() {
     case "$remote" in
     *letientai299/nvim.conf*)
       if git -C "$NVIM_CONFIG" diff --quiet 2>/dev/null; then
-        log "Config already installed and clean"
+        log "Config clean — pulling latest..."
+        git -C "$NVIM_CONFIG" pull --ff-only || log "WARNING: git pull failed. Run manually."
       else
         log "WARNING: $NVIM_CONFIG has uncommitted changes. Run 'git pull' manually."
       fi
@@ -158,6 +159,37 @@ setup_config() {
   log "Config cloned. Previous config backed up to $backup"
 }
 
+# --- 6. Optionally ignore lazy-lock.json changes --------------------------
+#
+# On-demand plugin installs rewrite lazy-lock.json. In containers this makes
+# the working tree dirty and blocks subsequent git pull. Using
+# --assume-unchanged hides local changes from git status / diff while still
+# allowing upstream changes to overwrite the file on pull (unless both sides
+# changed, which is unlikely for a consumer-only checkout).
+
+configure_lockfile() {
+  lockfile="$NVIM_CONFIG/lazy-lock.json"
+  [ -f "$lockfile" ] || return
+
+  # Already ignored — nothing to do
+  if git -C "$NVIM_CONFIG" ls-files -v lazy-lock.json 2>/dev/null | grep -q '^h '; then
+    return
+  fi
+
+  if is_interactive; then
+    printf 'Track lazy-lock.json changes in git? [y/N] '
+    read -r answer
+    case "$answer" in
+    [Yy]*) return ;;
+    esac
+  else
+    log "Non-interactive: ignoring lazy-lock.json changes"
+  fi
+
+  git -C "$NVIM_CONFIG" update-index --assume-unchanged lazy-lock.json
+  log "lazy-lock.json changes hidden from git (assume-unchanged)"
+}
+
 # --- 7. Ensure shims exist for all installed tools -------------------------
 
 refresh_shims() {
@@ -174,5 +206,6 @@ install_neovim
 install_cli_tools
 refresh_shims
 setup_config
+configure_lockfile
 
 log "Done. Restart your shell or run: source ~/.bashrc"
