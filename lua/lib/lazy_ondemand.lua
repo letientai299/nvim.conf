@@ -10,31 +10,80 @@ local M = {}
 
 function M.enable()
   local Loader = require("lazy.core.loader")
+  local Config = require("lazy.core.config")
+  local Util = require("lazy.core.util")
   assert(type(Loader._load) == "function", "lazy.nvim Loader._load not found")
   local orig_load = Loader._load
-  local installing = {}
+  ---@type table<string, {reason: table, opts: table?}>
+  local pending = {}
+
+  -- Suppress "Command not found" and "Plugin not installed" errors from lazy's
+  -- handlers when a plugin is mid-install. These fire because the cmd/keys
+  -- handler deletes the temp trigger, calls _load (we return early), then
+  -- checks for the real command which doesn't exist yet.
+  -- Lazy's cmd handler errors with "Command `X` not found after loading `Y`"
+  -- and loader errors with "Plugin Y is not installed" when _load returns early
+  -- for a pending install. Suppress only these specific patterns.
+  local suppress_patterns = {
+    "^Command `[^`]+` not found after loading",
+    "^Plugin [%S]+ is not installed",
+  }
+  local orig_error = Util.error
+  Util.error = function(msg, ...)
+    if type(msg) == "string" then
+      for name in pairs(pending) do
+        if msg:find(name, 1, true) then
+          for _, pat in ipairs(suppress_patterns) do
+            if msg:find(pat) then
+              return
+            end
+          end
+        end
+      end
+    end
+    return orig_error(msg, ...)
+  end
+
+  -- Listen for lazy's install completion event to finalize and load.
+  vim.api.nvim_create_autocmd("User", {
+    pattern = "LazyInstall",
+    callback = function()
+      for name, ctx in pairs(pending) do
+        local plugin = Config.plugins[name]
+        if not plugin or not vim.uv.fs_stat(plugin.dir) then
+          vim.notify("Failed to install " .. name, vim.log.levels.ERROR, {
+            id = "lazy_ondemand_" .. name,
+          })
+          pending[name] = nil
+          goto continue
+        end
+        plugin._.installed = true
+        require("lazy.core.cache").reset(plugin.dir)
+        pending[name] = nil
+        vim.notify(name .. " installed.", vim.log.levels.INFO, {
+          id = "lazy_ondemand_" .. name,
+        })
+        orig_load(plugin, ctx.reason, ctx.opts)
+        ::continue::
+      end
+    end,
+  })
 
   Loader._load = function(plugin, reason, opts)
     if not plugin._.installed then
-      if installing[plugin.name] then
+      if pending[plugin.name] then
         return
       end
-      installing[plugin.name] = true
-      vim.notify("Installing " .. plugin.name .. "...", vim.log.levels.INFO)
-      require("lazy").install({ plugins = { plugin.name }, wait = true })
-      installing[plugin.name] = nil
-      if not vim.uv.fs_stat(plugin.dir) then
-        vim.notify("Failed to install " .. plugin.name, vim.log.levels.ERROR)
-        return
-      end
-      -- Defensive: lazy's git.clone sets this, but guard against edge cases
-      -- where the flag wasn't propagated back.
-      plugin._.installed = true
-      -- Reset module cache so the loader re-indexes the newly cloned lua/ dir.
-      -- Without this, require() inside plugin/*.lua files fails because the
-      -- cache still has stale rtp/module state from before the clone.
-      require("lazy.core.cache").reset(plugin.dir)
-      vim.notify(plugin.name .. " installed.", vim.log.levels.INFO)
+      pending[plugin.name] = { reason = reason, opts = opts }
+      vim.notify("Installing " .. plugin.name .. "...", vim.log.levels.INFO, {
+        id = "lazy_ondemand_" .. plugin.name,
+        timeout = false,
+      })
+      require("lazy").install({
+        plugins = { plugin.name },
+        show = false,
+      })
+      return
     end
     return orig_load(plugin, reason, opts)
   end
