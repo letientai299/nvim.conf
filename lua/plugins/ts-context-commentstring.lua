@@ -12,7 +12,10 @@ return {
   init = function()
     local get_option = vim.filetype.get_option
     vim.filetype.get_option = function(filetype, option)
-      if option == "commentstring" then
+      if
+        option == "commentstring"
+        and package.loaded["ts_context_commentstring.internal"]
+      then
         return require("ts_context_commentstring.internal").calculate_commentstring()
       end
       return get_option(filetype, option)
