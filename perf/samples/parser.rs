@@ -170,7 +170,9 @@ impl<'a> Lexer<'a> {
         if self.pos >= self.input.len() {
             return Err(self.error("unterminated string".into()));
         }
-        let s = std::str::from_utf8(&self.input[start..self.pos]).unwrap().to_string();
+        let s = std::str::from_utf8(&self.input[start..self.pos])
+            .unwrap()
+            .to_string();
         self.pos += 1; // skip closing quote
         Ok(Token::String(s))
     }
@@ -182,7 +184,9 @@ impl<'a> Lexer<'a> {
         {
             self.pos += 1;
         }
-        let s = std::str::from_utf8(&self.input[start..self.pos]).unwrap().to_string();
+        let s = std::str::from_utf8(&self.input[start..self.pos])
+            .unwrap()
+            .to_string();
         Ok(Token::Ident(s))
     }
 
