@@ -249,23 +249,19 @@ configure_lockfile() {
   fi
 }
 
-# --- 7. Bootstrap essential plugins ----------------------------------------
+# --- 7. Bootstrap plugins --------------------------------------------------
 #
-# Runs nvim headless to clone lazy.nvim + catppuccin so the first interactive
-# session looks good immediately. Skips if catppuccin is already installed.
-# The default theme (catppuccin-mocha) is configured in init.lua and applies
+# Simulates an interactive startup in headless mode so on-demand installs
+# trigger for plugins that would load in a normal session. No plugin list
+# to maintain — lib/bootstrap.lua fires UIEnter (which triggers VeryLazy),
+# waits for all async clones to finish, then quits.
+#
+# Default theme (catppuccin-mocha) is configured in init.lua and applies
 # when no themery state.json exists yet.
 
 bootstrap_plugins() {
-  lazy_dir="${HOME}/.local/share/nvim/lazy"
-  if [ -d "$lazy_dir/catppuccin" ]; then
-    log "Essential plugins already installed"
-    return
-  fi
-  log "Installing essential plugins (headless)..."
-  nvim --headless \
-    +'lua require("lazy").install({ plugins = { "catppuccin" }, wait = true, show = false })' \
-    +qa
+  log "Bootstrapping plugins (headless)..."
+  nvim --headless +"lua require('lib.bootstrap').run()"
 }
 
 # --- 8. Ensure shims exist for all installed tools -------------------------
