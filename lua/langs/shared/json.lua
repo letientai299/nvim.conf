@@ -13,7 +13,6 @@ function M.setup(bufnr)
     lsp = "jsonls",
     formatter_fts = { "json", "jsonc" },
     formatters = { "prettier" },
-    parsers = { "json" },
   })
 end
 

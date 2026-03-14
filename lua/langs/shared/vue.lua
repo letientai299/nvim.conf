@@ -14,7 +14,6 @@ function M.setup(bufnr)
     lsp = "vls",
     formatters = { "prettier" },
     linters = { "biomejs" },
-    parsers = { "vue" },
   })
 end
 

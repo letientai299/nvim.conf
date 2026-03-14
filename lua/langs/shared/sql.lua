@@ -12,7 +12,6 @@ function M.setup(bufnr)
     },
     lsp = "postgres_lsp",
     formatters = { "pg_format" },
-    parsers = { "sql" },
   })
 end
 

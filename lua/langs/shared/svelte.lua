@@ -11,7 +11,6 @@ function M.setup(bufnr)
     lsp = "svelte",
     formatters = { "prettier" },
     linters = { "biomejs" },
-    parsers = { "svelte" },
   })
 end
 

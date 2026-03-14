@@ -13,7 +13,6 @@ function M.setup(bufnr)
     formatters = { "goimports", "gofumpt" },
     linter_fts = "go",
     linters = { "golangcilint" },
-    parsers = { "go", "gomod", "gosum" },
   })
 end
 

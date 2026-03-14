@@ -55,7 +55,6 @@ function M.markdown(bufnr)
       },
     },
     formatters = { "rumdl_fix", "prettier" },
-    parsers = { "markdown", "markdown_inline" },
     once = function()
       local path = bufnr and vim.api.nvim_buf_get_name(bufnr) or ""
       local flags = fallback_flags(path)
@@ -81,7 +80,6 @@ function M.mdx(bufnr)
     lsp = "mdx_analyzer",
     formatter_fts = "mdx",
     formatters = { "prettier" },
-    parsers = { "markdown", "markdown_inline" },
     once = function()
       vim.treesitter.language.register("markdown", "mdx")
     end,

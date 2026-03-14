@@ -6,7 +6,6 @@ function M.setup(bufnr)
       { name = "docker-langserver", bin = "docker-langserver", kind = "lsp" },
     },
     lsp = "dockerls",
-    parsers = { "dockerfile" },
   })
 end
 

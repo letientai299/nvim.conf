@@ -7,7 +7,6 @@ function M.setup(bufnr)
     },
     lsp = "ruff",
     formatters = { "ruff_format", "ruff_organize_imports" },
-    parsers = { "python", "rst" },
   })
 end
 

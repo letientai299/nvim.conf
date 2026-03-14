@@ -19,7 +19,6 @@ function M.setup(bufnr)
     formatters = { "prettier" },
     linter_fts = fts,
     linters = { "biomejs" },
-    parsers = { "javascript", "typescript", "tsx", "jsdoc" },
   })
 end
 

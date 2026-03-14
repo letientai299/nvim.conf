@@ -15,7 +15,6 @@ function M.setup(bufnr)
       },
     },
     formatters = { "raco_fmt" },
-    parsers = { "racket" },
   })
 end
 

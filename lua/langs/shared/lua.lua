@@ -12,7 +12,6 @@ function M.setup(bufnr)
     },
     lsp = "lua_ls",
     formatters = { "stylua" },
-    parsers = { "lua", "luadoc" },
   })
 end
 

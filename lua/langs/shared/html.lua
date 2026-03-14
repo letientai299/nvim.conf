@@ -12,7 +12,6 @@ function M.setup(bufnr)
     },
     lsp = "html",
     formatters = { "prettier" },
-    parsers = { "html" },
   })
 end
 

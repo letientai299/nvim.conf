@@ -7,7 +7,6 @@ function M.toml(bufnr)
     },
     lsp = "taplo",
     formatters = { "taplo" },
-    parsers = { "toml" },
   })
 end
 
@@ -24,7 +23,6 @@ function M.yaml(bufnr)
     lsp = "yamlls",
     formatter_fts = { "yaml", "yaml.docker-compose" },
     formatters = { "prettier" },
-    parsers = { "yaml" },
   })
 end
 

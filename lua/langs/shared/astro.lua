@@ -8,7 +8,6 @@ function M.setup(bufnr)
     },
     lsp = "astro",
     formatters = { "prettier" },
-    parsers = { "astro" },
   })
 end
 

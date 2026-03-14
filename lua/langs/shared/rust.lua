@@ -8,7 +8,6 @@ function M.setup(bufnr)
     },
     lsp = "rust_analyzer",
     formatters = { "rustfmt" },
-    parsers = { "rust", "toml" },
   })
 end
 

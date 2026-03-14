@@ -13,7 +13,6 @@ function M.setup(bufnr)
     },
     lsp = "bashls",
     formatters = { "shfmt" },
-    parsers = { "bash" },
   })
 end
 
