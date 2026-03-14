@@ -1,7 +1,8 @@
 return {
   cmd = { "rust-analyzer" },
   filetypes = { "rust" },
-  root_markers = { "Cargo.toml", ".git" },
+  root_markers = { "Cargo.toml" },
+  workspace_required = true,
   settings = {
     ["rust-analyzer"] = {
       check = { command = "clippy" },
