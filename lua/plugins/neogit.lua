@@ -1,3 +1,5 @@
+local lazy_require = require("lib.lazy_ondemand").lazy_require
+
 return {
   "NeogitOrg/neogit",
   dependencies = {
@@ -9,14 +11,14 @@ return {
     {
       "<Leader>gg",
       function()
-        require("neogit").open()
+        lazy_require("neogit").open()
       end,
       desc = "Neogit status",
     },
     {
       "<Leader>gl",
       function()
-        require("neogit").open({ "log" })
+        lazy_require("neogit").open({ "log" })
       end,
       desc = "Log (branch)",
     },
