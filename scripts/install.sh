@@ -25,7 +25,15 @@ fetch() {
   fi
 }
 
-is_interactive() { [ -t 0 ]; }
+AUTO_YES=false
+for arg in "$@"; do
+  case "$arg" in
+  -y | --yes) AUTO_YES=true ;;
+  esac
+done
+
+# Returns true when prompts should be shown (interactive tty, no -y flag)
+should_prompt() { [ "$AUTO_YES" = false ] && [ -t 0 ]; }
 
 # --- 1. Install mise --------------------------------------------------------
 
@@ -141,7 +149,7 @@ setup_config() {
 
   # Wrong repo or not a git repo — back up and clone
   backup="${NVIM_CONFIG}.bak.$(date +%Y%m%d%H%M%S)"
-  if is_interactive; then
+  if should_prompt; then
     printf 'Back up %s to %s and clone fresh? [Y/n] ' "$NVIM_CONFIG" "$backup"
     read -r answer
     case "$answer" in
@@ -151,7 +159,7 @@ setup_config() {
       ;;
     esac
   else
-    log "Non-interactive: backing up $NVIM_CONFIG to $backup"
+    log "Backing up $NVIM_CONFIG to $backup"
   fi
 
   mv "$NVIM_CONFIG" "$backup"
@@ -176,48 +184,35 @@ configure_lockfile() {
     return
   fi
 
-  if is_interactive; then
-    printf 'Track lazy-lock.json changes in git? [y/N] '
+  if should_prompt; then
+    printf 'Ignore lazy-lock.json changes in git? [Y/n] '
     read -r answer
     case "$answer" in
-    [Yy]*) return ;;
+    [Nn]*) return ;;
     esac
-  else
-    log "Non-interactive: ignoring lazy-lock.json changes"
   fi
 
   git -C "$NVIM_CONFIG" update-index --assume-unchanged lazy-lock.json
   log "lazy-lock.json changes hidden from git (assume-unchanged)"
 }
 
-# --- 7. Bootstrap essential plugins and default theme ----------------------
+# --- 7. Bootstrap essential plugins ----------------------------------------
 #
 # Runs nvim headless to clone lazy.nvim + catppuccin so the first interactive
 # session looks good immediately. Skips if catppuccin is already installed.
-# Sets catppuccin-mocha as the default theme only when no user preference
-# exists (themery state.json absent).
-
-LAZY_DIR="${HOME}/.local/share/nvim/lazy"
-THEMERY_STATE="${HOME}/.local/share/nvim/themery/state.json"
+# The default theme (catppuccin-mocha) is configured in init.lua and applies
+# when no themery state.json exists yet.
 
 bootstrap_plugins() {
-  if [ -d "$LAZY_DIR/catppuccin" ]; then
+  lazy_dir="${HOME}/.local/share/nvim/lazy"
+  if [ -d "$lazy_dir/catppuccin" ]; then
     log "Essential plugins already installed"
-  else
-    log "Installing essential plugins (headless)..."
-    nvim --headless \
-      +'lua require("lazy").install({ plugins = { "catppuccin" }, wait = true, show = false })' \
-      +qa
+    return
   fi
-
-  # Set default theme only if user hasn't picked one yet
-  if [ ! -f "$THEMERY_STATE" ]; then
-    mkdir -p "$(dirname "$THEMERY_STATE")"
-    cat >"$THEMERY_STATE" <<'THEME'
-{"colorscheme":"catppuccin-mocha","beforeCode":"vim.opt.background = \"dark\"\n","afterCode":"","globalBeforeCode":"vim.opt.background = \"dark\"","globalAfterCode":"","theme_id":0,"version":0}
-THEME
-    log "Default theme set to catppuccin-mocha"
-  fi
+  log "Installing essential plugins (headless)..."
+  nvim --headless \
+    +'lua require("lazy").install({ plugins = { "catppuccin" }, wait = true, show = false })' \
+    +qa
 }
 
 # --- 8. Ensure shims exist for all installed tools -------------------------

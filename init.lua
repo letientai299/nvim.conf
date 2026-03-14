@@ -400,22 +400,29 @@ require("lazy").setup({
 -- Auto-clone missing plugins when their lazy-load trigger fires
 require("lib.lazy_ondemand").enable()
 
--- Apply persisted colorscheme (lazy.nvim auto-loads the theme plugin)
-if _themery and _themery.colorscheme then
-  _themery_exec(_themery.before, "beforeCode")
+-- Apply persisted colorscheme, or fall back to catppuccin-mocha on first run
+do
+  local cs = (_themery and _themery.colorscheme) or "catppuccin-mocha"
 
-  local theme_from_cache = _theme_apply_cached(_themery)
+  if _themery then
+    _themery_exec(_themery.before, "beforeCode")
+  end
+
+  local theme_from_cache = _themery and _theme_apply_cached(_themery)
   local theme_loaded = theme_from_cache
   if not theme_loaded then
-    local ok, err = pcall(vim.cmd.colorscheme, _themery.colorscheme)
+    local ok, err = pcall(vim.cmd.colorscheme, cs)
     if ok then
       theme_loaded = true
+    elseif cs ~= "default" then
+      -- catppuccin not installed yet — fall back to built-in default
+      pcall(vim.cmd.colorscheme, "default")
     else
       vim.notify("Failed to load colorscheme: " .. err, vim.log.levels.ERROR)
     end
   end
 
-  if theme_loaded then
+  if theme_loaded and _themery then
     _themery_exec(_themery.after, "afterCode")
     if not theme_from_cache then
       _theme_request_hl_cache(_themery)
