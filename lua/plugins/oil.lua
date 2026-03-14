@@ -217,7 +217,10 @@ return {
   {
     "stevearc/oil.nvim",
     priority = 900,
-    dependencies = { "nvim-tree/nvim-web-devicons" },
+    dependencies = {
+      "nvim-tree/nvim-web-devicons",
+      "refractalize/oil-git-status.nvim",
+    },
     cmd = "Oil",
     keys = {
       {

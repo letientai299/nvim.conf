@@ -1,6 +1,28 @@
 -- On-demand plugin cloning for lazy.nvim.
+--
 -- Monkey-patches Loader._load so missing plugins auto-install when their
--- lazy-load trigger fires. Self-contained for a future upstream PR.
+-- lazy-load trigger fires (event, cmd, keys, ft, etc.). The trigger is
+-- dropped — the plugin loads only after the async clone finishes and a
+-- LazyInstall event fires.
+--
+-- ## Concurrency model
+--
+-- Each uninstalled plugin gets its own `require("lazy").install()` call,
+-- which creates a separate async runner. Runners clone in parallel, but
+-- each fires a **separate** LazyInstall event on completion. Because our
+-- LazyInstall handler sees ALL pending plugins (not just the one whose
+-- runner finished), it must distinguish "installed" from "still cloning".
+-- Lazy.nvim writes a `.cloning` marker file (`plugin.dir .. ".cloning"`)
+-- before git-clone starts and removes it on success, so we use that as a
+-- ready check.
+--
+-- ## Cache invalidation
+--
+-- Lazy.nvim replaces Neovim's default `vim._load_package` loader with its
+-- own cache-based loader (`lazy.core.cache`). The cache indexes each rtp
+-- directory's `lua/` tree on first access and memoizes the result. After
+-- cloning a new plugin we must call `cache.reset(plugin.dir)` to clear
+-- the stale (empty) index so `require()` re-scans and finds modules.
 --
 -- Relies on Loader._load(plugin, reason, opts) signature from lazy.nvim
 -- stable branch (v11.x as of 2026-03). If lazy.nvim changes this internal
@@ -47,12 +69,41 @@ function M.enable()
   local Config = require("lazy.core.config")
   local Util = require("lazy.core.util")
   assert(type(Loader._load) == "function", "lazy.nvim Loader._load not found")
+
   local orig_load = Loader._load
   ---@type table<string, {reason: table, opts: table?}>
   local pending = {}
 
-  -- Suppress "Command not found" and "Plugin not installed" errors from lazy's
-  -- handlers when a plugin is mid-install.
+  --- Mark a freshly-cloned plugin as installed and clear its module cache
+  --- so that `require()` re-scans `plugin.dir/lua/` on next access.
+  local function finalize_install(plugin)
+    plugin._.installed = true
+    require("lazy.core.cache").reset(plugin.dir)
+  end
+
+  --- Check whether `plugin` is ready to load after an install event.
+  --- Returns true when the clone completed (directory exists, no marker).
+  --- Returns false when still cloning (retry later) or permanently failed.
+  --- Removes permanently-failed plugins from `pending` and notifies.
+  local function is_clone_ready(name, plugin)
+    -- Marker present → git-clone still running in another async runner.
+    -- Leave in pending; the next LazyInstall event will re-check.
+    if vim.uv.fs_stat(plugin.dir .. ".cloning") then
+      return false
+    end
+    -- No directory and no marker → install failed permanently.
+    if not vim.uv.fs_stat(plugin.dir) then
+      vim.notify("Failed to install " .. name, vim.log.levels.ERROR, {
+        id = "lazy_ondemand_" .. name,
+      })
+      pending[name] = nil
+      return false
+    end
+    return true
+  end
+
+  -- Suppress "Command not found" and "Plugin not installed" errors from
+  -- lazy's handlers when a plugin is mid-install.
   local suppress_patterns = {
     "^Command `[^`]+` not found after loading",
     "^Plugin [%S]+ is not installed",
@@ -73,78 +124,89 @@ function M.enable()
     return orig_error(msg, ...)
   end
 
-  -- Listen for lazy's install completion event to finalize and load.
+  -- Listen for lazy's install-complete event.
+  --
+  -- Each async runner fires LazyInstall independently, so this callback
+  -- may run multiple times. On each invocation we:
+  --   1. Snapshot which pending plugins are ready (clone finished).
+  --   2. Load them outside the snapshot loop — orig_load may trigger
+  --      dependency loading that inserts NEW keys into `pending` via the
+  --      patched _load, and mutating a table during pairs() is undefined.
+  --   3. Leave still-cloning plugins in `pending` for the next event.
   vim.api.nvim_create_autocmd("User", {
     pattern = "LazyInstall",
     callback = function()
+      local ready = {}
       for name, ctx in pairs(pending) do
         local plugin = Config.plugins[name]
-        if not plugin or not vim.uv.fs_stat(plugin.dir) then
-          vim.notify("Failed to install " .. name, vim.log.levels.ERROR, {
-            id = "lazy_ondemand_" .. name,
-          })
+        if not plugin then
           pending[name] = nil
-          goto continue
+        elseif is_clone_ready(name, plugin) then
+          ready[#ready + 1] = { name = name, plugin = plugin, ctx = ctx }
         end
-        plugin._.installed = true
-        require("lazy.core.cache").reset(plugin.dir)
-        pending[name] = nil
-        vim.notify(name .. " installed.", vim.log.levels.INFO, {
-          id = "lazy_ondemand_" .. name,
+      end
+
+      for _, entry in ipairs(ready) do
+        finalize_install(entry.plugin)
+        pending[entry.name] = nil
+        vim.notify(entry.name .. " installed.", vim.log.levels.INFO, {
+          id = "lazy_ondemand_" .. entry.name,
         })
-        orig_load(plugin, ctx.reason, ctx.opts)
-        ::continue::
+        orig_load(entry.plugin, entry.ctx.reason, entry.ctx.opts)
       end
     end,
   })
 
-  -- Patch colorscheme handler: the original skips uninstalled plugins because
-  -- it checks plugin.dir/colors/*.lua on disk. For on-demand install, we need
-  -- to match by theme name against plugin specs and install synchronously.
+  -- Patch colorscheme handler: the original skips uninstalled plugins
+  -- because it checks plugin.dir/colors/*.lua on disk. For on-demand
+  -- install we match by theme name against plugin specs and install
+  -- synchronously (blocking) so the colorscheme applies immediately.
   local orig_colorscheme = Loader.colorscheme
   Loader.colorscheme = function(name)
-    -- Try original first (handles already-installed plugins).
     orig_colorscheme(name)
     if vim.g.colors_name == name then
       return
     end
-    -- Colorscheme not found — check if an uninstalled plugin provides it.
+
     for _, plugin in pairs(Config.plugins) do
-      if not plugin._.installed then
-        local dominated = false
-        for _, theme in ipairs(plugin.themes or {}) do
-          local cs = type(theme) == "string" and theme or theme.colorscheme
-          if cs == name then
-            dominated = true
-            break
-          end
-        end
-        if dominated then
-          vim.notify("Installing " .. plugin.name .. "...", vim.log.levels.INFO)
-          require("lazy").install({
-            plugins = { plugin.name },
-            wait = true,
-            show = false,
-          })
-          if vim.uv.fs_stat(plugin.dir) then
-            plugin._.installed = true
-            require("lazy.core.cache").reset(plugin.dir)
-            vim.notify(plugin.name .. " installed.", vim.log.levels.INFO)
-            return Loader.load(plugin, { colorscheme = name })
-          end
-          vim.notify("Failed to install " .. plugin.name, vim.log.levels.ERROR)
-          return
+      if plugin._.installed then
+        goto continue
+      end
+      local dominated = false
+      for _, theme in ipairs(plugin.themes or {}) do
+        local cs = type(theme) == "string" and theme or theme.colorscheme
+        if cs == name then
+          dominated = true
+          break
         end
       end
+      if dominated then
+        vim.notify("Installing " .. plugin.name .. "...", vim.log.levels.INFO)
+        require("lazy").install({
+          plugins = { plugin.name },
+          wait = true,
+          show = false,
+        })
+        if vim.uv.fs_stat(plugin.dir) then
+          finalize_install(plugin)
+          vim.notify(plugin.name .. " installed.", vim.log.levels.INFO)
+          return Loader.load(plugin, { colorscheme = name })
+        end
+        vim.notify("Failed to install " .. plugin.name, vim.log.levels.ERROR)
+        return
+      end
+      ::continue::
     end
   end
 
+  -- Intercept _load for uninstalled plugins: start an async clone and
+  -- stash the trigger context. The plugin will be loaded for real when
+  -- the LazyInstall handler picks it up after the clone finishes.
   Loader._load = function(plugin, reason, opts)
     if not plugin._.installed then
       if pending[plugin.name] then
         return
       end
-
       pending[plugin.name] = { reason = reason, opts = opts }
       vim.notify("Installing " .. plugin.name .. "...", vim.log.levels.INFO, {
         id = "lazy_ondemand_" .. plugin.name,
