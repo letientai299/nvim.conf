@@ -8,6 +8,40 @@
 
 local M = {}
 
+--- No-op proxy returned by `lazy_require` when the module isn't loaded yet.
+--- Silently absorbs indexing and calls so downstream code like
+--- `lazy_require("oil").open(path)` becomes a no-op instead of crashing.
+local noop_proxy
+noop_proxy = setmetatable({}, {
+  __index = function()
+    return noop_proxy
+  end,
+  __call = function()
+    return noop_proxy
+  end,
+  __tostring = function()
+    return "pending_plugin_proxy"
+  end,
+})
+
+--- Require a plugin module, returning a no-op proxy if it isn't loaded yet.
+--- Use this in `init`, `keys`, and `cmd` callbacks that may run before the
+--- plugin is cloned (on-demand install). Once the plugin loads, subsequent
+--- calls return the real module.
+---@param modname string
+---@return table
+function M.lazy_require(modname)
+  local mod = package.loaded[modname]
+  if mod then
+    return mod
+  end
+  local ok, result = pcall(require, modname)
+  if ok then
+    return result
+  end
+  return noop_proxy
+end
+
 function M.enable()
   local Loader = require("lazy.core.loader")
   local Config = require("lazy.core.config")
@@ -18,12 +52,7 @@ function M.enable()
   local pending = {}
 
   -- Suppress "Command not found" and "Plugin not installed" errors from lazy's
-  -- handlers when a plugin is mid-install. These fire because the cmd/keys
-  -- handler deletes the temp trigger, calls _load (we return early), then
-  -- checks for the real command which doesn't exist yet.
-  -- Lazy's cmd handler errors with "Command `X` not found after loading `Y`"
-  -- and loader errors with "Plugin Y is not installed" when _load returns early
-  -- for a pending install. Suppress only these specific patterns.
+  -- handlers when a plugin is mid-install.
   local suppress_patterns = {
     "^Command `[^`]+` not found after loading",
     "^Plugin [%S]+ is not installed",

@@ -25,38 +25,31 @@ lazy-load trigger fires for an uninstalled plugin, the clone runs in the
 background and the trigger is **dropped** — the plugin loads only after the
 clone finishes.
 
-This means code that runs **outside** a plugin's `config` function must not
-assume the plugin module is available. Dangerous patterns:
-
-- `init` functions that call `require("lazy").load()` then `require("<plugin>")`
-  — the load may return before the plugin is ready.
-- `init` functions that override globals (e.g., `vim.filetype.get_option`,
-  `vim.notify`) with a `require("<plugin>")` call inside — the override fires
-  before the plugin is cloned.
-- `keys` callbacks that expand to `<Cmd>PluginCmd<CR>` — lazy's keys handler
-  re-feeds the key, which hits the cmd handler, which errors because the command
-  doesn't exist yet. The error is suppressed by `lazy_ondemand.lua` but the
-  first invocation is still lost.
-
-**Safe patterns** (no guard needed):
-
-- `require("<plugin>")` inside `config` or `opts` — these run after the plugin
-  is loaded.
-- `keys` callbacks with inline `function() require("<plugin>").foo() end` — the
-  callback only runs on _subsequent_ presses after the plugin is loaded via
-  `lazy_ondemand`'s `LazyInstall` handler. The first press is dropped.
-- `require("lib.*")` — config-local modules, always available.
-
-**How to guard:**
+Use `lazy_require` from `lib.lazy_ondemand` when calling plugin modules outside
+`config`/`opts`. It returns a **no-op proxy** if the module isn't loaded,
+silently absorbing method calls and indexing.
 
 ```lua
--- In init or keys callbacks that may run before the plugin is loaded:
-if not package.loaded["<plugin>"] then
-  return  -- fall through to default behavior or no-op
-end
+local lazy_require = require("lib.lazy_ondemand").lazy_require
+
+-- In init, keys, or top-level functions that may run before the plugin loads:
+lazy_require("oil").open(path)        -- no-op if oil is installing
+lazy_require("toggleterm.terminal")   -- returns proxy, .get_all() etc. are safe
 ```
 
-See `oil.lua`, `snacks.lua`, and `ts-context-commentstring.lua` for examples.
+**When `lazy_require` is NOT enough** — use `package.loaded` guards instead:
+
+- `init` overrides that **return** the result of `require("<plugin>").compute()`
+  — the proxy would be returned as the value. Guard with
+  `package.loaded["<module>"]` and fall through to default behavior.
+
+See `ts-context-commentstring.lua` and `snacks.lua` for examples.
+
+**Safe patterns** (no `lazy_require` needed):
+
+- `require("<plugin>")` inside `config` or `opts` — runs after plugin loads.
+- `require("lib.*")` — config-local modules, always available.
+- `<Cmd>PluginCmd<CR>` in keys — error suppressed by `lazy_ondemand.lua`.
 
 ## Performance benchmarking
 

@@ -1,5 +1,6 @@
 -- Oil: file manager that edits the filesystem like a buffer
 
+local lazy_require = require("lib.lazy_ondemand").lazy_require
 local M = {}
 
 local prev_search ---@type string?
@@ -126,11 +127,6 @@ local function open_directory_with_oil(bufnr)
 
     require("lazy").load({ plugins = { "oil.nvim" } })
 
-    -- oil may be installing async (on-demand clone). Bail if not loaded.
-    if not package.loaded["oil"] then
-      return
-    end
-
     if not directory_buffer_path(bufnr) then
       return
     end
@@ -139,7 +135,7 @@ local function open_directory_with_oil(bufnr)
     local open = function()
       local path = directory_buffer_path(bufnr)
       if path then
-        require("oil").open(path)
+        lazy_require("oil").open(path)
       end
     end
 
@@ -156,12 +152,9 @@ end
 --- Save the current search register, set it to the current filename,
 --- then open oil at `dir`. Pressing `n` in oil jumps to that file entry.
 function M.save_search_and_open(dir)
-  if not package.loaded["oil"] then
-    return
-  end
   prev_search = vim.fn.getreg("/")
   vim.fn.setreg("/", vim.fn.expand("%:t"))
-  require("oil").open(dir)
+  lazy_require("oil").open(dir)
 end
 
 --- Restore the search register saved by `save_search_and_open`.

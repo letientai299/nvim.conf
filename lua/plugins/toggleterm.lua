@@ -1,6 +1,7 @@
 -- Terminal management via toggleterm.nvim.
 -- Prefix: <C-q>. Double-tap to toggle, <C-hjklf> to move, 1-9 to switch.
 
+local lazy_require = require("lib.lazy_ondemand").lazy_require
 local M = {}
 
 -- Persistent layout state (survives toggle cycles).
@@ -20,7 +21,7 @@ local layouts = {
 --- Build a tab label like "[1] [2*] [3]" for float titles.
 --- The active terminal is marked with `*`.
 local function tab_label(active_id)
-  local terms = require("toggleterm.terminal").get_all()
+  local terms = lazy_require("toggleterm.terminal").get_all()
   local parts = {}
   for _, t in ipairs(terms) do
     local label = "[" .. t.id .. (t.id == active_id and "*" or "") .. "]"
@@ -46,8 +47,8 @@ end
 
 --- Toggle the current terminal, applying any pending wincmd.
 function M.toggle()
-  local Terminal = require("toggleterm.terminal").Terminal
-  local terms = require("toggleterm.terminal").get_all()
+  local Terminal = lazy_require("toggleterm.terminal").Terminal
+  local terms = lazy_require("toggleterm.terminal").get_all()
 
   -- Find the currently visible terminal, or fall back to term 1.
   local term
@@ -86,7 +87,7 @@ function M.move(key)
   M.wincmd = layout[2]
 
   -- Close any visible terminal, then reopen in the new layout.
-  local terms = require("toggleterm.terminal").get_all()
+  local terms = lazy_require("toggleterm.terminal").get_all()
   for _, t in ipairs(terms) do
     if t:is_open() then
       t:close()
@@ -100,13 +101,13 @@ end
 
 --- Switch to terminal N (1-9). No-op if it doesn't exist.
 function M.switch(n)
-  local term = require("toggleterm.terminal").get(n)
+  local term = lazy_require("toggleterm.terminal").get(n)
   if not term then
     return
   end
 
   -- Close any currently visible terminal first.
-  local terms = require("toggleterm.terminal").get_all()
+  local terms = lazy_require("toggleterm.terminal").get_all()
   for _, t in ipairs(terms) do
     if t:is_open() then
       t:close()
@@ -123,7 +124,7 @@ end
 
 --- Create a new terminal with the next available ID.
 function M.create()
-  local terms = require("toggleterm.terminal").get_all()
+  local terms = lazy_require("toggleterm.terminal").get_all()
   local max_id = 0
   for _, t in ipairs(terms) do
     if t.id > max_id then
@@ -131,7 +132,7 @@ function M.create()
     end
   end
 
-  local Terminal = require("toggleterm.terminal").Terminal
+  local Terminal = lazy_require("toggleterm.terminal").Terminal
   local term = Terminal:new({ id = max_id + 1, direction = M.direction })
 
   -- Close any visible terminal first.
@@ -151,7 +152,7 @@ end
 
 --- Close terminal with confirmation if child processes are running.
 function M.close()
-  local terms = require("toggleterm.terminal").get_all()
+  local terms = lazy_require("toggleterm.terminal").get_all()
   local term
   for _, t in ipairs(terms) do
     if t:is_open() then
