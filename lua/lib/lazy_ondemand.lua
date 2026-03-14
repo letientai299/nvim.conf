@@ -81,6 +81,48 @@ function M.enable()
     require("lazy.core.cache").reset(plugin.dir)
   end
 
+  --- Install any missing dependencies of `plugin` (parallel clone, blocking
+  --- wait) so that `config` can safely `require()` dependency modules.
+  local function ensure_deps_installed(plugin)
+    if not plugin.dependencies then
+      return
+    end
+    local to_clone = {}
+    for _, dep_name in ipairs(plugin.dependencies) do
+      local dep = Config.plugins[dep_name]
+      if not dep or dep._.installed then
+        goto continue
+      end
+      if vim.uv.fs_stat(dep.dir) then
+        finalize_install(dep)
+        pending[dep.name] = nil
+      else
+        to_clone[#to_clone + 1] = dep.name
+      end
+      ::continue::
+    end
+    if #to_clone == 0 then
+      return
+    end
+    vim.notify(
+      "Installing " .. table.concat(to_clone, ", ") .. "...",
+      vim.log.levels.INFO
+    )
+    require("lazy").install({
+      plugins = to_clone,
+      wait = true,
+      show = false,
+    })
+    for _, name in ipairs(to_clone) do
+      local dep = Config.plugins[name]
+      if dep and vim.uv.fs_stat(dep.dir) then
+        finalize_install(dep)
+        pending[name] = nil
+        vim.notify(name .. " installed.", vim.log.levels.INFO)
+      end
+    end
+  end
+
   --- Check whether `plugin` is ready to load after an install event.
   --- Returns true when the clone completed (directory exists, no marker).
   --- Returns false when still cloning (retry later) or permanently failed.
@@ -152,6 +194,7 @@ function M.enable()
         vim.notify(entry.name .. " installed.", vim.log.levels.INFO, {
           id = "lazy_ondemand_" .. entry.name,
         })
+        ensure_deps_installed(entry.plugin)
         orig_load(entry.plugin, entry.ctx.reason, entry.ctx.opts)
       end
     end,
