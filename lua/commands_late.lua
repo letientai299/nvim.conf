@@ -29,6 +29,10 @@ vim.api.nvim_create_user_command("Reload", function()
   end
 end, { desc = "Invalidate Lua cache and reload config" })
 
+vim.api.nvim_create_user_command("W", function()
+  vim.cmd("noautocmd write")
+end, { desc = "Write file without formatting" })
+
 vim.api.nvim_create_user_command("AutoFormat", function()
   require("conform").format({ async = true, lsp_fallback = true })
 end, { desc = "Format current buffer with conform.nvim" })
