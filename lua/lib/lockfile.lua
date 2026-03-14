@@ -1,7 +1,8 @@
 local M = {}
 
---- Strip local plugin entries from lazy-lock.json and cache their names
---- for the git pre-commit hook.
+--- Strip local plugin entries from lazy-lock.json.
+--- The git clean filter (see .gitattributes) handles this at staging time;
+--- this function is a belt-and-suspenders measure after lazy.nvim operations.
 function M.strip_local_plugins()
   local config = require("lazy.core.config")
 
@@ -47,12 +48,6 @@ function M.strip_local_plugins()
   end
   f = io.open(lockfile, "w")
   f:write("{\n" .. table.concat(lines, "\n") .. "\n}\n")
-  f:close()
-
-  -- Cache names for the git pre-commit hook
-  local cache = vim.fn.stdpath("config") .. "/.local-plugin-names"
-  f = io.open(cache, "w")
-  f:write(table.concat(local_names, "\n") .. "\n")
   f:close()
 end
 

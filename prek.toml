@@ -3,9 +3,9 @@ repo = "local"
 hooks = [
   {
     id = "strip-local-plugins",
-    name = "Strip local plugin entries from lazy-lock.json",
+    name = "Verify no local plugins in lazy-lock.json",
     language = "system",
-    entry = "mise run strip-local-plugins",
+    entry = "mise run strip-local-plugins -- --check",
     pass_filenames = false,
     always_run = true,
     stages = ["pre-commit"],

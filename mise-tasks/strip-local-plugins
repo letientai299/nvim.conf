@@ -1,23 +1,66 @@
 #!/bin/sh
 #MISE description="Strip local plugin entries from lazy-lock.json"
-# Reads plugin names cached by lua/lib/lockfile.lua.
+# Used as a git clean filter (via .gitattributes) and as a pre-commit
+# validation hook (via prek).
+#
+# Clean-filter mode (stdin → stdout): called with no arguments.
+# Validate mode: called with --check; exits 1 if local plugins found
+# in the staged lockfile.
 
-NAMES_FILE=".local-plugin-names"
+LOCAL_DIR="lua/local/plugins"
 LOCKFILE="lazy-lock.json"
 
-[ -f "$NAMES_FILE" ] || exit 0
-git diff --cached --name-only | grep -q "^${LOCKFILE}$" || exit 0
+# Collect local plugin names from spec files.
+# Matches the first "owner/name" string in each file, takes the repo part.
+local_names() {
+  for f in "$LOCAL_DIR"/*.lua; do
+    [ -f "$f" ] || continue
+    grep -m1 -oE '"[^"]+/[^"]+"' "$f" | tr -d '"' | cut -d/ -f2
+  done
+}
 
-# Build jq delete filter from cached names
-filter=""
-while IFS= read -r name; do
-  [ -n "$name" ] || continue
-  filter="${filter} | del(.\"${name}\")"
-done <"$NAMES_FILE"
-[ -z "$filter" ] && exit 0
-filter="${filter# | }"
+# Build jq delete expression from local plugin names.
+build_filter() {
+  filter=""
+  for name in $(local_names); do
+    filter="${filter} | del(.\"${name}\")"
+  done
+  [ -z "$filter" ] && return 1
+  printf '%s' "${filter# | }"
+}
 
-# Apply filter to the staged lockfile and re-stage
-git show ":${LOCKFILE}" | jq "$filter" >"${LOCKFILE}.tmp" &&
-  mv "${LOCKFILE}.tmp" "$LOCKFILE" &&
-  git add "$LOCKFILE"
+if [ "$1" = "--check" ]; then
+  # Pre-commit validation: ensure no local plugins in the staged lockfile
+  [ -d "$LOCAL_DIR" ] || exit 0
+  git diff --cached --name-only | grep -q "^${LOCKFILE}$" || exit 0
+  staged=$(git show ":${LOCKFILE}")
+  for name in $(local_names); do
+    if printf '%s' "$staged" | jq -e "has(\"${name}\")" >/dev/null 2>&1; then
+      echo "error: lazy-lock.json contains local plugin '${name}'." >&2
+      echo "Re-stage the file: git add ${LOCKFILE}" >&2
+      exit 1
+    fi
+  done
+  exit 0
+fi
+
+# Clean-filter mode: read stdin, strip local plugins, write stdout.
+# Re-serializes in lazy.nvim's one-entry-per-line sorted format.
+[ -d "$LOCAL_DIR" ] || {
+  cat
+  exit 0
+}
+filter=$(build_filter) || {
+  cat
+  exit 0
+}
+
+jq -r "$filter"' |
+  to_entries | sort_by(.key) |
+  "{\n" + (
+    [.[] | "  \(.key | @json): { \(
+      .value | to_entries |
+      map("\(.key | @json): \(.value | @json)") |
+      join(", ")
+    ) }"] | join(",\n")
+  ) + "\n}"'
