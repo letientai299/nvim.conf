@@ -103,6 +103,27 @@ function M.enable()
       if pending[plugin.name] then
         return
       end
+
+      -- Colorscheme triggers need the plugin immediately (e.g. Themery
+      -- live preview). Install synchronously so the colorscheme command
+      -- succeeds on the same call.
+      if reason.colorscheme then
+        vim.notify("Installing " .. plugin.name .. "...", vim.log.levels.INFO)
+        require("lazy").install({
+          plugins = { plugin.name },
+          wait = true,
+          show = false,
+        })
+        if vim.uv.fs_stat(plugin.dir) then
+          plugin._.installed = true
+          require("lazy.core.cache").reset(plugin.dir)
+          vim.notify(plugin.name .. " installed.", vim.log.levels.INFO)
+          return orig_load(plugin, reason, opts)
+        end
+        vim.notify("Failed to install " .. plugin.name, vim.log.levels.ERROR)
+        return
+      end
+
       pending[plugin.name] = { reason = reason, opts = opts }
       vim.notify("Installing " .. plugin.name .. "...", vim.log.levels.INFO, {
         id = "lazy_ondemand_" .. plugin.name,
