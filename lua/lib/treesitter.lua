@@ -1,6 +1,45 @@
+local api = vim.api
 local M = {}
 
 local registered = false
+
+--- Monkey-patch TSHighlighter:destroy to avoid a hang during :bdelete.
+---
+--- When treesitter's highlighter is destroyed it clears b:ts_highlight (sets
+--- it to nil) then fires FileType via the syntaxset group. The syntaxset
+--- handler checks `if !exists('b:ts_highlight')` and, when the variable is
+--- gone, runs `set syntax=<ft>`. For markdown that sources syntax/markdown.vim
+--- → syntax/html.vim and many sub-syntaxes inside nvim_buf_call on a buffer
+--- that's mid-deletion, which hangs until Ctrl-C.
+---
+--- Fix: set b:ts_highlight to false (not nil) so syntaxset sees the variable
+--- exists and skips the expensive syntax reload.
+--- https://github.com/neovim/neovim/blob/master/runtime/lua/vim/treesitter/highlighter.lua
+local function patch_highlighter_destroy()
+  local TSHighlighter = vim.treesitter.highlighter
+  local ns = api.nvim_create_namespace("nvim.treesitter.highlighter")
+
+  function TSHighlighter:destroy()
+    TSHighlighter.active[self.bufnr] = nil
+
+    if api.nvim_buf_is_loaded(self.bufnr) then
+      vim.bo[self.bufnr].spelloptions = self.orig_spelloptions
+      vim.b[self.bufnr].ts_highlight = false -- not nil → syntaxset skips
+      api.nvim_buf_clear_namespace(self.bufnr, ns, 0, -1)
+      if vim.g.syntax_on == 1 then
+        api.nvim_buf_call(self.bufnr, function()
+          api.nvim_exec_autocmds("FileType", {
+            group = "syntaxset",
+            buffer = self.bufnr,
+            modeline = false,
+          })
+        end)
+      end
+    end
+  end
+end
+
+patch_highlighter_destroy()
 
 function M.register_default_languages()
   if registered then
