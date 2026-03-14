@@ -30,7 +30,7 @@ is_interactive() { [ -t 0 ]; }
 # --- 1. Install mise --------------------------------------------------------
 
 install_mise() {
-  if command -v mise >/dev/null 2>&1; then
+  if command -v mise >/dev/null 2>&1 || [ -x "${HOME}/.local/bin/mise" ]; then
     log "mise already installed"
     return
   fi
@@ -41,33 +41,41 @@ install_mise() {
 # --- 2. Activate mise in shell rc -------------------------------------------
 
 activate_mise() {
-  # Add mise activate + shims to the appropriate shell rc file.
+  # Ensure rc files exist (bare containers may have none)
+  if [ ! -f "${HOME}/.bashrc" ] && [ ! -f "${HOME}/.zshrc" ]; then
+    touch "${HOME}/.bashrc"
+  fi
+
   for rc in "${HOME}/.bashrc" "${HOME}/.zshrc"; do
     [ -f "$rc" ] || continue
     case "$rc" in
     *bashrc) shell=bash ;;
     *zshrc) shell=zsh ;;
     esac
+
+    # PATH for mise binary and shims — must come before mise activate
+    if ! grep -q '\.local/bin' "$rc" 2>/dev/null; then
+      # shellcheck disable=SC2016
+      printf '\nexport PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"\n' >>"$rc"
+    fi
+
     if ! grep -q 'mise activate' "$rc" 2>/dev/null; then
       log "Adding mise activate to $rc"
       # shellcheck disable=SC2016
-      printf '\n# mise\neval "$(mise activate %s)"\n' "$shell" >>"$rc"
-    fi
-    if ! grep -q 'mise/shims' "$rc" 2>/dev/null; then
-      # shellcheck disable=SC2016
-      printf 'export PATH="%s:$PATH"\n' "$MISE_SHIMS" >>"$rc"
+      printf 'eval "$(mise activate %s)"\n' "$shell" >>"$rc"
     fi
   done
 
-  # If no shell rc exists (e.g., bare container), create .bashrc
-  if [ ! -f "${HOME}/.bashrc" ] && [ ! -f "${HOME}/.zshrc" ]; then
-    log "Creating ~/.bashrc with mise activation"
-    # shellcheck disable=SC2016
-    printf '# mise\neval "$(mise activate bash)"\nexport PATH="%s:$PATH"\n' \
-      "$MISE_SHIMS" >"${HOME}/.bashrc"
+  # Ensure .bash_profile sources .bashrc (many containers skip it)
+  if [ -f "${HOME}/.bashrc" ]; then
+    if [ ! -f "${HOME}/.bash_profile" ]; then
+      printf '[ -f ~/.bashrc ] && . ~/.bashrc\n' >"${HOME}/.bash_profile"
+    elif ! grep -q '\.bashrc' "${HOME}/.bash_profile" 2>/dev/null; then
+      printf '\n[ -f ~/.bashrc ] && . ~/.bashrc\n' >>"${HOME}/.bash_profile"
+    fi
   fi
 
-  # Source mise into the current shell for remaining steps
+  # Make tools available for the remaining steps in this script
   export PATH="${HOME}/.local/bin:${MISE_SHIMS}:${PATH}"
   if command -v mise >/dev/null 2>&1; then
     eval "$(mise activate sh 2>/dev/null)" || true
@@ -89,7 +97,7 @@ install_neovim() {
 
 install_cli_tools() {
   missing=""
-  for pair in "fzf:fzf" "fd:fd" "ripgrep:rg" "bat:bat"; do
+  for pair in "fzf:fzf" "fd:fd" "ripgrep:rg"; do
     pkg="${pair%%:*}"
     bin="${pair#*:}"
     if ! command -v "$bin" >/dev/null 2>&1; then
@@ -150,12 +158,21 @@ setup_config() {
   log "Config cloned. Previous config backed up to $backup"
 }
 
+# --- 7. Ensure shims exist for all installed tools -------------------------
+
+refresh_shims() {
+  if command -v mise >/dev/null 2>&1; then
+    mise reshim
+  fi
+}
+
 # --- main -------------------------------------------------------------------
 
 install_mise
 activate_mise
 install_neovim
 install_cli_tools
+refresh_shims
 setup_config
 
 log "Done. Restart your shell or run: source ~/.bashrc"
