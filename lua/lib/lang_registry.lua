@@ -2,8 +2,6 @@ local M = {
   formatters = {},
   formatters_by_ft = {},
   linters_by_ft = {},
-  parsers = {},
-  treesitter_ready = false,
 }
 
 local function listify(value)
@@ -69,20 +67,6 @@ function M.add_formatter(name, config)
   end
 end
 
-function M.ensure_parsers(parsers)
-  local missing = {}
-  for _, parser in ipairs(listify(parsers)) do
-    if not M.parsers[parser] then
-      M.parsers[parser] = true
-      missing[#missing + 1] = parser
-    end
-  end
-
-  if M.treesitter_ready and #missing > 0 then
-    require("nvim-treesitter").install(missing, { summary = false })
-  end
-end
-
 function M.activate_conform(opts)
   opts.formatters =
     vim.tbl_deep_extend("force", opts.formatters or {}, M.formatters)
@@ -96,18 +80,6 @@ end
 function M.activate_lint(opts)
   opts.linters_by_ft =
     vim.tbl_deep_extend("force", opts.linters_by_ft or {}, M.linters_by_ft)
-end
-
-function M.activate_treesitter()
-  M.treesitter_ready = true
-
-  local parsers = {}
-  for parser in pairs(M.parsers) do
-    parsers[#parsers + 1] = parser
-  end
-  if #parsers > 0 then
-    require("nvim-treesitter").install(parsers, { summary = false })
-  end
 end
 
 --- Install lazy formatter lookup on conform.formatters_by_ft.

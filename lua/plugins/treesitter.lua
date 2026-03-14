@@ -2,21 +2,12 @@ return {
   "nvim-treesitter/nvim-treesitter",
   branch = "main",
   event = { "BufReadPre", "BufNewFile" },
-  opts = {
-    ensure_installed = { "query", "vim", "vimdoc" },
-  },
-  config = function(_, opts)
+  config = function()
     local group =
       vim.api.nvim_create_augroup("UserTreesitter", { clear = true })
-    local ts = require("nvim-treesitter")
 
     require("lib.treesitter").register_default_languages()
-    ts.setup({})
-    require("lib.lang_registry").activate_treesitter()
-
-    vim.schedule(function()
-      ts.install(opts.ensure_installed, { summary = false })
-    end)
+    require("nvim-treesitter").setup({})
 
     vim.api.nvim_create_autocmd("FileType", {
       group = group,

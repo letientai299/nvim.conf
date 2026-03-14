@@ -38,10 +38,6 @@ function M.setup(key, bufnr, opts)
       )
     end
 
-    if opts.parsers then
-      registry.ensure_parsers(opts.parsers)
-    end
-
     if opts.once then
       opts.once()
     end
