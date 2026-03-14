@@ -98,29 +98,50 @@ function M.enable()
     end,
   })
 
+  -- Patch colorscheme handler: the original skips uninstalled plugins because
+  -- it checks plugin.dir/colors/*.lua on disk. For on-demand install, we need
+  -- to match by theme name against plugin specs and install synchronously.
+  local orig_colorscheme = Loader.colorscheme
+  Loader.colorscheme = function(name)
+    -- Try original first (handles already-installed plugins).
+    orig_colorscheme(name)
+    if vim.g.colors_name == name then
+      return
+    end
+    -- Colorscheme not found — check if an uninstalled plugin provides it.
+    for _, plugin in pairs(Config.plugins) do
+      if not plugin._.installed then
+        local dominated = false
+        for _, theme in ipairs(plugin.themes or {}) do
+          local cs = type(theme) == "string" and theme or theme.colorscheme
+          if cs == name then
+            dominated = true
+            break
+          end
+        end
+        if dominated then
+          vim.notify("Installing " .. plugin.name .. "...", vim.log.levels.INFO)
+          require("lazy").install({
+            plugins = { plugin.name },
+            wait = true,
+            show = false,
+          })
+          if vim.uv.fs_stat(plugin.dir) then
+            plugin._.installed = true
+            require("lazy.core.cache").reset(plugin.dir)
+            vim.notify(plugin.name .. " installed.", vim.log.levels.INFO)
+            return Loader.load(plugin, { colorscheme = name })
+          end
+          vim.notify("Failed to install " .. plugin.name, vim.log.levels.ERROR)
+          return
+        end
+      end
+    end
+  end
+
   Loader._load = function(plugin, reason, opts)
     if not plugin._.installed then
       if pending[plugin.name] then
-        return
-      end
-
-      -- Colorscheme triggers need the plugin immediately (e.g. Themery
-      -- live preview). Install synchronously so the colorscheme command
-      -- succeeds on the same call.
-      if reason.colorscheme then
-        vim.notify("Installing " .. plugin.name .. "...", vim.log.levels.INFO)
-        require("lazy").install({
-          plugins = { plugin.name },
-          wait = true,
-          show = false,
-        })
-        if vim.uv.fs_stat(plugin.dir) then
-          plugin._.installed = true
-          require("lazy.core.cache").reset(plugin.dir)
-          vim.notify(plugin.name .. " installed.", vim.log.levels.INFO)
-          return orig_load(plugin, reason, opts)
-        end
-        vim.notify("Failed to install " .. plugin.name, vim.log.levels.ERROR)
         return
       end
 
