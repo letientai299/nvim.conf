@@ -97,7 +97,27 @@ return {
     return {
       notifier = {
         enabled = true,
-        style = "minimal",
+        style = function(buf, notif, ctx)
+          ctx.opts.border = "none"
+          local whl = ctx.opts.wo.winhighlight
+          ctx.opts.wo.winhighlight =
+            whl:gsub(ctx.hl.msg, "SnacksNotifierMinimal")
+          local lines = vim.split(notif.msg, "\n")
+          for i, line in ipairs(lines) do
+            lines[i] = " " .. line
+          end
+          vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+          for i = 0, #lines - 1 do
+            vim.api.nvim_buf_set_extmark(buf, ctx.ns, i, 0, {
+              virt_text = { { "▎", ctx.hl.icon } },
+              virt_text_pos = "overlay",
+            })
+          end
+          vim.api.nvim_buf_set_extmark(buf, ctx.ns, 0, 0, {
+            virt_text = { { " " .. notif.icon, ctx.hl.icon } },
+            virt_text_pos = "right_align",
+          })
+        end,
       },
       gitbrowse = { enabled = true },
       input = { enabled = true },
