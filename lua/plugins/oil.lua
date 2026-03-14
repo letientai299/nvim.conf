@@ -126,6 +126,11 @@ local function open_directory_with_oil(bufnr)
 
     require("lazy").load({ plugins = { "oil.nvim" } })
 
+    -- oil may be installing async (on-demand clone). Bail if not loaded.
+    if not package.loaded["oil"] then
+      return
+    end
+
     if not directory_buffer_path(bufnr) then
       return
     end
@@ -151,6 +156,9 @@ end
 --- Save the current search register, set it to the current filename,
 --- then open oil at `dir`. Pressing `n` in oil jumps to that file entry.
 function M.save_search_and_open(dir)
+  if not package.loaded["oil"] then
+    return
+  end
   prev_search = vim.fn.getreg("/")
   vim.fn.setreg("/", vim.fn.expand("%:t"))
   require("oil").open(dir)
