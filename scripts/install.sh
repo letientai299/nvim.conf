@@ -190,7 +190,37 @@ configure_lockfile() {
   log "lazy-lock.json changes hidden from git (assume-unchanged)"
 }
 
-# --- 7. Ensure shims exist for all installed tools -------------------------
+# --- 7. Bootstrap essential plugins and default theme ----------------------
+#
+# Runs nvim headless to clone lazy.nvim + catppuccin so the first interactive
+# session looks good immediately. Skips if catppuccin is already installed.
+# Sets catppuccin-mocha as the default theme only when no user preference
+# exists (themery state.json absent).
+
+LAZY_DIR="${HOME}/.local/share/nvim/lazy"
+THEMERY_STATE="${HOME}/.local/share/nvim/themery/state.json"
+
+bootstrap_plugins() {
+  if [ -d "$LAZY_DIR/catppuccin" ]; then
+    log "Essential plugins already installed"
+  else
+    log "Installing essential plugins (headless)..."
+    nvim --headless \
+      +'lua require("lazy").install({ plugins = { "catppuccin" }, wait = true, show = false })' \
+      +qa
+  fi
+
+  # Set default theme only if user hasn't picked one yet
+  if [ ! -f "$THEMERY_STATE" ]; then
+    mkdir -p "$(dirname "$THEMERY_STATE")"
+    cat >"$THEMERY_STATE" <<'THEME'
+{"colorscheme":"catppuccin-mocha","beforeCode":"vim.opt.background = \"dark\"\n","afterCode":"","globalBeforeCode":"vim.opt.background = \"dark\"","globalAfterCode":"","theme_id":0,"version":0}
+THEME
+    log "Default theme set to catppuccin-mocha"
+  fi
+}
+
+# --- 8. Ensure shims exist for all installed tools -------------------------
 
 refresh_shims() {
   if command -v mise >/dev/null 2>&1; then
@@ -207,5 +237,6 @@ install_cli_tools
 refresh_shims
 setup_config
 configure_lockfile
+bootstrap_plugins
 
 log "Done. Restart your shell or run: source ~/.bashrc"
