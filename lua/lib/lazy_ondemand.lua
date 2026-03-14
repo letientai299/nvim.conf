@@ -74,11 +74,20 @@ function M.enable()
   ---@type table<string, {reason: table, opts: table?}>
   local pending = {}
 
+  local Git = require("lazy.manage.git")
+
   --- Mark a freshly-cloned plugin as installed and clear its module cache
   --- so that `require()` re-scans `plugin.dir/lua/` on next access.
+  --- Returns false if the clone left no valid git commit (lock.update
+  --- would crash with "commit is nil").
   local function finalize_install(plugin)
+    local info = Git.info(plugin.dir)
+    if not info or not info.commit then
+      return false
+    end
     plugin._.installed = true
     require("lazy.core.cache").reset(plugin.dir)
+    return true
   end
 
   --- Install any missing dependencies of `plugin` (parallel clone, blocking
@@ -93,8 +102,7 @@ function M.enable()
       if not dep or dep._.installed then
         goto continue
       end
-      if vim.uv.fs_stat(dep.dir) then
-        finalize_install(dep)
+      if vim.uv.fs_stat(dep.dir) and finalize_install(dep) then
         pending[dep.name] = nil
       else
         to_clone[#to_clone + 1] = dep.name
@@ -115,10 +123,11 @@ function M.enable()
     })
     for _, name in ipairs(to_clone) do
       local dep = Config.plugins[name]
-      if dep and vim.uv.fs_stat(dep.dir) then
-        finalize_install(dep)
+      if dep and vim.uv.fs_stat(dep.dir) and finalize_install(dep) then
         pending[name] = nil
         vim.notify(name .. " installed.", vim.log.levels.INFO)
+      else
+        vim.notify("Failed to install dep " .. name, vim.log.levels.ERROR)
       end
     end
   end
@@ -189,13 +198,27 @@ function M.enable()
       end
 
       for _, entry in ipairs(ready) do
-        finalize_install(entry.plugin)
+        if not finalize_install(entry.plugin) then
+          vim.notify(
+            "Failed to finalize " .. entry.name .. " (no commit)",
+            vim.log.levels.ERROR,
+            { id = "lazy_ondemand_" .. entry.name }
+          )
+          pending[entry.name] = nil
+          goto continue
+        end
         pending[entry.name] = nil
         vim.notify(entry.name .. " installed.", vim.log.levels.INFO, {
           id = "lazy_ondemand_" .. entry.name,
         })
         ensure_deps_installed(entry.plugin)
-        orig_load(entry.plugin, entry.ctx.reason, entry.ctx.opts)
+        -- Guard: the inner LazyInstall handler (fired during
+        -- ensure_deps_installed's blocking wait) may have already loaded
+        -- this plugin via coroutine re-entrancy.
+        if not entry.plugin._.loaded then
+          orig_load(entry.plugin, entry.ctx.reason, entry.ctx.opts)
+        end
+        ::continue::
       end
     end,
   })
@@ -230,8 +253,7 @@ function M.enable()
           wait = true,
           show = false,
         })
-        if vim.uv.fs_stat(plugin.dir) then
-          finalize_install(plugin)
+        if vim.uv.fs_stat(plugin.dir) and finalize_install(plugin) then
           vim.notify(plugin.name .. " installed.", vim.log.levels.INFO)
           return Loader.load(plugin, { colorscheme = name })
         end
