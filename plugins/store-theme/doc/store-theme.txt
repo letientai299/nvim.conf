@@ -1,0 +1,106 @@
+*store-theme.txt*  Persist and switch colorschemes with live preview
+
+==============================================================================
+CONTENTS                                              *store-theme-contents*
+
+  1. Overview ......................................... |store-theme-overview|
+  2. Picker ........................................... |store-theme-picker|
+  3. API .............................................. |store-theme-api|
+  4. Per-project themes ............................... |store-theme-project|
+  5. Files ............................................ |store-theme-files|
+  6. Highlight cache .................................. |store-theme-cache|
+
+==============================================================================
+1. OVERVIEW                                           *store-theme-overview*
+
+store-theme persists the active colorscheme to a Lua file and restores it on
+startup. It replaces Themery with a lighter approach: a single `dofile()` on
+startup, no JSON decode, no staleness checks. The plugin owns highlight cache
+generation and invalidation; `init.lua` is a read-only consumer.
+
+Requires fzf-lua for the interactive picker.
+
+==============================================================================
+2. PICKER                                             *store-theme-picker*
+
+Open with `<leader>ft` or call |store-theme.pick()|.
+
+The picker lists all themes from the theme catalog with live preview.
+The cursor starts on the currently active colorscheme.
+
+Keybindings inside the picker:
+
+  `<CR>`      Apply and save the theme (persisted across restarts)
+  `<C-s>`     Apply for this session only (not persisted)
+  `<Esc>`     Cancel and restore the previous theme
+
+==============================================================================
+3. API                                                *store-theme-api*
+
+store-theme.pick()                                    *store-theme.pick()*
+    Open the fzf-lua colorschemes picker. Equivalent to `<leader>ft`.
+
+store-theme.apply({entry}, {persist})                 *store-theme.apply()*
+    Apply a theme entry and optionally persist it.
+
+    Parameters: ~
+      {entry}    (table) Theme entry with fields:
+                   - colorscheme (string) colorscheme name
+                   - before      (string?) code to run before applying
+                   - after       (string?) code to run after applying
+      {persist}  (boolean) If true, write to the state file
+
+store-theme.save({entry})                             *store-theme.save()*
+    Persist a theme entry to disk without applying it. Invalidates the
+    highlight cache and schedules regeneration.
+
+    Parameters: ~
+      {entry}    (table) Same shape as |store-theme.apply()|
+
+==============================================================================
+4. PER-PROJECT THEMES                                 *store-theme-project*
+
+Use `.nvim.lua` (via `vim.opt.exrc`) to override the theme per project.
+store-theme loads before `.nvim.lua` runs, so the project file can simply
+call `:colorscheme` to override: >lua
+
+    -- .nvim.lua
+    vim.cmd.colorscheme("rose-pine")
+<
+This applies for the session without changing the persisted global theme.
+
+==============================================================================
+5. FILES                                              *store-theme-files*
+
+State file (persisted theme choice):
+  `~/.local/state/nvim/store/theme.lua`
+
+Highlight cache (startup optimization):
+  `~/.local/state/nvim/theme-highlight-startup.lua`
+
+The state file is a Lua chunk that returns a table: >lua
+
+    return {
+      colorscheme = "catppuccin-mocha",
+      before = "",
+      after = "",
+      plugin = "catppuccin",
+    }
+<
+==============================================================================
+6. HIGHLIGHT CACHE                                    *store-theme-cache*
+
+On theme save, store-theme snapshots every highlight group into a flat Lua
+file of `nvim_set_hl` calls. On next startup, `init.lua` replays this file
+in under 5 ms, skipping the theme plugin's initialization.
+
+The cache is valid-or-absent. store-theme deletes it when:
+- A new theme is saved (before scheduling regeneration)
+- Plugin versions change (Lazy post-update hook)
+- Theme spec files change (VeryLazy check)
+
+If the cache is missing, startup falls through to `vim.cmd.colorscheme()`
+and store-theme schedules cache regeneration for the next startup.
+
+==============================================================================
+ vim:tw=78:ts=8:ft=help:norl:

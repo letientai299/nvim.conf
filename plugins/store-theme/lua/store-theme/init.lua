@@ -1,6 +1,7 @@
 local M = {}
 
 local cache = require("store-theme.cache")
+local hook = require("store-theme.hook")
 
 local state_dir = vim.fn.stdpath("state") .. "/store"
 local state_path = state_dir .. "/theme.lua"
@@ -28,29 +29,6 @@ local function find_plugin(colorscheme)
       end
     end
   end
-end
-
---- Path to the persisted state file. Useful for dofile() in init.lua.
-M.state_path = state_path
-
---- Read persisted state via dofile. Returns table or nil.
-function M.load()
-  local ok, state = pcall(dofile, state_path)
-  if not ok or type(state) ~= "table" then
-    return nil
-  end
-  if type(state.colorscheme) ~= "string" or state.colorscheme == "" then
-    return nil
-  end
-  return {
-    colorscheme = state.colorscheme,
-    before = type(state.before) == "string" and state.before or "",
-    after = type(state.after) == "string" and state.after or "",
-    plugin = type(state.plugin) == "string"
-        and state.plugin ~= ""
-        and state.plugin
-      or nil,
-  }
 end
 
 --- Persist a theme entry to the state file.
@@ -92,34 +70,9 @@ end
 
 --- Apply a theme. If persist is true, also save to disk.
 function M.apply(entry, persist)
-  -- Reset background before applying to prevent leakage from previous theme.
-  vim.opt.background = "dark"
-
-  if entry.before and entry.before ~= "" then
-    local chunk, err = load(entry.before, "=theme.before")
-    if chunk then
-      local ok, exec_err = pcall(chunk)
-      if not ok then
-        vim.notify("store-theme before hook: " .. exec_err, vim.log.levels.WARN)
-      end
-    else
-      vim.notify("store-theme before hook: " .. err, vim.log.levels.WARN)
-    end
-  end
-
+  hook.exec(entry.before, "theme.before")
   vim.cmd.colorscheme(entry.colorscheme)
-
-  if entry.after and entry.after ~= "" then
-    local chunk, err = load(entry.after, "=theme.after")
-    if chunk then
-      local ok, exec_err = pcall(chunk)
-      if not ok then
-        vim.notify("store-theme after hook: " .. exec_err, vim.log.levels.WARN)
-      end
-    else
-      vim.notify("store-theme after hook: " .. err, vim.log.levels.WARN)
-    end
-  end
+  hook.exec(entry.after, "theme.after")
 
   if persist then
     M.save(entry)
@@ -129,10 +82,6 @@ end
 --- Open the fzf-lua colorschemes picker.
 function M.pick()
   require("store-theme.picker").pick()
-end
-
-function M.setup()
-  -- No-op for now. The picker is invoked directly via keymap.
 end
 
 return M

@@ -1,28 +1,13 @@
 local M = {}
 
---- Execute a before/after hook string, logging errors at DEBUG level.
-local function exec_hook(code)
-  if not code or code == "" then
-    return
-  end
-  local chunk, err = load(code)
-  if not chunk then
-    vim.notify("store-theme hook: " .. err, vim.log.levels.DEBUG)
-    return
-  end
-  local ok, exec_err = pcall(chunk)
-  if not ok then
-    vim.notify("store-theme hook: " .. exec_err, vim.log.levels.DEBUG)
-  end
-end
-
 function M.pick()
   local config = require("fzf-lua.config")
   local core = require("fzf-lua.core")
   local shell = require("fzf-lua.shell")
   local store = require("store-theme")
+  local hook = require("store-theme.hook")
 
-  local opts = config.normalize_opts({}, "colorschemes")
+  local opts = config.normalize_opts({ locate = true }, "colorschemes")
   if not opts then
     return
   end
@@ -34,17 +19,16 @@ function M.pick()
   local lookup = {}
   local current_cs = vim.g.colors_name
   local current_entry = nil
+  local current_pos = nil
 
-  -- Put current theme first so fzf pre-selects it.
   for _, t in ipairs(themes) do
     local name = type(t) == "string" and t or t.name
     local entry = type(t) == "table" and t or { name = t, colorscheme = t }
     lookup[name] = entry
+    items[#items + 1] = name
     if entry.colorscheme == current_cs then
-      table.insert(items, 1, name)
       current_entry = entry
-    else
-      items[#items + 1] = name
+      current_pos = #items
     end
   end
 
@@ -55,7 +39,18 @@ function M.pick()
   -- Live preview via fzf's preview mechanism.
   opts.fzf_opts = opts.fzf_opts or {}
   opts.fzf_opts["--preview-window"] = "nohidden:right:0"
+  if current_pos then
+    opts.__locate_pos = current_pos
+  end
+  -- Skip the first preview call — it fires for pos 1 ("default") before
+  -- the load event repositions the cursor via pos(N). Without this guard
+  -- the default theme flashes for one frame.
+  local settled = not current_pos
   opts.preview = shell.stringify_data(function(sel)
+    if not settled then
+      settled = true
+      return
+    end
     if not sel or not sel[1] then
       return
     end
@@ -64,29 +59,24 @@ function M.pick()
       return
     end
     previewed = true
-    -- Reset background before each preview to prevent leakage.
     vim.opt.background = "dark"
-    exec_hook(theme.before)
+    hook.exec(theme.before, "preview.before", vim.log.levels.DEBUG)
     pcall(vim.cmd.colorscheme, theme.colorscheme)
-    exec_hook(theme.after)
+    hook.exec(theme.after, "preview.after", vim.log.levels.DEBUG)
   end, opts, "{}")
 
   -- Restore on close/cancel — re-run hooks so side effects are restored.
   opts.winopts = opts.winopts or {}
-  local orig_on_close = opts.winopts.on_close
   opts.winopts.on_close = function()
-    if previewed then
+    if previewed and current_cs then
       vim.o.background = current_bg
       if current_entry then
-        exec_hook(current_entry.before)
+        hook.exec(current_entry.before, "restore.before", vim.log.levels.DEBUG)
       end
       pcall(vim.cmd.colorscheme, current_cs)
       if current_entry then
-        exec_hook(current_entry.after)
+        hook.exec(current_entry.after, "restore.after", vim.log.levels.DEBUG)
       end
-    end
-    if orig_on_close then
-      orig_on_close()
     end
   end
 

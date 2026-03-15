@@ -2,10 +2,6 @@ local M = {}
 
 local hl_cache_path = vim.fn.stdpath("state") .. "/theme-highlight-startup.lua"
 
-function M.path()
-  return hl_cache_path
-end
-
 function M.invalidate()
   os.remove(hl_cache_path)
 end

@@ -138,15 +138,7 @@ do
 
   -- Run before hook (e.g., vim.opt.background = "dark" for gruvbox)
   if state and state.before and state.before ~= "" then
-    local chunk, err = load(state.before, "=theme.before")
-    if chunk then
-      local ok, exec_err = pcall(chunk)
-      if not ok then
-        vim.notify("Theme before hook: " .. exec_err, vim.log.levels.WARN)
-      end
-    else
-      vim.notify("Theme before hook: " .. err, vim.log.levels.WARN)
-    end
+    require("store-theme.hook").exec(state.before, "theme.before")
   end
 
   -- Fast path: replay cached highlight groups (sub-5ms)
@@ -183,15 +175,7 @@ do
 
   -- Run after hook
   if state and state.after and state.after ~= "" then
-    local chunk, err = load(state.after, "=theme.after")
-    if chunk then
-      local ok, exec_err = pcall(chunk)
-      if not ok then
-        vim.notify("Theme after hook: " .. exec_err, vim.log.levels.WARN)
-      end
-    else
-      vim.notify("Theme after hook: " .. err, vim.log.levels.WARN)
-    end
+    require("store-theme.hook").exec(state.after, "theme.after")
   end
 
   -- Schedule hl cache generation on first boot or when cache was stale
