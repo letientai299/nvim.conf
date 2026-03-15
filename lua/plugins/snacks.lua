@@ -125,6 +125,7 @@ return {
         enabled = true,
         ft = "markdown",
       },
+      image = { enabled = true },
     }
   end,
 }

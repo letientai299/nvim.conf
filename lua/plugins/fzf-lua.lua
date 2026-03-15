@@ -116,6 +116,11 @@ return {
   config = function()
     require("fzf-lua").setup({
       files = { cmd = files_cmd() },
+      previewers = {
+        builtin = {
+          snacks_image = { enabled = true },
+        },
+      },
     })
     require("fzf-lua").register_ui_select()
   end,
