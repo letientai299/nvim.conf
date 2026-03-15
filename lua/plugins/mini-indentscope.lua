@@ -1,6 +1,6 @@
 return {
   "nvim-mini/mini.indentscope",
-  event = { "BufReadPre", "BufNewFile" },
+  event = "VeryLazy",
   opts = function()
     return {
       symbol = "│",
