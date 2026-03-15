@@ -134,24 +134,25 @@ end
 
 local installing = {} ---@type table<string, true?>
 
---- Install a tool via mise, then call `on_done(ok)`.
+--- Install a tool via the shared mise backend (serialized to prevent
+--- concurrent writes to config.toml).
 ---@param tool string   mise package name
 ---@param label string  human-readable name for notifications
 ---@param on_done fun(ok: boolean)
 local function mise_install(tool, label, on_done)
   vim.notify("Installing " .. label .. "...", vim.log.levels.INFO)
-  vim.system({ "mise", "use", "-g", tool }, {}, function(result)
+  require("tool-installer.backend.mise").install(tool, nil, function(ok, err)
     vim.schedule(function()
-      if result.code == 0 then
+      if ok then
+        vim.env.PATH = vim.env.PATH -- rehash for new shims
         vim.notify(label .. " installed.", vim.log.levels.INFO)
-        on_done(true)
       else
         vim.notify(
-          "Failed to install " .. label .. ": " .. (result.stderr or ""),
+          "Failed to install " .. label .. ": " .. (err or ""),
           vim.log.levels.ERROR
         )
-        on_done(false)
       end
+      on_done(ok)
     end)
   end)
 end
@@ -269,9 +270,11 @@ function M.auto_install(bufnr)
       :await(function()
         installing[lang] = nil
         vim.schedule(function()
-          if vim.api.nvim_buf_is_valid(bufnr) then
-            M.enable_highlight(bufnr)
+          if not vim.api.nvim_buf_is_valid(bufnr) then
+            return
           end
+          M.enable_highlight(bufnr)
+          vim.cmd.redraw()
         end)
       end)
   end)

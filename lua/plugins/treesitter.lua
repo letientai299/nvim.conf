@@ -7,7 +7,11 @@ return {
       vim.api.nvim_create_augroup("UserTreesitter", { clear = true })
 
     require("lib.treesitter").register_default_languages()
-    require("nvim-treesitter").setup({})
+    -- Explicitly pass install_dir so nvim-treesitter adds it to rtp.
+    -- lazy.nvim strips the default stdpath("data")/site from rtp.
+    require("nvim-treesitter").setup({
+      install_dir = vim.fs.joinpath(vim.fn.stdpath("data"), "site"),
+    })
 
     vim.api.nvim_create_autocmd("FileType", {
       group = group,
