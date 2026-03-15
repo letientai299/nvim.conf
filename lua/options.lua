@@ -87,7 +87,12 @@ vim.api.nvim_create_autocmd("SourcePost", {
 
         local buf = vim.api.nvim_get_current_buf()
         if is_normal_file_buffer(buf) then
-          require("lib.treesitter").enable_highlight(buf, syntax)
+          local ft = syntax
+          vim.schedule(function()
+            if vim.api.nvim_buf_is_valid(buf) then
+              require("lib.treesitter").enable_highlight(buf, ft)
+            end
+          end)
           return
         end
 
