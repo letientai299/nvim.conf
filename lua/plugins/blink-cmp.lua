@@ -8,6 +8,10 @@ return {
       dir = vim.fn.stdpath("config") .. "/plugins/blink-cmp-kitty",
       name = "blink-cmp-kitty",
     },
+    {
+      dir = vim.fn.stdpath("config") .. "/plugins/blink-cmp-path",
+      name = "blink-cmp-path",
+    },
   },
   opts = function()
     return {
@@ -49,6 +53,14 @@ return {
             module = "blink-cmp-kitty",
             score_offset = -3,
           },
+          path_cwd = {
+            name = "cwd",
+            module = "blink-cmp-path",
+            score_offset = 90,
+            opts = {
+              always_index = { ".ai.dump/**" },
+            },
+          },
         },
       },
       fuzzy = { implementation = "prefer_rust" },
@@ -57,6 +69,7 @@ return {
   config = function(_, opts)
     -- Append kitty_pane to whatever sources.default ends up being after all specs merge
     table.insert(opts.sources.default, "kitty_pane")
+    table.insert(opts.sources.default, "path_cwd")
     require("blink.cmp").setup(opts)
   end,
 }
