@@ -5,7 +5,15 @@ return {
   settings = {
     yaml = {
       schemaStore = { enable = false, url = "" },
-      schemas = require("schemastore").yaml.schemas(),
     },
   },
+  on_init = function(client)
+    local ok, schemastore = pcall(require, "schemastore")
+    if ok then
+      client.settings.yaml.schemas = schemastore.yaml.schemas()
+      client:notify("workspace/didChangeConfiguration", {
+        settings = client.settings,
+      })
+    end
+  end,
 }

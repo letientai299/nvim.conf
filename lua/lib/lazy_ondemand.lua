@@ -76,8 +76,9 @@ function M.enable()
 
   local Git = require("lazy.manage.git")
 
-  --- Mark a freshly-cloned plugin as installed and clear its module cache
-  --- so that `require()` re-scans `plugin.dir/lua/` on next access.
+  local Cache = require("lazy.core.cache")
+
+  --- Mark a freshly-cloned plugin as installed.
   --- Returns false if the clone left no valid git commit (lock.update
   --- would crash with "commit is nil").
   local function finalize_install(plugin)
@@ -86,7 +87,6 @@ function M.enable()
       return false
     end
     plugin._.installed = true
-    require("lazy.core.cache").reset(plugin.dir)
     return true
   end
 
@@ -121,6 +121,17 @@ function M.enable()
       wait = true,
       show = false,
     })
+    -- Some deps may already have an active async runner (started by our
+    -- patched _load earlier). lazy.install returns immediately for those.
+    -- Wait for the .cloning marker to disappear before checking results.
+    for _, name in ipairs(to_clone) do
+      local dep = Config.plugins[name]
+      if dep and vim.uv.fs_stat(dep.dir .. ".cloning") then
+        vim.wait(60000, function()
+          return not vim.uv.fs_stat(dep.dir .. ".cloning")
+        end, 200)
+      end
+    end
     for _, name in ipairs(to_clone) do
       local dep = Config.plugins[name]
       if dep and vim.uv.fs_stat(dep.dir) and finalize_install(dep) then
@@ -216,6 +227,11 @@ function M.enable()
         -- ensure_deps_installed's blocking wait) may have already loaded
         -- this plugin via coroutine re-entrancy.
         if not entry.plugin._.loaded then
+          -- Flush module cache so require() re-scans after clone.
+          -- Must happen here (not in finalize_install) because _load
+          -- adds the plugin to rtp first — flushing too early lets
+          -- intermediate lookups re-cache stale empty entries.
+          Cache.reset()
           orig_load(entry.plugin, entry.ctx.reason, entry.ctx.opts)
         end
         ::continue::
@@ -255,6 +271,7 @@ function M.enable()
         })
         if vim.uv.fs_stat(plugin.dir) and finalize_install(plugin) then
           vim.notify(plugin.name .. " installed.", vim.log.levels.INFO)
+          Cache.reset()
           return Loader.load(plugin, { colorscheme = name })
         end
         vim.notify("Failed to install " .. plugin.name, vim.log.levels.ERROR)
