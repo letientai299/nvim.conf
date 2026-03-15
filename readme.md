@@ -6,9 +6,8 @@ machines.
 
 ## Core ideas
 
-I want to use this nvim distro on dev/k8s container, EC2 VM, and other
-constrainted env where the full setup are slow to bootstrap and heavy. So, these
-was implemenete:
+I use this nvim distro on many machines. Some are dev/k8s container, EC2 VM, and
+other constrainted env. In those env, the full dependencies are heavy. Hence:
 
 - [**On-demand plugin install**](/docs/on-demand-plugin.md) — except some
   essential plugins, other plugins are only cloned when some events need it. The
@@ -16,6 +15,21 @@ was implemenete:
 - [**On-demand tool install**](/docs/on-demand-tool.md) — CLI tools (LSP,
   linter, formatter) for each language are only installed when the matching
   filetype is opened.
+
+For extra perf and convenience:
+
+- [**Startup theme cache**](/docs/theme-cache.md) — highlight groups are
+  snapshotted after a colorscheme loads and replayed on subsequent startups,
+  skipping the theme plugin's init path.
+
+For daily usage between many projects, some are monorepo:
+
+- [**Cascading project `.nvim.lua`**](/docs/cascading-exrc.md) — per-project
+  config files form an inheritance chain via `source_parent()`, so monorepo
+  subdirectories share a common base.
+- [**Dual LSP instance fallback**](/docs/dual-lsp-fallback.md) — LSP servers
+  that accept a `--config` flag get two pre-registered configs gated by
+  `root_dir`, so the right variant attaches based on project config presence.
 
 ## Dependencies
 
