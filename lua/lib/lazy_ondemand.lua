@@ -1,28 +1,28 @@
 -- On-demand plugin cloning for lazy.nvim.
 --
 -- Monkey-patches Loader._load so missing plugins auto-install when their
--- lazy-load trigger fires (event, cmd, keys, ft, etc.). The trigger is
--- dropped — the plugin loads only after the async clone finishes and a
--- LazyInstall event fires.
+-- lazy-load trigger fires (event, cmd, keys, ft, etc.). The original trigger
+-- is dropped, but the load context is kept so the plugin itself can load after
+-- the async clone finishes and a LazyInstall event fires.
 --
 -- ## Concurrency model
 --
 -- Each uninstalled plugin gets its own `require("lazy").install()` call,
--- which creates a separate async runner. Runners clone in parallel, but
--- each fires a **separate** LazyInstall event on completion. Because our
--- LazyInstall handler sees ALL pending plugins (not just the one whose
--- runner finished), it must distinguish "installed" from "still cloning".
+-- which creates a separate async runner. Runners clone in parallel, and each
+-- fires its own LazyInstall event on completion. On every event we re-check
+-- ALL pending plugins, so we must distinguish "installed" from "still
+-- cloning".
 -- Lazy.nvim writes a `.cloning` marker file (`plugin.dir .. ".cloning"`)
 -- before git-clone starts and removes it on success, so we use that as a
 -- ready check.
 --
 -- ## Cache invalidation
 --
--- Lazy.nvim replaces Neovim's default `vim._load_package` loader with its
--- own cache-based loader (`lazy.core.cache`). The cache indexes each rtp
+-- Lazy.nvim replaces Neovim's default `vim._load_package` loader with its own
+-- cache-based loader (`lazy.core.cache`). The cache indexes each rtp
 -- directory's `lua/` tree on first access and memoizes the result. After
--- cloning a new plugin we must call `cache.reset(plugin.dir)` to clear
--- the stale (empty) index so `require()` re-scans and finds modules.
+-- cloning a new plugin we call `Cache.reset()` so `require()` re-scans and
+-- finds modules from the freshly-added rtp entries.
 --
 -- Relies on Loader._load(plugin, reason, opts) signature from lazy.nvim
 -- stable branch (v11.x as of 2026-03). If lazy.nvim changes this internal
@@ -79,8 +79,8 @@ function M.enable()
   local Cache = require("lazy.core.cache")
 
   --- Mark a freshly-cloned plugin as installed.
-  --- Returns false if the clone left no valid git commit (lock.update
-  --- would crash with "commit is nil").
+  --- Returns false when the clone left no valid git commit; lazy.nvim's
+  --- lockfile update path expects one and would crash with "commit is nil".
   local function finalize_install(plugin)
     local info = Git.info(plugin.dir)
     if not info or not info.commit then
@@ -90,8 +90,10 @@ function M.enable()
     return true
   end
 
-  --- Install any missing dependencies of `plugin` (parallel clone, blocking
-  --- wait) so that `config` can safely `require()` dependency modules.
+  --- Install any missing direct dependencies of `plugin` before its config runs.
+  --- Dependencies may already be cloning in other async runners, so we wait for
+  --- their `.cloning` markers to disappear before finalizing them. This keeps
+  --- `config` safe to `require()` dependency modules immediately.
   local function ensure_deps_installed(plugin)
     if not plugin.dependencies then
       return
@@ -122,8 +124,8 @@ function M.enable()
       show = false,
     })
     -- Some deps may already have an active async runner (started by our
-    -- patched _load earlier). lazy.install returns immediately for those.
-    -- Wait for the .cloning marker to disappear before checking results.
+    -- patched _load earlier). lazy.install returns immediately for those, so
+    -- wait for the `.cloning` marker to disappear before checking results.
     for _, name in ipairs(to_clone) do
       local dep = Config.plugins[name]
       if dep and vim.uv.fs_stat(dep.dir .. ".cloning") then
@@ -146,10 +148,12 @@ function M.enable()
   --- Check whether `plugin` is ready to load after an install event.
   --- Returns true when the clone completed (directory exists, no marker).
   --- Returns false when still cloning (retry later) or permanently failed.
-  --- Removes permanently-failed plugins from `pending` and notifies.
+  --- Removes permanently-failed plugins from `pending` and notifies. The
+  --- marker check matters because some other plugin's async runner may have
+  --- emitted the LazyInstall event that woke this handler up.
   local function is_clone_ready(name, plugin)
     -- Marker present → git-clone still running in another async runner.
-    -- Leave in pending; the next LazyInstall event will re-check.
+    -- Leave it in pending; the next LazyInstall event will re-check it.
     if vim.uv.fs_stat(plugin.dir .. ".cloning") then
       return false
     end
@@ -195,6 +199,10 @@ function M.enable()
   --      dependency loading that inserts NEW keys into `pending` via the
   --      patched _load, and mutating a table during pairs() is undefined.
   --   3. Leave still-cloning plugins in `pending` for the next event.
+  --
+  -- The dependency path can re-enter this callback while we are still inside
+  -- `ensure_deps_installed`, so we also re-check `plugin._.loaded` before
+  -- calling `orig_load`.
   vim.api.nvim_create_autocmd("User", {
     pattern = "LazyInstall",
     callback = function()
@@ -223,9 +231,6 @@ function M.enable()
           id = "lazy_ondemand_" .. entry.name,
         })
         ensure_deps_installed(entry.plugin)
-        -- Guard: the inner LazyInstall handler (fired during
-        -- ensure_deps_installed's blocking wait) may have already loaded
-        -- this plugin via coroutine re-entrancy.
         if not entry.plugin._.loaded then
           -- Flush module cache so require() re-scans after clone.
           -- Must happen here (not in finalize_install) because _load

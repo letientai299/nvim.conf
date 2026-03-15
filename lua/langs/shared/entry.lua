@@ -12,6 +12,13 @@ local function listify(value)
   return { value }
 end
 
+--- Register one-time language state, then configure the current buffer.
+--- Pass `bufnr = nil` to run only the one-time setup path (formatter defs,
+--- formatter/linter registry entries, and `once()` hooks). Generated lazy
+--- formatter loaders use that mode.
+---@param key string
+---@param bufnr integer|nil
+---@param opts table
 function M.setup(key, bufnr, opts)
   if not initialized[key] then
     initialized[key] = true
@@ -57,6 +64,8 @@ function M.setup(key, bufnr, opts)
         if not vim.api.nvim_buf_is_valid(bufnr) then
           return
         end
+        -- Retry after tool installs; the first enable may have run before the
+        -- server binary existed on PATH.
         for _, name in ipairs(listify(opts.lsps or opts.lsp)) do
           require("lib.lsp").enable(name, bufnr)
         end
@@ -66,6 +75,9 @@ function M.setup(key, bufnr, opts)
 
   if bufnr then
     if vim.v.vim_did_enter == 0 then
+      -- During startup, defer buffer-local work until VeryLazy so the cold path
+      -- stays light. If the buffer vanishes before then, reopening it will
+      -- retry through FileType.
       vim.api.nvim_create_autocmd("User", {
         pattern = "VeryLazy",
         once = true,

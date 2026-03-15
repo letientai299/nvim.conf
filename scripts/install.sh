@@ -1,9 +1,10 @@
 #!/bin/sh
-# Bootstrap script for nvim.conf — installs mise, neovim, and global CLI tools
-# on a bare machine. Requires sh + curl (or wget) + git.
+# Bootstrap script for nvim.conf — installs mise, neovim, shared CLI tools, and
+# bootstraps startup-triggered plugins on a bare machine. Requires sh + curl
+# (or wget) + git.
 #
 # Usage:
-#   curl -fsSL <raw-url>/scripts/install.sh | sh   # remote install
+#   curl -fsSL https://raw.githubusercontent.com/letientai299/nvim.conf/main/scripts/install.sh | sh
 #   ./scripts/install.sh                            # from a local clone
 #   ./scripts/install.sh -y                         # unattended / CI
 #

@@ -2,8 +2,9 @@
 ---
 --- Simulates an interactive startup so on-demand installs trigger for plugins
 --- that would load in a normal session (VeryLazy, VimEnter, first buffer).
---- Used by scripts/install.sh to pre-install plugins without maintaining a
---- hard-coded list.
+--- Used by scripts/install.sh to pre-install startup-triggered plugins without
+--- maintaining a hard-coded list. Command-, key-, and filetype-specific plugin
+--- installs still happen later on first real use.
 ---
 --- In --headless mode UIEnter never fires, so VeryLazy never triggers and
 --- startup plugins never load. This module fires those events manually,
@@ -11,7 +12,8 @@
 
 local M = {}
 
---- Run the bootstrap: fire startup events, wait for installs, quit.
+--- Run the bootstrap: fire startup events, wait for startup-triggered installs,
+--- then quit.
 function M.run()
   local lazy_dir = vim.fn.stdpath("data") .. "/lazy"
 

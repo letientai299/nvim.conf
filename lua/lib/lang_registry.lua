@@ -102,7 +102,7 @@ function M.install_lazy_formatters()
     end
   end
 
-  -- Install __index for fts with custom formatter_defs
+  -- Install __index for fts with custom formatter_defs.
   if not next(gen.ft_loaders) or getmetatable(fbt) then
     return
   end
@@ -112,7 +112,8 @@ function M.install_lazy_formatters()
       if not loader then
         return nil
       end
-      gen.ft_loaders[ft] = nil -- prevent re-entry
+      -- Clear first: loader() may touch formatters_by_ft again while it runs.
+      gen.ft_loaders[ft] = nil
       loader()
       return rawget(t, ft)
     end,

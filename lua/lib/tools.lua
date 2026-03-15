@@ -1,11 +1,13 @@
 local M = {}
 
+---@alias lib.tools.Kind "lsp"|"fmt"|"lint"|"check"
+---
 ---@class lib.tools.Tool
----@field name? string       -- display name for notifications (defaults to bin)
----@field bin string
----@field kind string
----@field mise? string       -- mise install spec, e.g. "go:golang.org/x/tools/gopls"
----@field script? string     -- script name in scripts/ dir, e.g. "install-pgformatter.sh"
+---@field name? string        -- display name for notifications; defaults to `bin`
+---@field bin string          -- executable name to look up on PATH
+---@field kind lib.tools.Kind
+---@field mise? string        -- global mise spec, e.g. "go:golang.org/x/tools/gopls"
+---@field script? string      -- scripts/<name> fallback for tools mise cannot install directly
 
 local CACHE_TTL = 3600 -- 1 hour
 local cache_path = vim.fn.stdpath("cache") .. "/tool-check.json"
@@ -43,8 +45,8 @@ end
 
 local function is_executable(bin)
   local cache = load_cache()
-  -- Only trust cached false (avoids re-checking known-missing tools).
-  -- Cached true is re-verified: tools can be uninstalled externally.
+  -- Cached false short-circuits within the current session. Cached true and
+  -- uncached entries are re-verified so external uninstalls are noticed.
   if cache[bin] == false then
     return false
   end
@@ -56,8 +58,8 @@ local function is_executable(bin)
   return result
 end
 
---- Mise backends like go: and npm: need their runtime pre-installed.
---- Returns the mise runtime spec (e.g. "go", "node") or nil.
+--- Mise backends like go:, npm:, cargo:, and dotnet: need their runtime
+--- pre-installed. Returns the runtime name (e.g. "go", "node") or nil.
 ---@param mise_spec string
 ---@return string?
 local function runtime_for(mise_spec)
@@ -128,11 +130,11 @@ local function ensure_runtimes(missing, proceed)
 end
 
 --- Ensure tools are installed. Missing tools with a `mise` or `script` field
---- are auto-installed asynchronously. Installs prerequisite runtimes (Go, Node)
---- first when needed. Invokes `on_complete` once all installs finish (or
---- immediately if nothing is missing).
---- @param tools lib.tools.Tool[]
---- @param on_complete? fun()
+--- are auto-installed asynchronously. Prerequisite runtimes (go, node, rust,
+--- dotnet) are installed first when needed. `on_complete` runs once every
+--- install branch has settled, or immediately when nothing is missing.
+---@param tools lib.tools.Tool[]
+---@param on_complete? fun()
 function M.ensure(tools, on_complete)
   local missing = {}
   for _, t in ipairs(tools) do
@@ -150,7 +152,7 @@ function M.ensure(tools, on_complete)
   end
 
   ensure_runtimes(missing, function(failed_runtimes)
-    local remaining = #missing
+    local remaining = #missing -- async barrier; every branch below decrements once
     local config_dir = vim.fn.stdpath("config") --[[@as string]]
     -- Group tools by mise spec to deduplicate installs
     -- (e.g. npm:vscode-langservers-extracted provides multiple binaries)
