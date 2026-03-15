@@ -23,7 +23,6 @@ return {
       providers = {
         "hover.providers.diagnostic",
         "hover.providers.lsp",
-        "lib.hover_vimhelp",
         "hover.providers.man",
         "hover.providers.dictionary",
       },
