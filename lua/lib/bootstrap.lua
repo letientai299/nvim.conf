@@ -18,6 +18,11 @@ function M.run()
   -- UIEnter triggers the VeryLazy chain in lazy.nvim.
   vim.api.nvim_exec_autocmds("UIEnter", { modeline = false })
 
+  -- BufReadPre/BufNewFile never fire in headless mode (no buffer opened).
+  -- Fire BufReadPre to trigger plugins gated on buffer events (e.g.
+  -- nvim-treesitter).
+  vim.api.nvim_exec_autocmds("BufReadPre", { modeline = false })
+
   -- Poll until no .cloning marker files remain (lazy.nvim creates
   -- <plugin-dir>.cloning during git-clone and removes it on success).
   vim.wait(300000, function()

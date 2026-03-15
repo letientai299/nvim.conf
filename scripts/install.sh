@@ -123,7 +123,7 @@ install_neovim() {
 
 install_cli_tools() {
   missing=""
-  for pair in "fzf:fzf" "fd:fd" "ripgrep:rg"; do
+  for pair in "fzf:fzf" "fd:fd" "ripgrep:rg" "tree-sitter:tree-sitter"; do
     pkg="${pair%%:*}"
     bin="${pair#*:}"
     if ! command -v "$bin" >/dev/null 2>&1; then
