@@ -1,6 +1,6 @@
 FROM alpine:3.21
 
-RUN apk add --no-cache git curl bash shadow neovim libatomic
+RUN apk add --no-cache git curl bash shadow neovim libatomic icu-libs
 
 ARG UID=1000
 ARG GID=1000

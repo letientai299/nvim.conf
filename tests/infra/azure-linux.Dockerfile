@@ -1,6 +1,6 @@
 FROM mcr.microsoft.com/azurelinux/base/core:3.0
 
-RUN tdnf install -y git curl bash ca-certificates shadow-utils libatomic \
+RUN tdnf install -y git curl bash ca-certificates shadow-utils libatomic icu \
     && tdnf clean all
 
 ARG UID=1000

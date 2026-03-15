@@ -1,6 +1,6 @@
 FROM fedora:41
 
-RUN dnf install -y git curl bash libatomic \
+RUN dnf install -y git curl bash libatomic libicu \
     && dnf clean all
 
 ARG UID=1000

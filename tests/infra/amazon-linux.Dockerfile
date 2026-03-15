@@ -1,6 +1,6 @@
 FROM amazonlinux:2023
 
-RUN dnf install -y git bash libatomic \
+RUN dnf install -y git bash libatomic libicu \
     && (command -v curl || dnf install -y --allowerasing curl) \
     && dnf clean all
 

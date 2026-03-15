@@ -1,7 +1,7 @@
 FROM debian:12-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      git curl ca-certificates bash libatomic1 \
+      git curl ca-certificates bash libatomic1 libicu-dev \
     && rm -rf /var/lib/apt/lists/*
 
 ARG UID=1000
