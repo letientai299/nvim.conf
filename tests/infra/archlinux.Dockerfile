@@ -1,4 +1,5 @@
-FROM lopsided/archlinux:latest
+ARG BASE_IMAGE=lopsided/archlinux:latest
+FROM ${BASE_IMAGE}
 
 RUN pacman -Syu --noconfirm git curl bash icu tar \
     && pacman -Scc --noconfirm
@@ -10,5 +11,5 @@ RUN getent group "$GID" >/dev/null || groupadd -g "$GID" testuser \
 
 USER testuser
 WORKDIR /home/testuser
-COPY ps1.sh /tmp/ps1.sh
-RUN cat /tmp/ps1.sh >> ~/.bashrc
+COPY bashrc.sh /tmp/bashrc.sh
+RUN cat /tmp/bashrc.sh >> ~/.bashrc

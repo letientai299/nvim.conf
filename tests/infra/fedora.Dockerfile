@@ -1,4 +1,5 @@
-FROM fedora:41
+ARG BASE_IMAGE=fedora:41
+FROM ${BASE_IMAGE}
 
 RUN dnf install -y git curl bash libatomic libicu \
     && dnf clean all
@@ -10,5 +11,5 @@ RUN getent group "$GID" >/dev/null || groupadd -g "$GID" testuser \
 
 USER testuser
 WORKDIR /home/testuser
-COPY ps1.sh /tmp/ps1.sh
-RUN cat /tmp/ps1.sh >> ~/.bashrc
+COPY bashrc.sh /tmp/bashrc.sh
+RUN cat /tmp/bashrc.sh >> ~/.bashrc

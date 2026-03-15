@@ -1,4 +1,5 @@
-FROM ubuntu:24.04
+ARG BASE_IMAGE=ubuntu:24.04
+FROM ${BASE_IMAGE}
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
       git curl ca-certificates bash libatomic1 libicu-dev \
@@ -11,5 +12,5 @@ RUN getent group "$GID" >/dev/null || groupadd -g "$GID" testuser \
 
 USER testuser
 WORKDIR /home/testuser
-COPY ps1.sh /tmp/ps1.sh
-RUN cat /tmp/ps1.sh >> ~/.bashrc
+COPY bashrc.sh /tmp/bashrc.sh
+RUN cat /tmp/bashrc.sh >> ~/.bashrc

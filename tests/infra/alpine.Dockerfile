@@ -1,4 +1,5 @@
-FROM alpine:3.21
+ARG BASE_IMAGE=alpine:3.21
+FROM ${BASE_IMAGE}
 
 RUN apk add --no-cache git curl bash shadow neovim libatomic icu-libs
 
@@ -9,6 +10,6 @@ RUN getent group "$GID" >/dev/null || groupadd -g "$GID" testuser \
 
 USER testuser
 WORKDIR /home/testuser
-COPY ps1.sh /tmp/ps1.sh
-RUN cat /tmp/ps1.sh >> ~/.bashrc \
+COPY bashrc.sh /tmp/bashrc.sh
+RUN cat /tmp/bashrc.sh >> ~/.bashrc \
     && printf '[ -f ~/.bashrc ] && . ~/.bashrc\n' >> ~/.profile

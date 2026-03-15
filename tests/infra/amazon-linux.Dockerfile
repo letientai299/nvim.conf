@@ -1,4 +1,5 @@
-FROM amazonlinux:2023
+ARG BASE_IMAGE=amazonlinux:2023
+FROM ${BASE_IMAGE}
 
 RUN dnf install -y git bash libatomic libicu \
     && (command -v curl || dnf install -y --allowerasing curl) \
@@ -11,5 +12,5 @@ RUN getent group "$GID" >/dev/null || groupadd -g "$GID" testuser \
 
 USER testuser
 WORKDIR /home/testuser
-COPY ps1.sh /tmp/ps1.sh
-RUN cat /tmp/ps1.sh >> ~/.bashrc
+COPY bashrc.sh /tmp/bashrc.sh
+RUN cat /tmp/bashrc.sh >> ~/.bashrc

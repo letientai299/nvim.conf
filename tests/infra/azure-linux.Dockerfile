@@ -1,4 +1,5 @@
-FROM mcr.microsoft.com/azurelinux/base/core:3.0
+ARG BASE_IMAGE=mcr.microsoft.com/azurelinux/base/core:3.0
+FROM ${BASE_IMAGE}
 
 RUN tdnf install -y git curl bash ca-certificates shadow-utils libatomic icu \
     && tdnf clean all
@@ -10,5 +11,5 @@ RUN getent group "$GID" >/dev/null || groupadd -g "$GID" testuser \
 
 USER testuser
 WORKDIR /home/testuser
-COPY ps1.sh /tmp/ps1.sh
-RUN cat /tmp/ps1.sh >> ~/.bashrc
+COPY bashrc.sh /tmp/bashrc.sh
+RUN cat /tmp/bashrc.sh >> ~/.bashrc
