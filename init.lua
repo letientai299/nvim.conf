@@ -21,13 +21,6 @@ vim.opt.rtp:prepend(_dir_config)
 require("options")
 require("keymaps")
 require("commands")
--- notes: lazy-load on command/keymap (avoids require at startup)
-vim.api.nvim_create_user_command("NoteToday", function()
-  require("notes").note_today()
-end, { desc = "Open/append to today's diary note" })
-vim.keymap.set("n", "<Leader>td", function()
-  require("notes").note_today()
-end, { desc = "Open today's diary note" })
 if vim.uv.fs_stat(_dir_config .. "/lua/local/init.lua") then
   require("local")
 end

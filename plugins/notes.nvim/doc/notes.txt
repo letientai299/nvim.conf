@@ -1,0 +1,30 @@
+*notes.txt*  Daily diary notes
+
+==============================================================================
+CONTENTS                                                    *notes-contents*
+
+    1. Introduction .......................... |notes-intro|
+    2. Requirements .......................... |notes-requirements|
+    3. API ................................... |notes-api|
+
+==============================================================================
+1. INTRODUCTION                                                *notes-intro*
+
+Opens (or creates) a daily diary file under `$NOTE/diary/<year>/` and
+appends a timestamped section. Each file is named `YYYY-MM-DD.md`.
+
+==============================================================================
+2. REQUIREMENTS                                         *notes-requirements*
+
+- `$NOTE` environment variable must point to the notes root directory.
+
+==============================================================================
+3. API                                                          *notes-api*
+
+`require("notes").note_today()`                          *notes.note_today()*
+    Open today's diary file. Creates `$NOTE/diary/<year>/<date>.md` with a
+    date header if it doesn't exist. Appends a `## HH:MM` section and places
+    the cursor at the end of the buffer.
+
+==============================================================================
+vim:tw=78:ts=8:ft=help:norl:

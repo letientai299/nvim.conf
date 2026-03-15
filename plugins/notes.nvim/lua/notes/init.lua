@@ -1,5 +1,3 @@
--- Daily notes: NoteToday command and <leader>td keymap
-
 local M = {}
 
 --- Append a timestamped section to today's diary file.

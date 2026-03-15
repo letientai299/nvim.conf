@@ -185,20 +185,20 @@ end
 function M.yank_name()
   local entry = require("oil").get_cursor_entry()
   if entry then
-    require("lib.yanker").put(entry.name)
+    require("yanker").put(entry.name)
   end
 end
 
 function M.yank_relative()
-  require("lib.yanker").relative(cursor_entry_path())
+  require("yanker").relative(cursor_entry_path())
 end
 
 function M.yank_absolute()
-  require("lib.yanker").absolute(cursor_entry_path())
+  require("yanker").absolute(cursor_entry_path())
 end
 
 function M.yank_git()
-  require("lib.yanker").git(cursor_entry_path())
+  require("yanker").git(cursor_entry_path())
 end
 
 --- Toggle between filename-only and detail columns (permissions, size, mtime).

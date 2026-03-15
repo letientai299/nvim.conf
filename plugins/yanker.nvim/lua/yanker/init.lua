@@ -68,4 +68,35 @@ function M.git(path)
   end
 end
 
+--- Return the current buffer's absolute path, or nil for unnamed buffers.
+function M.buf_path()
+  local name = vim.api.nvim_buf_get_name(0)
+  if name == "" then
+    return nil
+  end
+  return name
+end
+
+--- Yank diagnostics on the current line with path:line format.
+function M.diagnostic()
+  local path = M.buf_path()
+  if not path then
+    return
+  end
+  local diag = vim.diagnostic.get(0, { lnum = vim.fn.line(".") - 1 })
+  if #diag == 0 then
+    vim.notify("No diagnostics on this line", vim.log.levels.WARN)
+    return
+  end
+  local rel = M.relpath(path, vim.fn.getcwd())
+  local parts = {}
+  for _, d in ipairs(diag) do
+    local code = d.code and ("[" .. d.code .. "]") or ""
+    local src = d.source and (" (" .. d.source .. ")") or ""
+    parts[#parts + 1] =
+      string.format("%s:%d: %s %s%s", rel, d.lnum + 1, d.message, code, src)
+  end
+  M.put(table.concat(parts, "\n"))
+end
+
 return M

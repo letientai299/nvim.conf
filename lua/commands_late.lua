@@ -58,11 +58,6 @@ vim.api.nvim_create_user_command("BufOnly", function()
   end
 end, { desc = "Close all buffers except current" })
 
--- AutoCopy: stub that lazy-loads the real implementation on first use
-vim.api.nvim_create_user_command("AutoCopy", function()
-  require("autocopy").toggle()
-end, { desc = "Toggle auto-copy buffer content to clipboard" })
-
 -- ---------------------------------------------------------------------------
 -- Autocmds
 -- ---------------------------------------------------------------------------

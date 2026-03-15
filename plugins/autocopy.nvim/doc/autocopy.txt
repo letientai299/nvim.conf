@@ -1,0 +1,43 @@
+*autocopy.txt*  Auto-copy buffer content to system clipboard
+
+==============================================================================
+CONTENTS                                                  *autocopy-contents*
+
+    1. Introduction .......................... |autocopy-intro|
+    2. Setup ................................. |autocopy-setup|
+    3. API ................................... |autocopy-api|
+
+==============================================================================
+1. INTRODUCTION                                              *autocopy-intro*
+
+Tracks a single buffer and copies its full content to the system clipboard
+on `FocusLost`, `BufLeave`, and `WinLeave` events. Toggle on the current
+buffer; toggle again (or on a different buffer) to switch tracking.
+
+==============================================================================
+2. SETUP                                                     *autocopy-setup*
+
+Register the `:AutoCopy` command via a lazy.nvim spec: >lua
+
+    {
+      dir = "plugins/autocopy.nvim",
+      cmd = "AutoCopy",
+      config = function()
+        vim.api.nvim_create_user_command("AutoCopy", function()
+          require("autocopy").toggle()
+        end, { desc = "Toggle auto-copy buffer content to clipboard" })
+      end,
+    }
+<
+
+==============================================================================
+3. API                                                        *autocopy-api*
+
+`require("autocopy").toggle()`                            *autocopy.toggle()*
+    Toggle auto-copy for the current buffer. When enabled, buffer content is
+    copied to the `+` register on focus/buffer/window leave. Calling again
+    on the same buffer disables tracking. Calling on a different buffer
+    switches tracking to that buffer.
+
+==============================================================================
+vim:tw=78:ts=8:ft=help:norl:
