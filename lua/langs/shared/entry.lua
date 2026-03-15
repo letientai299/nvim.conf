@@ -60,7 +60,7 @@ function M.setup(key, bufnr, opts)
     end
 
     if opts.tools then
-      require("lib.tools").ensure(opts.tools, function()
+      require("tool-installer").ensure(opts.tools, function()
         if not vim.api.nvim_buf_is_valid(bufnr) then
           return
         end

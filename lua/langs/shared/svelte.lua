@@ -5,12 +5,16 @@ function M.setup(bufnr)
     tools = {
       {
         bin = "svelteserver",
-        kind = "lsp",
         mise = "npm:svelte-language-server",
+        dependencies = { "node" },
       },
       require("lib.prettier").tool(),
       require("lib.biome").tool(),
-      { bin = "svelte-check", kind = "check", mise = "npm:svelte-check" },
+      {
+        bin = "svelte-check",
+        mise = "npm:svelte-check",
+        dependencies = { "node" },
+      },
     },
     lsp = "svelte",
     formatters = { "prettier" },

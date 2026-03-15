@@ -1,8 +1,8 @@
 local M = {}
 
---- @return lib.tools.Tool
+--- @return tool-installer.Tool
 function M.tool()
-  return { bin = "biome", kind = "lint", mise = "biome" }
+  return { bin = "biome", mise = "biome" }
 end
 
 return M

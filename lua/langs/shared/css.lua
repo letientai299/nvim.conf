@@ -6,8 +6,8 @@ function M.setup(bufnr)
     tools = {
       {
         bin = "vscode-css-language-server",
-        kind = "lsp",
         mise = "npm:vscode-langservers-extracted",
+        dependencies = { "node" },
       },
       require("lib.prettier").tool(),
       require("lib.biome").tool(),

@@ -6,11 +6,11 @@ function M.setup(bufnr)
     tools = {
       {
         bin = "bash-language-server",
-        kind = "lsp",
         mise = "npm:bash-language-server",
+        dependencies = { "node" },
       },
-      { bin = "shfmt", kind = "fmt", mise = "shfmt" },
-      { bin = "shellcheck", kind = "lint", mise = "shellcheck" },
+      { bin = "shfmt", mise = "shfmt" },
+      { bin = "shellcheck", mise = "shellcheck" },
     },
     lsp = "bashls",
     formatters = { "shfmt" },

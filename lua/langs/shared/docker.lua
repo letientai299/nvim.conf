@@ -5,8 +5,8 @@ function M.setup(bufnr)
     tools = {
       {
         bin = "docker-langserver",
-        kind = "lsp",
         mise = "npm:dockerfile-language-server-nodejs",
+        dependencies = { "node" },
       },
     },
     lsp = "dockerls",

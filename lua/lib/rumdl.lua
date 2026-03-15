@@ -8,9 +8,9 @@ M.fallback_spec = {
   extra_dirs = { ".config" },
 }
 
---- @return lib.tools.Tool
+--- @return tool-installer.Tool
 function M.tool()
-  return { bin = "rumdl", kind = "lsp", mise = "rumdl" }
+  return { bin = "rumdl", mise = "rumdl" }
 end
 
 return M

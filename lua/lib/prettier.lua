@@ -25,9 +25,13 @@ M.fallback_spec = {
   fallback = vim.fn.stdpath("config") .. "/configs/.prettierrc",
 }
 
---- @return lib.tools.Tool
+--- @return tool-installer.Tool
 function M.tool()
-  return { bin = "prettier", kind = "fmt", mise = "npm:prettier" }
+  return {
+    bin = "prettier",
+    mise = "npm:prettier",
+    dependencies = { "node" },
+  }
 end
 
 --- Build a conform.nvim spec that maps filetypes to prettier.

@@ -9,14 +9,13 @@ Each language has three integration points:
    (e.g., `go.lua`, `gomod.lua`, `gotmpl.lua` all call `langs.shared.go`).
 2. **Lang module under `lua/langs/`** — declares LSP, formatters, linters, and
    treesitter parsers via `entry.setup()`. The `tools` table lists external
-   binaries with `bin` (executable name) and `kind` (`lsp`, `fmt`, `lint`,
-   `check`). Follow existing modules for the pattern. The tool list for
-   `mise run sync` is derived automatically from `mise = "..."` fields in the
-   lang modules and `lua/lib/{prettier,biome}.lua` by
-   `scripts/gen-tools-list.lua`. No separate manifest to maintain.
+   binaries with `bin` (executable name), optional `mise`/`brew`/`script`
+   backend fields, and optional `dependencies` (catalog keys for runtimes that
+   must be installed first, e.g., `{ "node" }` for npm tools). Follow existing
+   modules for the pattern. Runtime catalog entries live in
+   `lua/plugins/tool-installer.lua`.
 
-When adding a new language, update points 1 and 2. If a tool has no mise backend
-(e.g., Perl scripts), add it to the brew section in `mise-tasks/sync`.
+When adding a new language, update points 1 and 2.
 
 ## On-demand plugin install compatibility
 

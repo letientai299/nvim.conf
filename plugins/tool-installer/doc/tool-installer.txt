@@ -1,0 +1,187 @@
+*tool-installer.txt*  Async dev tool installer with multiple backends
+
+==============================================================================
+CONTENTS                                          *tool-installer-contents*
+
+  1. Overview ..................................... |tool-installer-overview|
+  2. Setup ........................................ |tool-installer-setup|
+  3. Tool spec .................................... |tool-installer-tool|
+  4. API .......................................... |tool-installer-api|
+  5. Backends ..................................... |tool-installer-backends|
+  6. Dependencies ................................. |tool-installer-deps|
+  7. Cache ........................................ |tool-installer-cache|
+  8. Health check ................................. |tool-installer-health|
+
+==============================================================================
+1. OVERVIEW                                       *tool-installer-overview*
+
+tool-installer ensures dev tools (LSPs, formatters, linters) are available
+on PATH, installing missing ones asynchronously via system package managers.
+
+Features:
+
+- Three backends: mise, brew, script (checked in that order)
+- Named dependency catalog with two-wave install (runtimes first)
+- Per-tool cache with configurable TTL
+- Mise spec deduplication (one install for multiple binaries)
+- Concurrent `ensure()` safety via subscriber pattern
+- Progress notifications via `vim.notify` (snacks.nvim replaces in-place)
+- `:checkhealth tool-installer` integration
+
+==============================================================================
+2. SETUP                                          *tool-installer-setup*
+
+tool-installer.setup({opts})                      *tool-installer.setup()*
+    Configure the plugin. Call once at startup.
+
+    Parameters: ~
+      {opts}  (table) Configuration options:
+
+      - catalog    table<string, Tool>  Named tools for dependency
+                   resolution. Keys are referenced by `dependencies`
+                   fields in tool specs. Typical entries are runtimes
+                   like `go`, `node`, `rust`, `dotnet`.
+
+      - script_dir (string) Base directory for script backend.
+                   Relative script specs resolve from here.
+                   Default: `""` (script backend disabled).
+
+      - cache_ttl  (integer) Seconds before a cached `found=true`
+                   entry is re-verified via `executable()`.
+                   Default: `3600` (1 hour).
+
+    Example: >lua
+
+      require("tool-installer").setup({
+        script_dir = vim.fn.stdpath("config") .. "/scripts",
+        catalog = {
+          go     = { bin = "go",     mise = "go" },
+          node   = { bin = "node",   mise = "node" },
+          rust   = { bin = "cargo",  mise = "rust" },
+          dotnet = { bin = "dotnet", mise = "dotnet" },
+        },
+      })
+<
+==============================================================================
+3. TOOL SPEC                                      *tool-installer-tool*
+
+Each tool is a table with the following fields:
+
+  `bin`           (string)    Executable name to check on PATH. Required.
+  `name`          (string?)   Display name for notifications.
+                              Defaults to `bin`.
+  `version`       (string?)   Version pin. Mise only (`tool@version`).
+  `mise`          (string?)   Mise install spec (e.g. `"npm:prettier"`).
+  `brew`          (string?)   Homebrew formula name.
+  `script`        (string?)   Script filename under `script_dir`.
+  `dependencies`  (string[]?) Catalog keys that must install first.
+
+Backend selection: the first non-nil backend field where the backend CLI
+is available wins. Order: mise > brew > script. No auto-fallback between
+backends — each tool explicitly declares which backends can install it.
+
+Example: >lua
+
+    {
+      bin = "gopls",
+      mise = "go:golang.org/x/tools/gopls",
+      dependencies = { "go" },
+    }
+<
+==============================================================================
+4. API                                            *tool-installer-api*
+
+tool-installer.ensure({tools}, {on_complete?})    *tool-installer.ensure()*
+    Ensure all tools are available. Missing tools are installed
+    asynchronously. Dependencies from the catalog are resolved and
+    installed first (wave 1), then dependents (wave 2).
+
+    If a dependency fails, its dependents are skipped.
+
+    Concurrent calls for the same bin are safe — later calls subscribe
+    to the in-flight install rather than spawning duplicates.
+
+    Parameters: ~
+      {tools}        (Tool[])  List of tool specs.
+      {on_complete}  (fun()?)  Called when all installs settle.
+
+    Example: >lua
+
+      require("tool-installer").ensure({
+        { bin = "gopls", mise = "go:golang.org/x/tools/gopls",
+          dependencies = { "go" } },
+        { bin = "gofumpt", mise = "go:mvdan.cc/gofumpt",
+          dependencies = { "go" } },
+      }, function()
+        -- All tools ready (or failed). Safe to start LSP.
+      end)
+<
+tool-installer.get_config()                       *tool-installer.get_config()*
+    Returns a deep copy of the current configuration.
+    Used by the health check module.
+
+==============================================================================
+5. BACKENDS                                       *tool-installer-backends*
+
+mise ~
+    Installs via `mise use -g {spec}`. Supports `version` field
+    (`mise use -g {spec}@{version}`). Handles grouped specs: multiple
+    tools sharing the same mise spec (e.g. `npm:vscode-langservers-extracted`
+    providing `vscode-css-language-server`, `vscode-html-language-server`,
+    etc.) are installed with a single `mise use` invocation.
+
+brew ~
+    Installs via `brew install {spec}`. Version field is ignored —
+    brew doesn't support arbitrary version pinning.
+
+script ~
+    Runs `{script_dir}/{spec}` as an executable. Requires `script_dir`
+    to be set in |tool-installer.setup()|. The backend reports unavailable
+    when `script_dir` is empty or doesn't exist.
+
+==============================================================================
+6. DEPENDENCIES                                   *tool-installer-deps*
+
+Tools can declare `dependencies` — a list of string keys into the
+catalog set up via |tool-installer.setup()|. Dependencies are resolved
+via topological sort (cycle detection included) and installed in two
+waves:
+
+  Wave 1:  Catalog entries that other missing tools depend on.
+  Wave 2:  Everything else. Starts after wave 1 settles.
+
+If a wave 1 tool fails to install, wave 2 tools that depend on it are
+skipped with no error (the dependency wasn't available).
+
+Only one level of dependency depth is supported. This covers the
+typical pattern: runtime (go, node) -> tool (gopls, prettier).
+
+==============================================================================
+7. CACHE                                          *tool-installer-cache*
+
+Per-tool results are cached at `stdpath("cache")/tool-installer.json`.
+
+Each entry stores `found` (boolean) and `ts` (Unix timestamp).
+Cache behavior:
+
+- `found=true` within TTL: returned without `executable()` check.
+- TTL expired or `found=false`: re-verified via `vim.fn.executable()`.
+- After async install: PATH is rehashed (`vim.env.PATH = vim.env.PATH`)
+  before checking, so new shims are visible immediately.
+
+The cache is flushed to disk after each install batch and on
+`VimLeavePre`. Dirty flag avoids unnecessary writes when only
+timestamps are refreshed.
+
+==============================================================================
+8. HEALTH CHECK                                   *tool-installer-health*
+
+Run `:checkhealth tool-installer` to see:
+
+- Backend availability (mise, brew, script)
+- Script directory status
+- Catalog entries and their installed state
+- Cache entry count and file path
+
+==============================================================================
+ vim:tw=78:ts=8:ft=help:norl:

@@ -5,8 +5,8 @@ function M.setup(bufnr)
     tools = {
       {
         bin = "vscode-html-language-server",
-        kind = "lsp",
         mise = "npm:vscode-langservers-extracted",
+        dependencies = { "node" },
       },
       require("lib.prettier").tool(),
     },

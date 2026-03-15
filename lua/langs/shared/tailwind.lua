@@ -5,8 +5,8 @@ function M.setup(bufnr)
     tools = {
       {
         bin = "tailwindcss-language-server",
-        kind = "lsp",
         mise = "npm:tailwindcss-language-server",
+        dependencies = { "node" },
       },
     },
     lsp = "tailwindcss",

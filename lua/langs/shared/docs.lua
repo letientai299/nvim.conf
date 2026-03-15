@@ -6,7 +6,7 @@ local rumdl = require("lib.rumdl")
 function M.markdown(bufnr)
   require("langs.shared.entry").setup("markdown", bufnr, {
     tools = {
-      { bin = "marksman", kind = "lsp", mise = "marksman" },
+      { bin = "marksman", mise = "marksman" },
       require("lib.prettier").tool(),
       rumdl.tool(),
     },
@@ -33,8 +33,8 @@ function M.mdx(bufnr)
     tools = {
       {
         bin = "mdx-language-server",
-        kind = "lsp",
         mise = "npm:@mdx-js/language-server",
+        dependencies = { "node" },
       },
       require("lib.prettier").tool(),
     },

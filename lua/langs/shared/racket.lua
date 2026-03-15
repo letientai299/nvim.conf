@@ -3,8 +3,8 @@ local M = {}
 function M.setup(bufnr)
   require("langs.shared.entry").setup("racket", bufnr, {
     tools = {
-      { name = "racket-langserver", bin = "racket", kind = "lsp" },
-      { name = "raco fmt", bin = "raco", kind = "fmt" },
+      { name = "racket-langserver", bin = "racket" },
+      { name = "raco fmt", bin = "raco" },
     },
     lsp = "racket_langserver",
     formatter_defs = {

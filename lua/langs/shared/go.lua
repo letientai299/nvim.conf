@@ -3,17 +3,25 @@ local M = {}
 function M.setup(bufnr)
   require("langs.shared.entry").setup("go", bufnr, {
     tools = {
-      { bin = "gopls", kind = "lsp", mise = "go:golang.org/x/tools/gopls" },
+      {
+        bin = "gopls",
+        mise = "go:golang.org/x/tools/gopls",
+        dependencies = { "go" },
+      },
       {
         bin = "goimports",
-        kind = "fmt",
         mise = "go:golang.org/x/tools/cmd/goimports",
+        dependencies = { "go" },
       },
-      { bin = "gofumpt", kind = "fmt", mise = "go:mvdan.cc/gofumpt" },
+      {
+        bin = "gofumpt",
+        mise = "go:mvdan.cc/gofumpt",
+        dependencies = { "go" },
+      },
       {
         bin = "golangci-lint",
-        kind = "lint",
         mise = "go:github.com/golangci/golangci-lint/cmd/golangci-lint",
+        dependencies = { "go" },
       },
     },
     lsp = "gopls",

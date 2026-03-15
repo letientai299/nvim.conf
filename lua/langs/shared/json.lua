@@ -5,8 +5,8 @@ function M.setup(bufnr)
     tools = {
       {
         bin = "vscode-json-languageserver",
-        kind = "lsp",
         mise = "npm:vscode-json-languageserver",
+        dependencies = { "node" },
       },
       require("lib.prettier").tool(),
     },

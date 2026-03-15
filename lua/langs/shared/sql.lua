@@ -5,8 +5,8 @@ function M.setup(bufnr)
     tools = {
       {
         bin = "postgres-language-server",
-        kind = "lsp",
         mise = "npm:@postgres-language-server/cli",
+        dependencies = { "node" },
       },
     },
     lsp = "postgres_lsp",

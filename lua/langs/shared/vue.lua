@@ -5,8 +5,8 @@ function M.setup(bufnr)
     tools = {
       {
         bin = "vue-language-server",
-        kind = "lsp",
         mise = "npm:@vue/language-server",
+        dependencies = { "node" },
       },
       require("lib.prettier").tool(),
       require("lib.biome").tool(),
