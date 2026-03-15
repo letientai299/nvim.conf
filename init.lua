@@ -120,15 +120,12 @@ require("lazy").setup({
   lockfile = _lazy_lockfile,
 })
 
--- Auto-clone missing plugins when their lazy-load trigger fires (deferred —
--- enable() pulls in several lazy.manage submodules not needed for first paint)
-vim.api.nvim_create_autocmd("User", {
-  pattern = "VeryLazy",
-  once = true,
-  callback = function()
-    require("lib.lazy_ondemand").enable()
-  end,
-})
+-- Auto-clone missing plugins when their lazy-load trigger fires.
+-- WARNING: must run synchronously here, NOT deferred to VeryLazy. The headless
+-- bootstrap (lib.bootstrap) fires UIEnter/BufReadPre to trigger plugin loads.
+-- If enable() is deferred, lazy.nvim processes those events with the unpatched
+-- _load (skipping uninstalled plugins) and the bootstrap installs nothing.
+require("lib.lazy_ondemand").enable()
 
 -- Apply persisted colorscheme, or fall back to catppuccin-mocha on first run.
 -- The hl cache file is valid-or-absent — store-theme owns invalidation.
