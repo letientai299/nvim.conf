@@ -133,6 +133,18 @@ install_cli_tools() {
       missing="$missing $pkg"
     fi
   done
+
+  # tree-sitter needs a C compiler; install zig if none found
+  has_cc=false
+  for cc in cc gcc clang zig; do
+    if command -v "$cc" >/dev/null 2>&1; then
+      has_cc=true
+      break
+    fi
+  done
+  if [ "$has_cc" = false ]; then
+    missing="$missing zig"
+  fi
   if [ -z "$missing" ]; then
     log "Global CLI tools already installed"
     return
