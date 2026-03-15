@@ -17,13 +17,23 @@ return {
           return
         end
 
-        local lib_ts = require("lib.treesitter")
-        if lib_ts.enable_highlight(args.buf) then
-          return
+        local function apply()
+          if not vim.api.nvim_buf_is_valid(args.buf) then
+            return
+          end
+          local lib_ts = require("lib.treesitter")
+          if lib_ts.enable_highlight(args.buf) then
+            return
+          end
+          lib_ts.auto_install(args.buf)
         end
 
-        -- Parser missing — try to auto-install it
-        lib_ts.auto_install(args.buf)
+        -- Defer query compilation during cold startup so first redraw isn't blocked
+        if vim.v.vim_did_enter == 0 then
+          vim.schedule(apply)
+        else
+          apply()
+        end
       end,
     })
   end,
