@@ -4,6 +4,10 @@ return {
   build = "cargo build --release",
   dependencies = {
     "L3MON4D3/LuaSnip",
+    {
+      dir = vim.fn.stdpath("config") .. "/plugins/blink-cmp-kitty",
+      name = "blink-cmp-kitty",
+    },
   },
   opts = function()
     return {
@@ -42,7 +46,7 @@ return {
           },
           kitty_pane = {
             name = "kitty",
-            module = "blink.sources.kitty-pane",
+            module = "blink-cmp-kitty",
             score_offset = -3,
           },
         },

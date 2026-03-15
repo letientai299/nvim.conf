@@ -1,0 +1,72 @@
+*blink-cmp-kitty.txt*  Kitty terminal pane completions for blink.cmp
+
+==============================================================================
+CONTENTS                                            *blink-cmp-kitty-contents*
+
+    1. Introduction .......................... |blink-cmp-kitty-intro|
+    2. Requirements .......................... |blink-cmp-kitty-requirements|
+    3. Configuration ......................... |blink-cmp-kitty-config|
+    4. How it works .......................... |blink-cmp-kitty-details|
+
+==============================================================================
+1. INTRODUCTION                                        *blink-cmp-kitty-intro*
+
+A custom |blink.cmp| source that provides completions from other Kitty
+terminal panes. Extracts URLs, file paths, and words from recently focused
+windows in the active Kitty tab.
+
+The source auto-disables when not running inside Kitty.
+
+==============================================================================
+2. REQUIREMENTS                                 *blink-cmp-kitty-requirements*
+
+- Kitty terminal with `allow_remote_control` enabled in `kitty.conf`
+- `listen_on` configured in `kitty.conf` (sets `KITTY_LISTEN_ON` env var)
+- |blink.cmp| installed
+
+Example `kitty.conf`: >
+
+    allow_remote_control socket-only
+    listen_on unix:/tmp/kitty-{kitty_pid}
+<
+
+==============================================================================
+3. CONFIGURATION                                      *blink-cmp-kitty-config*
+
+Register the source in your blink.cmp provider config: >lua
+
+    sources = {
+      default = { "lsp", "snippets", "path", "buffer", "kitty_pane" },
+      providers = {
+        kitty_pane = {
+          name = "kitty",
+          module = "blink-cmp-kitty",
+          score_offset = -3,
+        },
+      },
+    }
+<
+                                              *blink-cmp-kitty-config-options*
+Options passed via `opts` in the provider table:
+
+  `cache_ttl`  (number, default 5)
+    Seconds to cache pane text before re-fetching.
+
+==============================================================================
+4. HOW IT WORKS                                      *blink-cmp-kitty-details*
+
+On each completion request (with cache miss), the source spawns up to 4
+subprocesses in parallel via `kitty @ get-text --match recent:N` to fetch
+screen text from the most recently focused panes in the active tab.
+
+Tokens are extracted in a single left-to-right pass with priority:
+  URL > file path > word
+
+Truncated URLs and paths (from terminal line wraps) are deduplicated by
+removing any token that is a strict prefix of another token of the same kind.
+
+Results are cached for `cache_ttl` seconds. Items are shallow-copied on each
+access since blink.cmp mutates items in-place.
+
+==============================================================================
+vim:tw=78:ts=8:ft=help:norl:
