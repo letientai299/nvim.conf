@@ -1,5 +1,9 @@
 vim.loader.enable()
 
+-- Defer ShaDa reading — marks, registers, command history aren't needed for
+-- first paint. Restore after VeryLazy.
+vim.o.shadafile = "NONE"
+
 -- Cache stdpath results (each call crosses the Lua→Vimscript bridge)
 local _dir_config = vim.fn.stdpath("config") --[[@as string]]
 local _dir_data = vim.fn.stdpath("data") --[[@as string]]
@@ -59,23 +63,25 @@ local _lazy_lockfile = (function()
   if vim.env.NVIM_TEST then
     return _dir_cache .. "/lazy-lock.json"
   end
-  local default = _dir_config .. "/lazy-lock.json"
-  local probe = _dir_config .. "/.write-probe"
-  local f = io.open(probe, "w")
-  if f then
-    f:close()
-    os.remove(probe)
-    return default
+  if vim.uv.fs_access(_dir_config, "W") then
+    return _dir_config .. "/lazy-lock.json"
   end
   return _dir_cache .. "/lazy-lock.json"
 end)()
 
+local _mtime_cache = {}
 local function _mtime(path)
-  local stat = vim.uv.fs_stat(path)
-  if not stat or not stat.mtime then
-    return nil
+  local cached = _mtime_cache[path]
+  if cached ~= nil then
+    return cached
   end
-  return stat.mtime.sec * 1000000000 + stat.mtime.nsec
+  local stat = vim.uv.fs_stat(path)
+  local result
+  if stat and stat.mtime then
+    result = stat.mtime.sec * 1000000000 + stat.mtime.nsec
+  end
+  _mtime_cache[path] = result or false
+  return result
 end
 
 local function _themery_load_cached()
@@ -418,8 +424,15 @@ require("lazy").setup({
   lockfile = _lazy_lockfile,
 })
 
--- Auto-clone missing plugins when their lazy-load trigger fires
-require("lib.lazy_ondemand").enable()
+-- Auto-clone missing plugins when their lazy-load trigger fires (deferred —
+-- enable() pulls in several lazy.manage submodules not needed for first paint)
+vim.api.nvim_create_autocmd("User", {
+  pattern = "VeryLazy",
+  once = true,
+  callback = function()
+    require("lib.lazy_ondemand").enable()
+  end,
+})
 
 -- Apply persisted colorscheme, or fall back to catppuccin-mocha on first run
 do
@@ -467,5 +480,15 @@ vim.api.nvim_create_autocmd("User", {
   pattern = { "LazyInstall", "LazyUpdate", "LazySync", "LazyRestore" },
   callback = function()
     require("lib.lockfile").strip_local_plugins()
+  end,
+})
+
+-- Restore ShaDa after startup settles
+vim.api.nvim_create_autocmd("User", {
+  pattern = "VeryLazy",
+  once = true,
+  callback = function()
+    vim.o.shadafile = ""
+    pcall(vim.cmd.rshada, { bang = true })
   end,
 })
