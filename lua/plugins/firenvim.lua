@@ -7,8 +7,7 @@ return {
       return
     end
 
-    local guifont = require("lib.guifont")
-    local store = guifont.state("firenvim")
+    local font = require("store-guifont").new("firenvim")
 
     -- Minimal UI — set early so the window doesn't flash with bars.
     vim.o.laststatus = 0
@@ -34,7 +33,7 @@ return {
       callback = function()
         vim.o.laststatus = 0
         vim.o.showtabline = 0
-        guifont.apply(store, "JetBrainsMono Nerd Font Mono:h11")
+        font:apply("JetBrainsMono Nerd Font Mono:h11")
         vim.defer_fn(function()
           vim.o.lines = 20
           vim.o.columns = 80
@@ -42,7 +41,7 @@ return {
       end,
     })
 
-    guifont.map_picker(store)
-    guifont.map_zoom(store)
+    font:map_pick()
+    font:map_zoom()
   end,
 }

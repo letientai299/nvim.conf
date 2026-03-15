@@ -1,0 +1,142 @@
+*store-guifont.txt*  Persist GUI font per context with picker and zoom
+
+==============================================================================
+CONTENTS                                            *store-guifont-contents*
+
+  1. Overview ...................................... |store-guifont-overview|
+  2. API ........................................... |store-guifont-api|
+  3. Picker ........................................ |store-guifont-picker|
+  4. Zoom .......................................... |store-guifont-zoom|
+  5. Scale ......................................... |store-guifont-scale|
+  6. Files ......................................... |store-guifont-files|
+
+==============================================================================
+1. OVERVIEW                                         *store-guifont-overview*
+
+store-guifont persists `guifont` per GUI context (Neovide, Firenvim, etc.)
+to a JSON file under `stdpath("state")/store/`. Each context is independent
+and created via a factory function.
+
+Requires fzf-lua for the interactive font picker.
+
+==============================================================================
+2. API                                              *store-guifont-api*
+
+store-guifont.new({name})                           *store-guifont.new()*
+    Create a font context for a GUI host.
+
+    Parameters: ~
+      {name}  (string) Context name (e.g. "neovide", "firenvim").
+              Determines the state filename.
+
+    Returns: ~
+      A context object with the methods below.
+
+ctx:apply({default_font})                           *store-guifont-apply()*
+    Load the saved guifont from disk, or apply {default_font} if none
+    is persisted.
+
+    Parameters: ~
+      {default_font}  (string) Fallback guifont value
+
+ctx:save()                                          *store-guifont-save()*
+    Persist the current `vim.o.guifont` to disk.
+
+ctx:pick()                                          *store-guifont-pick()*
+    Open the fzf-lua monospace font picker. See |store-guifont-picker|.
+
+ctx:map_pick({lhs?})                                *store-guifont-map_pick()*
+    Bind the font picker to a keymap.
+
+    Parameters: ~
+      {lhs}  (string?) Keymap lhs. Defaults to `<Leader>fp`.
+
+ctx:map_zoom({opts?})                               *store-guifont-map_zoom()*
+    Bind zoom in/out keymaps that scale the `:hNN` portion of guifont.
+
+    Parameters: ~
+      {opts}  (table?) Optional configuration:
+                - factor    (number?) Zoom multiplier. Defaults to 1.1.
+                - zoom_in   (string?) Keymap for zoom in. Defaults to `<D-=>`.
+                - zoom_out  (string?) Keymap for zoom out. Defaults to `<D-->`.
+
+ctx:apply_scale({opts})                             *store-guifont-apply_scale()*
+    Load scale factor from the state file (or use a default), set it on the
+    given `vim.g` variable, and register a `VimLeavePre` autocmd to
+    auto-persist it on exit.
+
+    Parameters: ~
+      {opts}  (table) Required configuration:
+                - var       (string)  vim.g variable name
+                                      (e.g. "neovide_scale_factor").
+                - default   (number)  Fallback value when nothing is saved.
+
+ctx:map_scale_zoom({opts?})                         *store-guifont-map_scale_zoom()*
+    Bind zoom in/out keymaps that multiply/divide `vim.g[var]` where {var}
+    was set by a prior |store-guifont-apply_scale()| call.
+
+    Parameters: ~
+      {opts}  (table?) Optional configuration:
+                - factor    (number?) Zoom multiplier. Defaults to 1.1.
+                - zoom_in   (string?) Keymap for zoom in. Defaults to `<D-=>`.
+                - zoom_out  (string?) Keymap for zoom out. Defaults to `<D-->`.
+
+==============================================================================
+3. PICKER                                           *store-guifont-picker*
+
+Open with `<Leader>fp` (default) or call |store-guifont-pick()|.
+
+Lists monospaced fonts from `fc-list`. All font attributes (style, size,
+etc.) from the current font are preserved when selecting a new family.
+
+Keybindings inside the picker:
+
+  `<CR>`      Apply and persist the selected font
+  `<Esc>`     Cancel and restore the previous font
+
+==============================================================================
+4. ZOOM                                             *store-guifont-zoom*
+
+When |store-guifont-map_zoom()| is called, `<D-=>` and `<D-->` scale the
+`:hNN` portion of guifont up or down by the configured factor (default
+1.1). Each zoom step is persisted immediately.
+
+Neovide uses `vim.g.neovide_scale_factor` for zoom instead of font size,
+so only Firenvim (or other contexts) typically call `map_zoom()`.
+
+==============================================================================
+5. SCALE                                            *store-guifont-scale*
+
+|store-guifont-apply_scale()| and |store-guifont-map_scale_zoom()| provide
+scale-factor persistence and zoom keymaps for GUI hosts that use a global
+variable (e.g. Neovide's `neovide_scale_factor`) instead of the `:hNN`
+font-size approach.
+
+The scale factor is stored in the same JSON file as guifont: >json
+
+    {"guifont":"JetBrainsMono Nerd Font Mono:h15","scale_factor":1.25}
+<
+Typical usage in a Neovide config: >lua
+
+    font:apply_scale({ var = "neovide_scale_factor", default = 1.25 })
+    font:map_scale_zoom()
+<
+==============================================================================
+6. FILES                                            *store-guifont-files*
+
+State files are stored under `~/.local/state/nvim/store/`:
+
+  `neovide-guifont.json`    Neovide font state
+  `firenvim-guifont.json`   Firenvim font state
+
+Each file is a JSON object containing `guifont` and optionally
+`scale_factor`: >json
+
+    {"guifont":"JetBrainsMono Nerd Font Mono:h15","scale_factor":1.25}
+<
+On first load, if the new state file is missing but the old location
+(`~/.local/state/nvim/{name}.json`) contains a `guifont` key, the value
+is migrated automatically. The old file is cleaned up after migration.
+
+==============================================================================
+ vim:tw=78:ts=8:ft=help:norl:
