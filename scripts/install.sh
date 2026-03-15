@@ -117,7 +117,9 @@ install_neovim() {
     return
   fi
   log "Installing neovim via mise..."
-  mise use -g neovim
+  # Use aqua backend — the default vfox backend ignores GITHUB_TOKEN and
+  # hits rate limits (HTTP 403) in CI and containers.
+  mise use -g aqua:neovim/neovim
 }
 
 # --- 4. Install global CLI tools --------------------------------------------
