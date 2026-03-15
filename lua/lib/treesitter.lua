@@ -168,15 +168,45 @@ local function ensure_c_compiler(callback)
     end
   end
 
+  -- zig cc works as a C compiler but CC="zig cc" breaks build systems that
+  -- don't shell-expand the value.  Write a tiny wrapper script instead.
+  local wrapper = vim.fn.stdpath("cache") .. "/zig-cc"
+  local function write_zig_cc_wrapper()
+    local f = io.open(wrapper, "w")
+    if not f then
+      return false
+    end
+    -- Strip --target flags: zig cc rejects GNU-style triples
+    -- (e.g. aarch64-unknown-linux-gnu) that tree-sitter passes.
+    -- https://github.com/ziglang/zig/issues/7360
+    f:write([=[#!/bin/sh
+out=
+skip=
+for a in "$@"; do
+  if [ -n "$skip" ]; then skip=; continue; fi
+  case "$a" in
+    --target=*) ;;
+    --target|-target) skip=1 ;;
+    *) out="$out \"$a\"" ;;
+  esac
+done
+eval exec zig cc "$out"
+]=])
+    f:close()
+    vim.fn.setfperm(wrapper, "rwxr-xr-x")
+    vim.env.CC = wrapper
+    return true
+  end
+
   if vim.fn.executable("zig") == 1 then
-    vim.env.CC = "zig cc"
-    callback()
+    if write_zig_cc_wrapper() then
+      callback()
+    end
     return
   end
 
   mise_install("zig", "zig (C compiler for treesitter)", function(ok)
-    if ok then
-      vim.env.CC = "zig cc"
+    if ok and write_zig_cc_wrapper() then
       callback()
     end
   end)
