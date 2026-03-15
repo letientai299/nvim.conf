@@ -7,5 +7,6 @@ disable = [
   "MD033", # no-inline-html: needed for <details>, <kbd>, etc.
   "MD034", # no-bare-urls: false positive on multi-line reference link definitions
   "MD041", # first-line-h1: not all files start with h1
+  "MD047", # single new line ending: we prefer a trailing blank line.
   "MD053", # link-image-reference-definitions: false positives with footnotes
 ]
