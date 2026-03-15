@@ -1,6 +1,6 @@
 FROM lopsided/archlinux:latest
 
-RUN pacman -Syu --noconfirm git curl bash icu \
+RUN pacman -Syu --noconfirm git curl bash icu tar \
     && pacman -Scc --noconfirm
 
 ARG UID=1000
