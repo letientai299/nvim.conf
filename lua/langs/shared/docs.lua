@@ -1,19 +1,14 @@
 local M = {}
 
 local fc = require("lib.fallback_config")
-local rumdl_spec = {
-  names = { ".rumdl.toml", "rumdl.toml" },
-  flag = "--config",
-  fallback = vim.fn.stdpath("config") .. "/configs/rumdl.toml",
-  extra_dirs = { ".config" },
-}
+local rumdl = require("lib.rumdl")
 
 function M.markdown(bufnr)
   require("langs.shared.entry").setup("markdown", bufnr, {
     tools = {
       { bin = "marksman", kind = "lsp", mise = "marksman" },
       require("lib.prettier").tool(),
-      { bin = "rumdl", kind = "lsp", mise = "rumdl" },
+      rumdl.tool(),
     },
     lsp = { "marksman", "rumdl" },
     formatter_fts = { "markdown", "markdown.mdx" },
@@ -22,7 +17,7 @@ function M.markdown(bufnr)
         command = "rumdl",
         args = function(_, ctx)
           local args = { "check", "--fix", "--fail-on", "never" }
-          vim.list_extend(args, fc.flags(rumdl_spec, ctx.dirname))
+          vim.list_extend(args, fc.flags(rumdl.fallback_spec, ctx.dirname))
           vim.list_extend(args, { "--", "$FILENAME" })
           return args
         end,
@@ -30,21 +25,6 @@ function M.markdown(bufnr)
       },
     },
     formatters = { "rumdl_fix", "prettier" },
-    each = function(buf)
-      local path = vim.api.nvim_buf_get_name(buf)
-      if path == "" then
-        return
-      end
-      local root = vim.fs.root(path, ".git") or ""
-      if root == M._rumdl_root then
-        return
-      end
-      M._rumdl_root = root
-      local flags = fc.flags(rumdl_spec, path)
-      local cmd = { "rumdl", "server", "--stdio" }
-      vim.list_extend(cmd, flags)
-      vim.lsp.config("rumdl", { cmd = cmd })
-    end,
   })
 end
 

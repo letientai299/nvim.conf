@@ -14,7 +14,8 @@ local M = {}
 --- @return boolean
 function M.has_project_config(spec, path)
   local root = vim.fs.root(path, ".git")
-  local stop = root or vim.env.HOME
+  -- vim.fs.find stop is exclusive — use parent so git root is searched
+  local stop = root and vim.fn.fnamemodify(root, ":h") or vim.env.HOME
   if
     #vim.fs.find(spec.names, {
       path = path,
@@ -51,6 +52,52 @@ function M.flags(spec, path)
     or { spec.flag }
   table.insert(flags, spec.fallback)
   return flags
+end
+
+--- Register a `<name>_fallback` LSP variant for configs that declare
+--- `fallback_config`. Overrides `root_dir` on both the base and fallback
+--- configs so only the matching variant attaches per buffer.
+--- @param name string LSP config name (e.g. "rumdl")
+function M.register_fallback_lsp(name)
+  local base = vim.lsp.config[name]
+  local spec = base and base.fallback_config
+  if not spec then
+    return
+  end
+
+  local fallback_name = name .. "_fallback"
+  local markers = base.root_markers or { ".git" }
+
+  -- Build fallback cmd: base cmd + config flags
+  local fallback_cmd = vim.deepcopy(base.cmd)
+  local flag_list = type(spec.flag) == "table" and vim.deepcopy(spec.flag)
+    or { spec.flag }
+  vim.list_extend(fallback_cmd, flag_list)
+  table.insert(fallback_cmd, spec.fallback)
+
+  vim.lsp.config(fallback_name, {
+    cmd = fallback_cmd,
+    filetypes = base.filetypes,
+    root_markers = markers,
+  })
+
+  -- Gate each variant via root_dir: only call on_dir when the buffer's
+  -- config context matches (has project config → base, no config → fallback).
+  local function make_root_dir(wants_project_config)
+    return function(bufnr, on_dir)
+      local path = vim.api.nvim_buf_get_name(bufnr)
+      if path == "" then
+        return
+      end
+      if M.has_project_config(spec, path) == wants_project_config then
+        local root = vim.fs.root(bufnr, markers) or vim.fn.getcwd()
+        on_dir(root)
+      end
+    end
+  end
+
+  vim.lsp.config(name, { root_dir = make_root_dir(true) })
+  vim.lsp.config(fallback_name, { root_dir = make_root_dir(false) })
 end
 
 return M

@@ -57,11 +57,25 @@ local function attach_enabled_configs(bufnr)
   })
 end
 
+local fallback_registered = {}
+
 --- Enable an LSP config and attach it to the current buffer when needed.
+--- If the config declares `fallback_config`, a `<name>_fallback` variant is
+--- registered on first call and enabled alongside the base config.
 --- @param name string
 --- @param bufnr integer|nil
 function M.enable(name, bufnr)
   apply_defaults()
+
+  if not fallback_registered[name] then
+    local cfg = vim.lsp.config[name]
+    if cfg and cfg.fallback_config then
+      fallback_registered[name] = true
+      require("lib.fallback_config").register_fallback_lsp(name)
+      vim.lsp.enable(name .. "_fallback")
+    end
+  end
+
   vim.lsp.enable(name)
 
   if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
