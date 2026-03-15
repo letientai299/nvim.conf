@@ -256,8 +256,24 @@ return {
           ["yP"] = { desc = "Yank absolute path", callback = M.yank_absolute },
           ["yg"] = { desc = "Yank path from git root", callback = M.yank_git },
           ["<C-p>"] = {
-            "actions.preview",
-            opts = { split = "belowright" },
+            desc = "Preview (with image support)",
+            callback = function()
+              -- Load snacks only when previewing an image so its BufReadCmd
+              -- autocmds exist and oil uses bufadd instead of raw-byte scratch.
+              if not package.loaded["snacks"] then
+                local entry = require("oil").get_cursor_entry()
+                if
+                  entry
+                  and entry.type == "file"
+                  and require("lib.image").is_image(entry.name)
+                then
+                  require("lazy").load({ plugins = { "snacks.nvim" } })
+                end
+              end
+              require("oil.actions").preview.callback({
+                split = "belowright",
+              })
+            end,
           },
           ["gd"] = {
             desc = "Toggle file detail view",

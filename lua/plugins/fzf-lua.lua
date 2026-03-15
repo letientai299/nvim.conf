@@ -114,6 +114,12 @@ return {
     },
   },
   config = function()
+    -- snacks.image must be loaded before fzf-lua's builtin previewer checks
+    -- _G.Snacks.image. fzf-lua is already lazy (cmd = "FzfLua"), so this
+    -- only runs on first use, not at startup.
+    if not package.loaded["snacks"] then
+      require("lazy").load({ plugins = { "snacks.nvim" } })
+    end
     require("fzf-lua").setup({
       files = { cmd = files_cmd() },
       previewers = {
