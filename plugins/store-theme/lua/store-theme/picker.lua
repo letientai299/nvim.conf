@@ -32,16 +32,24 @@ function M.pick()
 
   local items = {}
   local lookup = {}
+  local current_cs = vim.g.colors_name
+  local current_entry = nil
+
+  -- Put current theme first so fzf pre-selects it.
   for _, t in ipairs(themes) do
     local name = type(t) == "string" and t or t.name
-    items[#items + 1] = name
-    lookup[name] = type(t) == "table" and t or { name = t, colorscheme = t }
+    local entry = type(t) == "table" and t or { name = t, colorscheme = t }
+    lookup[name] = entry
+    if entry.colorscheme == current_cs then
+      table.insert(items, 1, name)
+      current_entry = entry
+    else
+      items[#items + 1] = name
+    end
   end
 
-  -- Capture current state including the full theme entry for hook restoration.
-  local current_cs = vim.g.colors_name
+  -- Capture current state for hook restoration on cancel.
   local current_bg = vim.o.background
-  local current_entry = current_cs and lookup[current_cs]
   local previewed = false
 
   -- Live preview via fzf's preview mechanism.
@@ -82,27 +90,34 @@ function M.pick()
     end
   end
 
+  opts._headers = { "actions" }
   opts.actions = {
-    ["enter"] = function(selected)
-      if not selected or not selected[1] then
-        return
-      end
-      local theme = lookup[selected[1]]
-      if theme then
-        previewed = false -- skip restore
-        store.apply(theme, true)
-      end
-    end,
-    ["ctrl-s"] = function(selected)
-      if not selected or not selected[1] then
-        return
-      end
-      local theme = lookup[selected[1]]
-      if theme then
-        previewed = false -- skip restore
-        store.apply(theme, false)
-      end
-    end,
+    ["enter"] = {
+      fn = function(selected)
+        if not selected or not selected[1] then
+          return
+        end
+        local theme = lookup[selected[1]]
+        if theme then
+          previewed = false -- skip restore
+          store.apply(theme, true)
+        end
+      end,
+      header = "save theme",
+    },
+    ["ctrl-s"] = {
+      fn = function(selected)
+        if not selected or not selected[1] then
+          return
+        end
+        local theme = lookup[selected[1]]
+        if theme then
+          previewed = false -- skip restore
+          store.apply(theme, false)
+        end
+      end,
+      header = "session only",
+    },
   }
 
   core.fzf_exec(items, opts)
