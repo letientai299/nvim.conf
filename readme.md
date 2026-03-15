@@ -1,16 +1,21 @@
 # Nvim Config
 
-This is my Lua Neovim config. I optimize for fast startup, small cold installs,
-and easy deployment on cloud VMs, containers, and other constrained machines.
+This is my new full lua Neovim config, optimize for fast startup, small cold
+installs, and easy deployment on cloud VMs, containers, and other constrained
+machines.
 
 ## Core ideas
 
-- **On-demand plugin install** — a plugin is cloned when some real trigger asks
-  for it. See [on-demand-plugin-install][].
-- **On-demand tool install** — language tools install when the matching filetype
-  is opened. See [on-demand-tool-install][].
-- **Eager warm-up** — `mise run sync` installs everything from [tools.txt][] up
-  front when I want a fully-prepared machine.
+I want to use this nvim distro on dev/k8s container, EC2 VM, and other
+constrainted env where the full setup are slow to bootstrap and heavy. So, these
+was implemenete:
+
+- [**On-demand plugin install**](/docs/on-demand-plugin.md) — except some
+  essential plugins, other plugins are only cloned when some events need it. The
+  trade-off is 1st trigger is a no-op and need to wait a bit to use that plugin.
+- [**On-demand tool install**](/docs/on-demand-tool.md) — CLI tools (LSP,
+  linter, formatter) for each language are only installed when the matching
+  filetype is opened.
 
 ## Dependencies
 
@@ -83,8 +88,5 @@ Unattended / CI:
   selection in a browser. Supports multiple engines and per-project context
   keywords via `.nvim.lua`.
 
-[on-demand-plugin-install]: docs/on-demand-plugin-install.md
 [mise]: https://mise.jdx.dev/
-[on-demand-tool-install]: docs/on-demand-tool-install.md
-[tools.txt]: tools.txt
 [installer]: ./scripts/install.sh

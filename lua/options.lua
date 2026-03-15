@@ -132,8 +132,10 @@ vim.api.nvim_create_autocmd({ "BufReadPost", "BufNewFile" }, {
 -- Replace ~ end-of-buffer markers with blank space
 vim.opt.fillchars:append({ eob = " " })
 
--- Auto-insert comment leader when pressing Enter in insert mode
-vim.opt.formatoptions:append("r")
+-- Auto-insert comment leader when pressing Enter in insert mode;
+-- hard-wrap text while typing at textwidth boundary.
+vim.opt.formatoptions:append("rtc")
+vim.opt.textwidth = 80
 
 -- Scroll by screen line, not by text line (smooth half-line scrolling)
 vim.opt.smoothscroll = true

@@ -1,5 +1,30 @@
 local M = {}
 
+--- Prettier config file names for project detection.
+--- Does not include package.json (needs content inspection) — prettier's own
+--- config discovery handles that case when cwd points to the project root.
+--- @type FallbackSpec
+M.fallback_spec = {
+  names = {
+    ".prettierrc",
+    ".prettierrc.json",
+    ".prettierrc.yml",
+    ".prettierrc.yaml",
+    ".prettierrc.json5",
+    ".prettierrc.js",
+    ".prettierrc.cjs",
+    ".prettierrc.mjs",
+    ".prettierrc.ts",
+    ".prettierrc.toml",
+    "prettier.config.js",
+    "prettier.config.cjs",
+    "prettier.config.mjs",
+    "prettier.config.ts",
+  },
+  flag = "--config",
+  fallback = vim.fn.stdpath("config") .. "/configs/.prettierrc",
+}
+
 --- @return lib.tools.Tool
 function M.tool()
   return { bin = "prettier", kind = "fmt", mise = "npm:prettier" }

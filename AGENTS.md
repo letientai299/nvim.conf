@@ -10,13 +10,13 @@ Each language has three integration points:
 2. **Lang module under `lua/langs/`** — declares LSP, formatters, linters, and
    treesitter parsers via `entry.setup()`. The `tools` table lists external
    binaries with `bin` (executable name) and `kind` (`lsp`, `fmt`, `lint`,
-   `check`). Follow existing modules for the pattern.
-3. **`tools.txt`** — every external binary in the `tools` table must have a
-   corresponding entry here so `mise run sync` installs it. Use the appropriate
-   mise backend (`go:`, `npm:`, `dotnet:`, or a registry shortname).
+   `check`). Follow existing modules for the pattern. The tool list for
+   `mise run sync` is derived automatically from `mise = "..."` fields in the
+   lang modules and `lua/lib/{prettier,biome}.lua` by
+   `scripts/gen-tools-list.lua`. No separate manifest to maintain.
 
-When adding a new language, update all three. If a tool has no mise backend
-(e.g., Perl scripts), add it to the brew section in `tasks/sync.sh`.
+When adding a new language, update points 1 and 2. If a tool has no mise backend
+(e.g., Perl scripts), add it to the brew section in `mise-tasks/sync`.
 
 ## On-demand plugin install compatibility
 

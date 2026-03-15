@@ -10,9 +10,11 @@ function M.setup(bufnr)
         mise = "npm:bash-language-server",
       },
       { bin = "shfmt", kind = "fmt", mise = "shfmt" },
+      { bin = "shellcheck", kind = "lint", mise = "shellcheck" },
     },
     lsp = "bashls",
     formatters = { "shfmt" },
+    linters = { "shellcheck" },
   })
 end
 

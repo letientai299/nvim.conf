@@ -8,28 +8,23 @@ return {
     return {
       formatters = {
         prettier = {
-          prepend_args = { "--ignore-unknown", "--ignore-path", "/dev/null" },
+          prepend_args = function(_, ctx)
+            local args = { "--ignore-unknown", "--ignore-path", "/dev/null" }
+            local fc = require("lib.fallback_config")
+            local spec = require("lib.prettier").fallback_spec
+            vim.list_extend(args, fc.flags(spec, ctx.dirname))
+            return args
+          end,
           -- Override cwd to include .ts config files (prettier 3.x) and also
           -- check package.json for a "prettier" key. Uses callback form of
           -- vim.fs.root so it returns the nearest match, not the first marker.
           -- https://prettier.io/docs/configuration
           cwd = function(_, ctx)
-            local config_names = {
-              [".prettierrc"] = true,
-              [".prettierrc.json"] = true,
-              [".prettierrc.yml"] = true,
-              [".prettierrc.yaml"] = true,
-              [".prettierrc.json5"] = true,
-              [".prettierrc.js"] = true,
-              [".prettierrc.cjs"] = true,
-              [".prettierrc.mjs"] = true,
-              [".prettierrc.ts"] = true,
-              [".prettierrc.toml"] = true,
-              ["prettier.config.js"] = true,
-              ["prettier.config.cjs"] = true,
-              ["prettier.config.mjs"] = true,
-              ["prettier.config.ts"] = true,
-            }
+            local names = require("lib.prettier").fallback_spec.names
+            local config_names = {}
+            for _, n in ipairs(names) do
+              config_names[n] = true
+            end
             return vim.fs.root(ctx.dirname, function(name, path)
               if config_names[name] then
                 return true
