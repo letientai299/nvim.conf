@@ -8,7 +8,9 @@ return {
   opts = function()
     return {
       keymap = { preset = "default" },
+      signature = { enabled = true },
       completion = {
+        ghost_text = { enabled = true },
         documentation = { auto_show = true },
         menu = {
           draw = {
@@ -27,6 +29,12 @@ return {
           lua = { inherit_defaults = true, "lazydev" },
         },
         providers = {
+          path = {
+            score_offset = 100,
+            opts = {
+              show_hidden_files_by_default = true,
+            },
+          },
           lazydev = {
             name = "LazyDev",
             module = "lazydev.integrations.blink",
@@ -35,7 +43,7 @@ return {
           kitty_pane = {
             name = "kitty",
             module = "blink.sources.kitty-pane",
-            score_offset = 5,
+            score_offset = -3,
           },
         },
       },
