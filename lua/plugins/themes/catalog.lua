@@ -1,17 +1,17 @@
 local M = {}
 
----@class ThemeryThemeEntry
+---@class ThemeEntry
 ---@field name string
 ---@field colorscheme string
 ---@field before? string
 ---@field after? string
 
----@alias ThemeryTheme string|ThemeryThemeEntry
+---@alias Theme string|ThemeEntry
 
 ---@class ThemePluginSpec
 ---@field [1]? string
 ---@field name? string
----@field themes? ThemeryTheme[]
+---@field themes? Theme[]
 
 local this_dir = vim.fs.dirname(debug.getinfo(1, "S").source:sub(2))
 local cache_path = vim.fn.stdpath("state") .. "/theme-spec_gen.lua"
@@ -28,11 +28,7 @@ local function theme_files()
 
   for name, ftype in vim.fs.dir(this_dir) do
     if ftype == "file" and name:match("%.lua$") then
-      if
-        name ~= "catalog.lua"
-        and name ~= "init.lua"
-        and name ~= "themery.lua"
-      then
+      if name ~= "catalog.lua" and name ~= "init.lua" then
         files[#files + 1] = name
       end
     end
@@ -177,7 +173,7 @@ function M.load_specs()
 end
 
 function M.collect_themes()
-  ---@type ThemeryTheme[]
+  ---@type Theme[]
   local themes = { "default" }
 
   for _, spec in ipairs(M.load_specs()) do

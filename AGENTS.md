@@ -50,9 +50,9 @@ See `ts-context-commentstring.lua` and `snacks.lua` for examples.
 - `require("<plugin>")` inside `config` or `opts` — runs after plugin loads.
 - `require("lib.*")` — config-local modules, always available.
 - `<Cmd>PluginCmd<CR>` in keys — error suppressed by `lazy_ondemand.lua`.
-- Colorscheme triggers — installed synchronously so Themery live preview works.
-  Theme plugins must declare a `themes` field listing their colorscheme names
-  (see `lua/plugins/themes/` for examples).
+- Colorscheme triggers — installed synchronously so the picker's live preview
+  works. Theme plugins must declare a `themes` field listing their colorscheme
+  names (see `lua/plugins/themes/` for examples).
 
 ## Performance benchmarking
 

@@ -10,21 +10,21 @@ highlight groups on each load. That work is redundant when the colorscheme
 hasn't changed. The cache converts the result into a flat Lua file of
 `nvim_set_hl` calls that replays in under 5 ms.
 
-## Two-layer cache
+## How it works
 
-### Themery state cache
+### Theme state
 
-[Themery][themery] stores its selection in `state.json` (JSON). On first change,
-`init.lua` converts it to a compiled Lua chunk at
-`~/.local/share/nvim/state/themery-startup.lua` containing the colorscheme name,
-before/after hook code, and the plugin that provides it. Subsequent startups
-call `dofile()` and skip JSON decode entirely.
+The [store-theme][store-theme] plugin persists the active colorscheme to a
+single Lua file at `~/.local/state/nvim/store/theme.lua`. The file returns a
+table with `colorscheme`, `before`/`after` hook code, and the lazy.nvim plugin
+name. On startup, `init.lua` calls `dofile()` — no JSON decode, no staleness
+check.
 
 ### Highlight group cache
 
-After a colorscheme loads successfully, `init.lua` snapshots every highlight
+After a colorscheme loads successfully, `store-theme` snapshots every highlight
 group via `vim.fn.getcompletion("", "highlight")` and writes the result to
-`~/.local/share/nvim/state/theme-highlight-startup.lua`. The file contains:
+`~/.local/state/nvim/theme-highlight-startup.lua`. The file contains:
 
 - `vim.g.colors_name` assignment
 - Terminal colors 0–15 (if defined)
@@ -33,35 +33,38 @@ group via `vim.fn.getcompletion("", "highlight")` and writes the result to
 On next startup the cached file replays those calls directly, skipping the theme
 plugin's init path.
 
-## Staleness detection
+### Cache validity
 
-The highlight cache is stale when any of these files are newer than it:
+The highlight cache is valid-or-absent. `store-theme` owns invalidation:
 
-| File                  | Meaning                             |
-| --------------------- | ----------------------------------- |
-| `themery-startup.lua` | User picked a different colorscheme |
-| `theme-spec_gen.lua`  | Theme plugin definitions changed    |
-| `lazy-lock.json`      | Plugin versions updated             |
+- **On theme save** — writes state file + regenerates hl cache
+- **On plugin update** — deletes hl cache (hooks Lazy post-update events)
+- **On theme spec change** — deletes hl cache via `VeryLazy` check
 
-Staleness is checked via `fs_stat` mtime comparison. Results are memoized per
-startup in `_mtime_cache` to avoid repeated syscalls.
+`init.lua` has no staleness logic — if the hl cache file exists, it's used; if
+missing, the normal `vim.cmd.colorscheme` path runs and `store-theme` schedules
+cache generation.
 
 ## Startup flow
 
 ```mermaid
 flowchart TD
-  A["Load Themery state cache"] --> B{"Highlight cache stale?"}
-  B -- no --> C["dofile highlight cache"]
+  A["dofile theme state"] --> B{"hl cache exists?"}
+  B -- yes --> C["dofile highlight cache"]
   C --> D["Fire ColorScheme autocmd"]
-  B -- yes --> E["vim.cmd.colorscheme (normal path)"]
-  E --> F["Request cache regeneration"]
+  B -- no --> E["vim.cmd.colorscheme (normal path)"]
+  E --> F["Schedule hl cache generation"]
   F --> G["Write highlight cache on VeryLazy"]
 ```
 
 ## Where the logic lives
 
-- [`init.lua`][init] (lines 53–469) — cache loading, staleness checks, snapshot
-  generation, and application
+- [`init.lua`][init] — thin loader: reads state file, applies hl cache or falls
+  back to normal colorscheme load
+- [`plugins/store-theme/lua/store-theme/cache.lua`][cache] — hl cache
+  write/invalidate/schedule
+- [`plugins/store-theme/lua/store-theme/init.lua`][store] — state persistence,
+  theme application, picker
 - [`lua/plugins/themes/catalog.lua`][catalog] — theme spec catalog caching
   (compiles all theme plugin definitions into a single Lua file)
 
@@ -78,7 +81,9 @@ flowchart TD
 - [On-demand plugin install][on-demand-plugin] — theme plugins lazy-load via the
   same on-demand machinery
 
+[cache]: ../plugins/store-theme/lua/store-theme/cache.lua
 [catalog]: ../lua/plugins/themes/catalog.lua
 [init]: ../init.lua
 [on-demand-plugin]: ./on-demand-plugin.md
-[themery]: https://github.com/zaldih/themery.nvim
+[store]: ../plugins/store-theme/lua/store-theme/init.lua
+[store-theme]: ../plugins/store-theme

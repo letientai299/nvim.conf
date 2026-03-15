@@ -258,7 +258,7 @@ configure_lockfile() {
 # waits for all async clones to finish, then quits.
 #
 # Default theme (catppuccin-mocha) is configured in init.lua and applies
-# when no themery state.json exists yet.
+# when no store-theme state file exists yet.
 
 bootstrap_plugins() {
   log "Bootstrapping plugins (headless)..."
