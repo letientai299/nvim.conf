@@ -61,7 +61,14 @@ function M.schedule_write(colorscheme)
     scheduled = false
     local cs = pending_colorscheme
     pending_colorscheme = nil
-    if not cs or vim.g.colors_name ~= cs then
+    -- Some themes (bamboo, kanagawa) set colors_name to a base name
+    -- ("bamboo") while the user-facing variant is more specific
+    -- ("bamboo-multiplex"). Accept if either is a prefix of the other.
+    local cn = vim.g.colors_name
+    if not cs or not cn then
+      return
+    end
+    if cn ~= cs and not cs:find(cn, 1, true) and not cn:find(cs, 1, true) then
       return
     end
     M.write(cs)
