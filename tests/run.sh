@@ -3,6 +3,7 @@
 # Usage:
 #   ./tests/run.sh              # fzf-select one distro, build & run
 #   ./tests/run.sh ub           # pre-filter fzf with "ub", auto-pick if one match
+#   ./tests/run.sh --boot ub    # build, run, install, source, open nvim
 #   ./tests/run.sh --build      # build all images (no interactive run)
 #   ./tests/run.sh --pull       # pull latest base images, then rebuild all
 set -euo pipefail
@@ -55,6 +56,19 @@ if [[ "${1:-}" == "--pull" ]]; then
   exit 0
 fi
 
+# --- parse --boot flag anywhere in args ------------------------------------
+
+BOOT=false
+args=()
+for arg in "$@"; do
+  if [[ "$arg" == "--boot" ]]; then
+    BOOT=true
+  else
+    args+=("$arg")
+  fi
+done
+set -- "${args[@]+${args[@]}}"
+
 # --- --build: build all images ---------------------------------------------
 
 if [[ "${1:-}" == "--build" ]]; then
@@ -88,8 +102,18 @@ build_image "$selection"
 gh_token=$(gh auth token 2>/dev/null || true)
 
 logf "Running nvim-test-${selection} (project mounted at ~/work)"
-docker run --rm -it \
-  -v "$PROJECT_DIR:/home/testuser/work:ro" \
-  ${gh_token:+-e "GITHUB_TOKEN=$gh_token"} \
-  "nvim-test-${selection}" \
-  bash -l
+
+run_args=(
+  docker run --rm -it
+  -v "$PROJECT_DIR:/home/testuser/work:ro"
+  ${gh_token:+-e "GITHUB_TOKEN=$gh_token"}
+  "nvim-test-${selection}"
+)
+
+if "$BOOT"; then
+  # shellcheck disable=SC2016 # $HOME expands inside the container, not on the host
+  "${run_args[@]}" bash -lc \
+    '$HOME/work/scripts/install.sh -y && source $HOME/.bashrc && nvim .bashrc; exec bash -l'
+else
+  "${run_args[@]}" bash -l
+fi
