@@ -274,7 +274,7 @@ function M.auto_install(bufnr)
             return
           end
           M.enable_highlight(bufnr)
-          vim.cmd.redraw()
+          vim.cmd("redraw!")
         end)
       end)
   end)
