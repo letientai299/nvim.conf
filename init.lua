@@ -65,9 +65,11 @@ end)()
 local _theme_state_path = _dir_state .. "/store/theme.lua"
 local _theme_hl_cache = _dir_state .. "/theme-highlight-startup.lua"
 
+local _bytecache = require("lib.bytecache")
+
 local _theme_state
 do
-  local ok, state = pcall(dofile, _theme_state_path)
+  local ok, state = pcall(_bytecache.load, _theme_state_path)
   if ok and type(state) == "table" and type(state.colorscheme) == "string" then
     _theme_state = state
   end
@@ -148,7 +150,7 @@ do
       else
         loader.colorscheme(cs)
       end
-      dofile(_theme_hl_cache)
+      _bytecache.load(_theme_hl_cache)
       vim.api.nvim_exec_autocmds("ColorScheme", {
         pattern = cs,
         modeline = false,

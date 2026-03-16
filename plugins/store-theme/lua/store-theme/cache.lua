@@ -4,6 +4,7 @@ local hl_cache_path = vim.fn.stdpath("state") .. "/theme-highlight-startup.lua"
 
 function M.invalidate()
   os.remove(hl_cache_path)
+  os.remove(hl_cache_path .. "c")
 end
 
 function M.write(colorscheme)
@@ -39,6 +40,8 @@ function M.write(colorscheme)
   f:write(table.concat(lines, "\n"))
   f:write("\n")
   f:close()
+
+  require("lib.bytecache").compile(hl_cache_path)
 end
 
 local scheduled = false

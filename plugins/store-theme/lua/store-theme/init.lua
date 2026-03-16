@@ -62,6 +62,8 @@ function M.save(entry)
   f:write("\n")
   f:close()
 
+  require("lib.bytecache").compile(state_path)
+
   -- Delete stale hl cache immediately so a crash between save and scheduled
   -- write never leaves init.lua trusting an outdated cache on next startup.
   cache.invalidate()

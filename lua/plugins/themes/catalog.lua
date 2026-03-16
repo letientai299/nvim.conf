@@ -115,6 +115,8 @@ local function write_cache(files)
   f:write("\n")
   f:close()
 
+  require("lib.bytecache").compile(cache_path)
+
   return true
 end
 
@@ -123,7 +125,7 @@ local function load_cache(files)
     write_cache(files)
   end
 
-  local ok, specs = pcall(dofile, cache_path)
+  local ok, specs = pcall(require("lib.bytecache").load, cache_path)
   if ok and type(specs) == "table" then
     return specs
   end
@@ -160,7 +162,8 @@ end
 function M.load_specs()
   -- Fast path: load existing cache without staleness check.
   -- Regeneration is deferred until VeryLazy so the first paint stays quiet.
-  local ok, specs = pcall(dofile, cache_path)
+  local bytecache = require("lib.bytecache")
+  local ok, specs = pcall(bytecache.load, cache_path)
   if ok and type(specs) == "table" then
     schedule_refresh()
     return specs
