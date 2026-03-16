@@ -27,6 +27,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 setup_isolated_env
+resolve_nvim
 trap cleanup_env EXIT
 
 profile_out="${output:-$(mktemp /tmp/lazy-profile.XXXXXX)}"
@@ -70,7 +71,7 @@ vim.api.nvim_create_autocmd("User", {
 
 # Run without --headless so UIEnter fires.
 # shellcheck disable=SC2086
-nvim +"lua $lua_cmd" ${target:+"$target"} >/dev/null 2>&1
+"$_PERF_NVIM" +"lua $lua_cmd" ${target:+"$target"} >/dev/null 2>&1
 
 cat "$profile_out"
 

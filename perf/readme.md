@@ -38,10 +38,13 @@ non-interactive shell).
 Two modes, selected automatically:
 
 - **hyperfine** (preferred) — wall-clock timing with warmup and statistical
-  output. Requires [hyperfine][hf] on `$PATH`.
+  output. Requires [hyperfine][hf] on `$PATH`. Uses `--shell=none` (`-N`) so
+  hyperfine execs the binary directly without a shell wrapper. Cases are grouped
+  into two invocations (baselines + sample files) that each produce a comparison
+  table with relative speeds.
 - **manual** — fallback when hyperfine isn't available. Runs each case N times
   (default 20, override via `$BENCH_RUNS`), parses `--startuptime` logs, reports
-  medians.
+  min/median/max.
 
 Both modes include a `nvim -u NONE --headless` floor baseline. Normal cases run
 **without** `--headless` to match real startup (UIEnter fires, lazy.nvim loads).
@@ -60,7 +63,12 @@ lazy.nvim removes this field, stats still print — only the tree is lost.
 Sourced by the other scripts. Provides:
 
 - `setup_isolated_env [tree]` — mktemp XDG dirs, symlink config, copy lockfile,
-  copy exrc trust data (so headful nvim doesn't prompt for `.nvim.lua`)
+  copy exrc trust data (so headful nvim doesn't prompt for `.nvim.lua`), copy
+  mise trusted-configs (so the mise shim doesn't reject configs in the isolated
+  state dir)
+- `resolve_nvim` — resolves the real nvim binary via `mise which nvim`,
+  bypassing the mise shim (~40ms overhead per invocation). Caches the path in
+  `$_PERF_NVIM`. Falls back to `nvim` if mise isn't available.
 - `cleanup_env` — rm temp dirs
 - `extract_startup_ms <log>` — awk extraction from `--startuptime` output
 - `require_cmd <cmd>` — exit if not found

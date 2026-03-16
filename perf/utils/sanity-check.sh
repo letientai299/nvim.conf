@@ -14,6 +14,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
 setup_isolated_env
+resolve_nvim
 trap cleanup_env EXIT
 
 failures=0
@@ -32,11 +33,11 @@ run_case() {
 # --- Round 1: headless (fast, catches init errors) ---
 
 printf 'Round 1: headless boot\n'
-run_case "bare" nvim --headless +qa
-run_case "directory" nvim --headless . +qa
+run_case "bare" "$_PERF_NVIM" --headless +qa
+run_case "directory" "$_PERF_NVIM" --headless . +qa
 
 for f in "$REPO_ROOT"/perf/samples/*; do
-  run_case "$(basename "$f")" nvim --headless "$f" +qa
+  run_case "$(basename "$f")" "$_PERF_NVIM" --headless "$f" +qa
 done
 
 # --- Round 2: headful (UIEnter fires, lazy.nvim loads) ---
@@ -57,11 +58,11 @@ vim.api.nvim_create_autocmd("User", {
 LUAEOF
 
 printf '\nRound 2: headful boot (terminal window opens briefly)\n'
-run_case "bare" nvim -S "$quit_lua"
-run_case "directory" nvim . -S "$quit_lua"
+run_case "bare" "$_PERF_NVIM" -S "$quit_lua"
+run_case "directory" "$_PERF_NVIM" . -S "$quit_lua"
 
 for f in "$REPO_ROOT"/perf/samples/*; do
-  run_case "$(basename "$f")" nvim "$f" -S "$quit_lua"
+  run_case "$(basename "$f")" "$_PERF_NVIM" "$f" -S "$quit_lua"
 done
 rm -f "$quit_lua"
 

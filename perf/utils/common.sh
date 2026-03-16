@@ -39,10 +39,30 @@ setup_isolated_env() {
     cp "$real_state/nvim/trust" "$_PERF_STATE/nvim/trust"
   fi
 
+  # Copy mise trust database so the mise shim doesn't reject trusted configs
+  # in the isolated state dir (mise stores trust under XDG_STATE_HOME).
+  local real_mise_trust="$real_state/mise/trusted-configs"
+  if [[ -d "$real_mise_trust" ]]; then
+    mkdir -p "$_PERF_STATE/mise"
+    cp -R "$real_mise_trust" "$_PERF_STATE/mise/trusted-configs"
+  fi
+
   export NVIM_TEST=1
   export XDG_CONFIG_HOME="$_PERF_CFG"
   export XDG_CACHE_HOME="$_PERF_CACHE"
   export XDG_STATE_HOME="$_PERF_STATE"
+}
+
+# resolve_nvim
+#   Resolves the real nvim binary path, bypassing the mise shim (~40ms overhead).
+#   Caches result in _PERF_NVIM. Falls back to `nvim` if mise isn't available.
+resolve_nvim() {
+  if command -v mise >/dev/null 2>&1; then
+    _PERF_NVIM="$(mise which nvim 2>/dev/null)" || _PERF_NVIM="nvim"
+  else
+    _PERF_NVIM="nvim"
+  fi
+  export _PERF_NVIM
 }
 
 cleanup_env() {
