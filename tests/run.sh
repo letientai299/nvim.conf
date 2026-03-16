@@ -76,6 +76,27 @@ BOOT=false
 BYPASS=false
 SPEED=""
 ACTION="" # build, pull, clear-cache, or empty (interactive)
+
+# Expand combined short flags: -bs20 → -b -s20, -bx → -b -x
+expanded=()
+for arg in "$@"; do
+  if [[ "$arg" =~ ^-[bxhs]{2,} ]] || [[ "$arg" =~ ^-[bxh]+s[0-9]+ ]]; then
+    chars="${arg#-}"
+    while [[ -n "$chars" ]]; do
+      c="${chars:0:1}"
+      chars="${chars:1}"
+      if [[ "$c" == "s" && -n "$chars" ]]; then
+        expanded+=("-s$chars")
+        break
+      fi
+      expanded+=("-$c")
+    done
+  else
+    expanded+=("$arg")
+  fi
+done
+set -- "${expanded[@]+${expanded[@]}}"
+
 args=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -211,10 +232,13 @@ if ! "$BYPASS"; then
   start_proxy
 fi
 
+container_name="nvim-test-run-${selection}"
+docker rm -f "$container_name" 2>/dev/null || true
+
 logf "Running nvim-test-${selection} (project mounted at ~/work)"
 
 run_args=(
-  docker run --rm -it
+  docker run --rm -it --name "$container_name"
   -v "$PROJECT_DIR:/home/testuser/work:ro"
   ${gh_token:+-e "GITHUB_TOKEN=$gh_token"}
 )
@@ -232,8 +256,10 @@ run_args+=("nvim-test-${selection}")
 
 if "$BOOT"; then
   # shellcheck disable=SC2016 # $HOME expands inside the container, not on the host
+  # Install in a subshell, then exec a fresh login shell where mise activate
+  # populates PATH before nvim runs.
   "${run_args[@]}" bash -lc \
-    '$HOME/work/scripts/install.sh -y && source $HOME/.bashrc && nvim .bashrc; exec bash -l'
+    '$HOME/work/scripts/install.sh -y && exec bash -lc "nvim .bashrc; exec bash -l"'
 else
   "${run_args[@]}" bash -l
 fi

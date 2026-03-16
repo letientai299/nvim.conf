@@ -1,7 +1,7 @@
 ARG BASE_IMAGE=mcr.microsoft.com/azurelinux/base/core:3.0
 FROM ${BASE_IMAGE}
 
-RUN tdnf install -y git curl bash ca-certificates shadow-utils libatomic icu \
+RUN tdnf install -y git curl bash tar ca-certificates shadow-utils libatomic icu \
     && tdnf clean all
 
 ARG UID=1000

@@ -1,7 +1,7 @@
 ARG BASE_IMAGE=amazonlinux:2023
 FROM ${BASE_IMAGE}
 
-RUN dnf install -y git bash libatomic libicu \
+RUN dnf install -y git bash tar libatomic libicu \
     && (command -v curl || dnf install -y --allowerasing curl) \
     && dnf clean all
 
