@@ -1,7 +1,10 @@
-ARG BASE_IMAGE=lopsided/archlinux:latest
+ARG BASE_IMAGE=menci/archlinuxarm:base
 FROM ${BASE_IMAGE}
 
-RUN pacman -Syu --noconfirm git curl bash icu tar \
+# Disable CheckSpace — BuildKit's read-only mounts (/etc/resolv.conf, /etc/hosts)
+# cause pacman to wrongly report "not enough free disk space".
+RUN sed -i 's/^CheckSpace/#CheckSpace/' /etc/pacman.conf \
+    && pacman -Syu --noconfirm git curl bash icu tar \
     && pacman -Scc --noconfirm
 
 ARG UID=1000
