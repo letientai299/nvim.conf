@@ -8,6 +8,7 @@ import json
 import os
 import time
 from pathlib import Path
+from urllib.parse import urlparse
 
 from mitmproxy import ctx, http
 
@@ -17,10 +18,18 @@ SPEED = max(1.0, float(os.environ.get("PROXY_SPEED", "1")))
 # Git pack responses break at high speed — cap to 2x regardless of global speed.
 GIT_PACK_MAX_SPEED = 2.0
 
+# Hosts whose URLs contain time-limited signed tokens in query params.
+# Cache key uses path only (the asset UUID in the path is sufficient).
+_STRIP_QUERY_HOSTS = frozenset({"release-assets.githubusercontent.com"})
+
 
 def _cache_key(flow: http.HTTPFlow) -> str:
     req = flow.request
-    parts = f"{req.method}:{req.pretty_url}"
+    url = req.pretty_url
+    if req.pretty_host in _STRIP_QUERY_HOSTS:
+        parsed = urlparse(url)
+        url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+    parts = f"{req.method}:{url}"
     if req.method == "POST" and req.content:
         body_hash = hashlib.sha256(req.content).hexdigest()
         parts = f"{parts}:{body_hash}"
@@ -76,7 +85,10 @@ class HttpCache:
         key = _cache_key(flow)
         meta_path, data_path = _cache_paths(flow.request.pretty_host, key)
 
-        meta_path.parent.mkdir(parents=True, exist_ok=True)
+        # pathlib.mkdir(parents=True) fails on Python 3.14 when /cache is a
+        # Docker volume mount (FileExistsError propagates instead of being
+        # swallowed). os.makedirs has no such issue.
+        os.makedirs(meta_path.parent, exist_ok=True)
 
         # Filter hop-by-hop and encoding headers — mitmproxy already decodes
         skip = frozenset({"transfer-encoding", "content-encoding", "content-length"})

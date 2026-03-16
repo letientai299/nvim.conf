@@ -29,7 +29,8 @@ Usage: ./tests/run.sh [flags] [filter]
 Flags:
   -b, --boot         Build, run, install, source bashrc, open nvim
   -c, --check        With -b: run automated smoke test instead of interactive shell
-  -x, --bypass       Skip proxy, direct network access
+  -x, --exec CMD     With -b: run CMD instead of "nvim .bashrc" (e.g., -x "nvim .")
+      --bypass       Skip proxy, direct network access
   -s, --speed N      Replay cached responses N times faster (e.g., -s 4)
   -t, --timeout N    Kill container after N seconds (default: 120 with --check)
       --build        Build all test images (no interactive run)
@@ -78,14 +79,15 @@ build_image() {
 BOOT=false
 CHECK=false
 BYPASS=false
+EXEC_CMD=""
 SPEED=""
 TIMEOUT=""
 ACTION="" # build, pull, clear-cache, or empty (interactive)
 
-# Expand combined short flags: -bs20 → -b -s20, -bx → -b -x
+# Expand combined short flags: -bs20 → -b -s20, -bc → -b -c
 expanded=()
 for arg in "$@"; do
-  if [[ "$arg" =~ ^-[bcxhs]{2,} ]] || [[ "$arg" =~ ^-[bcxh]+s[0-9]+ ]]; then
+  if [[ "$arg" =~ ^-[bchs]{2,} ]] || [[ "$arg" =~ ^-[bch]+s[0-9]+ ]]; then
     chars="${arg#-}"
     while [[ -n "$chars" ]]; do
       c="${chars:0:1}"
@@ -111,7 +113,11 @@ while [[ $# -gt 0 ]]; do
     ;;
   -b | --boot) BOOT=true ;;
   -c | --check) CHECK=true ;;
-  -x | --bypass) BYPASS=true ;;
+  -x | --exec)
+    EXEC_CMD="${2:?--exec requires a command}"
+    shift
+    ;;
+  --bypass) BYPASS=true ;;
   -t | --timeout)
     TIMEOUT="${2:?--timeout requires a number}"
     shift
@@ -292,16 +298,23 @@ run_with_timeout() {
   fi
 }
 
+# Source proxy-env.sh early so install.sh downloads through the cache proxy.
+# Ubuntu's .bashrc exits early for non-interactive shells, so the proxy env
+# vars appended there never take effect during `bash -lc`.
+# shellcheck disable=SC2016
+PROXY_SOURCE='[ -f /tmp/proxy-env.sh ] && . /tmp/proxy-env.sh; '
+
 if "$BOOT" && "$CHECK"; then
   # Default timeout for check mode
   : "${TIMEOUT:=120}"
   # shellcheck disable=SC2016
   run_with_timeout "${run_args[@]}" bash -lc \
-    '$HOME/work/scripts/install.sh -y && exec bash -lc "'"$MISE_PATH"' nvim --headless -c \"luafile \$HOME/work/tests/infra/check.lua\" \$HOME/.bashrc"'
+    "${PROXY_SOURCE}"'$HOME/work/scripts/install.sh -y && exec bash -lc "'"$MISE_PATH"' nvim --headless -c \"luafile \$HOME/work/tests/infra/check.lua\" \$HOME/.bashrc"'
 elif "$BOOT"; then
+  boot_cmd="${EXEC_CMD:-nvim .bashrc}"
   # shellcheck disable=SC2016
   "${run_args[@]}" bash -lc \
-    '$HOME/work/scripts/install.sh -y && exec bash -lc "'"$MISE_PATH"' nvim .bashrc; exec bash -l"'
+    "${PROXY_SOURCE}"'$HOME/work/scripts/install.sh -y && exec bash -lc "'"$MISE_PATH"' '"$boot_cmd"'; exec bash -l"'
 else
   "${run_args[@]}" bash -l
 fi
