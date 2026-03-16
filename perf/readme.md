@@ -17,6 +17,9 @@ bash perf/utils/bench.sh
 # Capture lazy.nvim per-plugin profile
 bash perf/utils/lazy-profile.sh
 bash perf/utils/lazy-profile.sh perf/samples/app.tsx -o /tmp/profile.txt
+
+# Measure UIEnter -> treesitter / LSP readiness
+bash perf/utils/ready-profile.sh perf/samples/app.tsx
 ```
 
 ## Terminal requirement
@@ -53,7 +56,8 @@ cat /tmp/bench.txt
 tmux kill-session -t bench 2>/dev/null
 ```
 
-The same pattern works for `sanity-check.sh` and `lazy-profile.sh`. Key points:
+The same pattern works for `sanity-check.sh`, `lazy-profile.sh`, and
+`ready-profile.sh`. Key points:
 
 - `tmux new-session -d` creates a detached session with a real pty.
 - `tmux wait-for -S` / `tmux wait-for` is a clean signal — no polling.
@@ -107,6 +111,17 @@ to stdout unless `-o` specifies a file.
 
 Uses `lazy.core.util._profiles` (internal API) for the profile tree. If
 lazy.nvim removes this field, stats still print — only the tree is lost.
+
+### `ready-profile.sh <target> [-o output]`
+
+Measures when a buffer becomes ready after `UIEnter`, with a focus on:
+
+- whether runtime syntax is already active at first paint
+- when `b:ts_highlight` flips to `true`
+- when LSP clients first attach to the buffer
+
+This is useful when a change improves `nvim file +qa` benchmarks by moving work
+later but may still affect perceived editor readiness.
 
 ### `common.sh`
 
