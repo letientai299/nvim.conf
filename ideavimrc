@@ -1,0 +1,129 @@
+" IdeaVim config — ported from nvim.conf Lua setup.
+" Symlink: ln -sf ~/.config/nvim/ideavimrc ~/.ideavimrc
+
+let mapleader=" "
+
+" ---------------------------------------------------------------------------
+" Shared options (mirrors lua/options.lua)
+" ---------------------------------------------------------------------------
+
+set expandtab
+set tabstop=2 softtabstop=2 shiftwidth=2
+set ignorecase smartcase incsearch hlsearch
+set textwidth=0
+set spelllang=en_us
+set nospell
+set idearefactormode=keep
+set clipboard+=ideaput
+set VimEverywhere
+
+" ---------------------------------------------------------------------------
+" Shared keymaps (mirrors lua/keymaps.lua + keymaps_late.lua)
+" ---------------------------------------------------------------------------
+
+" Escape
+inoremap jk <Esc>
+xnoremap jk <Esc>
+
+" System clipboard
+nnoremap <Leader>p "+p
+vnoremap <Leader>p "+p
+nnoremap <Leader>P "+P
+vnoremap <Leader>P "+P
+nnoremap <Leader>yy "+y
+vnoremap <Leader>yy "+y
+nnoremap <Leader>yY "+Y
+vnoremap <Leader>yY "+Y
+
+" Center after search
+nnoremap n nzz
+nnoremap N Nzz
+nnoremap * *zz
+nnoremap # #zz
+
+" ---------------------------------------------------------------------------
+" IdeaVim plugins
+" ---------------------------------------------------------------------------
+
+set surround
+set matchit
+set commentary
+set ideajoin
+set ideamarks
+set anyobject
+set exchange
+set dial
+set which-key
+set NERDTree
+set highlightedyank
+set quickscope
+set mini-ai
+
+" ---------------------------------------------------------------------------
+" IdeaVim keymaps
+" ---------------------------------------------------------------------------
+
+" Config
+nnoremap <Leader>ve :edit ~/.ideavimrc<CR>
+nnoremap <Leader>va :source ~/.ideavimrc<CR>
+
+" Tabs
+nmap <A-p> :action PinActiveTabToggle<CR>
+
+" Dial increment/decrement
+nnoremap <C-a> :DialIncrement<CR>
+nnoremap <C-x> :DialDecrement<CR>
+
+" Unimpaired
+nnoremap [<space> O<Esc>j
+nnoremap ]<space> o<Esc>k
+nnoremap [c :action VcsShowPrevChangeMarker<CR>
+nnoremap ]c :action VcsShowNextChangeMarker<CR>
+nnoremap [b :action PreviousTab<CR>
+nnoremap ]b :action NextTab<CR>
+nnoremap [e :action MoveLineUp<CR>
+nnoremap ]e :action MoveLineDown<CR>
+
+" Method navigation
+nnoremap <C-j> :action MethodDown<CR>
+nnoremap <C-k> :action MethodUp<CR>
+
+" LSP equivalents
+nnoremap gd :action GotoDeclaration<CR>
+nnoremap gD :action GotoTypeDeclaration<CR>
+nnoremap gi :action GotoImplementation<CR>
+nnoremap gI :action GotoTypeDeclaration<CR>
+nnoremap gu :action ShowUsages<CR>
+nnoremap gU :action FindUsages<CR>
+nnoremap gl :action GotoRelated<CR>
+
+" Refactoring
+nnoremap <Leader>cr :action RenameElement<CR>
+nnoremap <Leader>ca :action ShowIntentionActions<CR>
+nnoremap <Leader>cf :action ReformatCode<CR>
+nnoremap <Leader>gr :action Refactorings.QuickListPopupAction<CR>
+
+" Occurrence navigation
+nnoremap <A-j> :action NextOccurence<CR>
+nnoremap <A-k> :action PreviousOccurence<CR>
+
+" Diagnostics
+nnoremap [d :action GotoPreviousError<CR>
+nnoremap ]d :action GotoNextError<CR>
+
+" Find
+nnoremap <Leader>ff :action GotoFile<CR>
+nnoremap <Leader>fg :action FindInPath<CR>
+nnoremap <Leader>fr :action RecentFiles<CR>
+
+" Git
+nnoremap <Leader>gg :action ActivateVersionControlToolWindow<CR>
+
+" Splits
+nnoremap <C-w>v :action SplitVertically<CR>
+nnoremap <C-w>s :action SplitHorizontally<CR>
+nnoremap <C-w>q :action Unsplit<CR>
+nnoremap <C-w>h <C-w>h
+nnoremap <C-w>j <C-w>j
+nnoremap <C-w>k <C-w>k
+nnoremap <C-w>l <C-w>l
