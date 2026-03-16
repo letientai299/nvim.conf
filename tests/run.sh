@@ -256,10 +256,15 @@ run_args+=("nvim-test-${selection}")
 
 if "$BOOT"; then
   # shellcheck disable=SC2016 # $HOME expands inside the container, not on the host
-  # Install in a subshell, then exec a fresh login shell where mise activate
-  # populates PATH before nvim runs.
+  # Install, then open nvim in a fresh login shell.
+  # We cannot rely on exec bash -lc because Ubuntu's default .bashrc has an
+  # early-exit guard ("case $- in *i*) ;; *) return ;; esac") that skips the
+  # rest of the file — including the PATH/mise lines appended by install.sh —
+  # when the shell is non-interactive. Prepending the shim path inline avoids
+  # the guard entirely and matches what activate_mise() does for the install
+  # script itself.
   "${run_args[@]}" bash -lc \
-    '$HOME/work/scripts/install.sh -y && exec bash -lc "nvim .bashrc; exec bash -l"'
+    '$HOME/work/scripts/install.sh -y && exec bash -lc "PATH=$HOME/.local/share/mise/shims:$HOME/.local/bin:$PATH nvim .bashrc; exec bash -l"'
 else
   "${run_args[@]}" bash -l
 fi
