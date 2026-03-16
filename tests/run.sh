@@ -17,6 +17,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 INFRA_DIR="$SCRIPT_DIR/infra"
 PROXY_DIR="$SCRIPT_DIR/proxy"
+PROXY_PORT="${PROXY_PORT:-8090}"
 
 logf() { printf '\033[1;34m==>\033[0m \033[1m%s\033[0m\n' "$*"; }
 
@@ -165,7 +166,7 @@ start_proxy() {
   logf "Starting proxy container"
   mkdir -p "$PROXY_DIR/cache"
   docker run -d --name nvim-test-proxy \
-    -p 8080:8080 \
+    -p "$PROXY_PORT":8080 \
     -v "$PROXY_DIR/ca:/root/.mitmproxy" \
     -v "$PROXY_DIR/cache:/cache" \
     ${SPEED:+-e "PROXY_SPEED=$SPEED"} \
@@ -173,7 +174,7 @@ start_proxy() {
 
   # Wait for proxy to be ready
   local retries=20
-  while ! curl -sf -o /dev/null -x http://localhost:8080 http://mitm.it/cert/pem 2>/dev/null; do
+  while ! curl -sf -o /dev/null -x "http://localhost:$PROXY_PORT" http://mitm.it/cert/pem 2>/dev/null; do
     retries=$((retries - 1))
     if [[ $retries -le 0 ]]; then
       logf "ERROR: proxy failed to start"
@@ -223,6 +224,7 @@ if ! "$BYPASS"; then
   run_args+=(
     -v "$PROXY_DIR/ca/mitmproxy-ca-cert.pem:/tmp/proxy-ca.pem:ro"
     -v "$INFRA_DIR/proxy-env.sh:/tmp/proxy-env.sh:ro"
+    -e "PROXY_PORT=$PROXY_PORT"
   )
 fi
 
