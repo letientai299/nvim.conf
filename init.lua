@@ -2,7 +2,7 @@ vim.loader.enable()
 
 -- Defer ShaDa reading — marks, registers, command history aren't needed for
 -- first paint. Restore after VeryLazy. Skip deferral for bare `nvim` so
--- alpha.nvim can read v:oldfiles immediately.
+-- mini.starter can read v:oldfiles immediately.
 local _defer_shada = vim.fn.argc(-1) > 0
 if _defer_shada then
   vim.o.shadafile = "NONE"
