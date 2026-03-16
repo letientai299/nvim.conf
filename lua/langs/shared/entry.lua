@@ -1,6 +1,7 @@
 local M = {}
 
 local initialized = {}
+local once_ran = {}
 
 local function listify(value)
   if value == nil then
@@ -12,6 +13,13 @@ local function listify(value)
   return { value }
 end
 
+local function resolve(value)
+  if type(value) == "function" then
+    return value()
+  end
+  return value
+end
+
 --- Register one-time language state, then configure the current buffer.
 --- Pass `bufnr = nil` to run only the one-time setup path (formatter defs,
 --- formatter/linter registry entries, and `once()` hooks). Generated lazy
@@ -20,38 +28,44 @@ end
 ---@param bufnr integer|nil
 ---@param opts table
 function M.setup(key, bufnr, opts)
-  if not initialized[key] then
+  if opts.once and not once_ran[key] then
+    once_ran[key] = true
+    opts.once()
+  end
+
+  local function init_language()
+    if initialized[key] then
+      return
+    end
+
     initialized[key] = true
-
     local registry = require("lib.lang_registry")
+    local formatter_defs = resolve(opts.formatter_defs)
+    local formatters = resolve(opts.formatters)
+    local linters = resolve(opts.linters)
+    local formatter_fts = resolve(opts.formatter_fts or opts.filetypes) or key
+    local linter_fts = resolve(opts.linter_fts or opts.filetypes) or key
 
-    if opts.formatter_defs then
-      for name, config in pairs(opts.formatter_defs) do
+    if formatter_defs then
+      for name, config in pairs(formatter_defs) do
         registry.add_formatter(name, config)
       end
     end
 
-    if opts.formatters then
-      registry.add_formatters(
-        opts.formatter_fts or opts.filetypes or key,
-        opts.formatters
-      )
+    if formatters then
+      registry.add_formatters(formatter_fts, formatters)
     end
 
-    if opts.linters then
-      registry.add_linter(
-        opts.linter_fts or opts.filetypes or key,
-        opts.linters
-      )
-    end
-
-    if opts.once then
-      opts.once()
+    if linters then
+      registry.add_linter(linter_fts, linters)
     end
   end
 
   local function setup_buffer()
-    for _, name in ipairs(listify(opts.lsps or opts.lsp)) do
+    local lsps = listify(resolve(opts.lsps or opts.lsp))
+    local tools = resolve(opts.tools)
+
+    for _, name in ipairs(lsps) do
       require("lib.lsp").enable(name, bufnr)
     end
 
@@ -59,14 +73,14 @@ function M.setup(key, bufnr, opts)
       opts.each(bufnr)
     end
 
-    if opts.tools then
-      require("tool-installer").ensure(opts.tools, function()
+    if tools then
+      require("tool-installer").ensure(tools, function()
         if not vim.api.nvim_buf_is_valid(bufnr) then
           return
         end
         -- Retry after tool installs; the first enable may have run before the
         -- server binary existed on PATH.
-        for _, name in ipairs(listify(opts.lsps or opts.lsp)) do
+        for _, name in ipairs(lsps) do
           require("lib.lsp").enable(name, bufnr)
         end
       end)
@@ -82,6 +96,7 @@ function M.setup(key, bufnr, opts)
         pattern = "VeryLazy",
         once = true,
         callback = function()
+          init_language()
           if vim.api.nvim_buf_is_valid(bufnr) then
             setup_buffer()
           end
@@ -90,8 +105,12 @@ function M.setup(key, bufnr, opts)
       return
     end
 
+    init_language()
     setup_buffer()
+    return
   end
+
+  init_language()
 end
 
 return M
