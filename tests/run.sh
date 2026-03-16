@@ -303,18 +303,21 @@ run_with_timeout() {
 # vars appended there never take effect during `bash -lc`.
 # shellcheck disable=SC2016
 PROXY_SOURCE='[ -f /tmp/proxy-env.sh ] && . /tmp/proxy-env.sh; '
+# Trust the project mise.toml so `cd ~/work` doesn't prompt.
+# shellcheck disable=SC2016
+MISE_TRUST='"$HOME/.local/bin/mise" trust "$HOME/work"; '
 
 if "$BOOT" && "$CHECK"; then
   # Default timeout for check mode
   : "${TIMEOUT:=120}"
   # shellcheck disable=SC2016
   run_with_timeout "${run_args[@]}" bash -lc \
-    "${PROXY_SOURCE}"'$HOME/work/scripts/install.sh -y && exec bash -lc "'"$MISE_PATH"' nvim --headless -c \"luafile \$HOME/work/tests/infra/check.lua\" \$HOME/.bashrc"'
+    "${PROXY_SOURCE}"'$HOME/work/scripts/install.sh -y && '"${MISE_TRUST}"'exec bash -lc "'"$MISE_PATH"' nvim --headless -c \"luafile \$HOME/work/tests/infra/check.lua\" \$HOME/.bashrc"'
 elif "$BOOT"; then
   boot_cmd="${EXEC_CMD:-nvim .bashrc}"
   # shellcheck disable=SC2016
   "${run_args[@]}" bash -lc \
-    "${PROXY_SOURCE}"'$HOME/work/scripts/install.sh -y && exec bash -lc "'"$MISE_PATH"' '"$boot_cmd"'; exec bash -l"'
+    "${PROXY_SOURCE}"'$HOME/work/scripts/install.sh -y && '"${MISE_TRUST}"'exec bash -lc "'"$MISE_PATH"' '"$boot_cmd"'; exec bash -l"'
 else
   "${run_args[@]}" bash -l
 fi
