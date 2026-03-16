@@ -1,8 +1,8 @@
-ARG BASE_IMAGE=debian:12-slim
+ARG BASE_IMAGE=debian:trixie-slim
 FROM ${BASE_IMAGE}
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      git curl ca-certificates bash libatomic1 libicu-dev \
+      git curl ca-certificates bash libc6 libatomic1 libicu-dev \
     && rm -rf /var/lib/apt/lists/*
 
 ARG UID=1000

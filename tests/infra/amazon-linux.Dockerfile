@@ -1,9 +1,9 @@
-ARG BASE_IMAGE=amazonlinux:2023
+ARG BASE_IMAGE=public.ecr.aws/ubuntu/ubuntu:24.04
 FROM ${BASE_IMAGE}
 
-RUN dnf install -y git bash tar libatomic libicu \
-    && (command -v curl || dnf install -y --allowerasing curl) \
-    && dnf clean all
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      git curl ca-certificates bash libatomic1 libicu-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 ARG UID=1000
 ARG GID=1000
