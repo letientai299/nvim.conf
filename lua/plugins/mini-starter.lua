@@ -5,7 +5,7 @@ return {
   init = function()
     -- mini.starter's autoopen fires on VimEnter, but we load on VeryLazy
     -- (after VimEnter). Manually open on empty starts.
-    if vim.fn.argc(-1) == 0 then
+    if vim.fn.argc(-1) == 0 and not vim.env.NVIM_PAGER then
       vim.api.nvim_create_autocmd("User", {
         pattern = "VeryLazy",
         once = true,
@@ -23,6 +23,7 @@ return {
     return {
       autoopen = false, -- we handle open manually in init
       items = {
+        { name = "New file", action = "enew", section = "Actions" },
         starter.sections.recent_files(10, true, true),
         starter.sections.recent_files(10, false, true),
         { name = "Quit", action = "qa", section = "Actions" },
