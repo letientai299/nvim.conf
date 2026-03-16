@@ -1,4 +1,6 @@
 std = "vim"
+# Uses Lua 5.2 goto/labels which selene's vim std doesn't support.
+exclude = ["lua/lib/lazy_ondemand.lua"]
 
 [lints]
 # lazy.nvim specs, keymap tables, and plugin configs (lualine, mini.*, etc.)

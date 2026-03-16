@@ -212,6 +212,42 @@ function M.toggle_detail()
   end
 end
 
+--- Rerender all open oil buffers and fire OilEnter so oil-git-status
+--- picks them up retroactively.
+local function refresh_oil_buffers()
+  require("oil.view").rerender_all_oil_buffers({ refetch = false })
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.api.nvim_buf_get_name(buf):find("^oil://") then
+      vim.api.nvim_exec_autocmds("User", {
+        pattern = "OilEnter",
+        data = { buf = buf },
+      })
+    end
+  end
+end
+
+--- Re-register oil's icon column after devicons becomes available.
+--- Simplified render — link/meta edge cases resolve on next restart.
+local function register_icon_column()
+  local provider = require("oil.util").get_icon_provider()
+  if not provider then
+    return
+  end
+  local c = require("oil.constants")
+  require("oil.columns").register("icon", {
+    render = function(entry, conf)
+      local icon, hl = provider(entry[c.FIELD_TYPE], entry[c.FIELD_NAME], conf)
+      if not conf or conf.add_padding ~= false then
+        icon = icon .. " "
+      end
+      return { icon, hl }
+    end,
+    parse = function(line)
+      return line:match("^(%S+)%s+(.*)$")
+    end,
+  })
+end
+
 return {
   { "refractalize/oil-git-status.nvim", lazy = true },
   {
@@ -320,23 +356,16 @@ return {
       require("oil").setup(opts)
 
       if interactive then
+        local on_load = require("lib.lazy_ondemand").on_load
         require("lazy").load({ plugins = { "oil-git-status.nvim" } })
-        -- If already installed, lazy.load runs synchronously and setup
-        -- can proceed. If cloning (lazy_ondemand), defer until it loads.
-        local ok, git_status = pcall(require, "oil-git-status")
-        if ok then
-          git_status.setup()
-        else
-          vim.api.nvim_create_autocmd("User", {
-            pattern = "LazyLoad",
-            callback = function(ev)
-              if ev.data == "oil-git-status.nvim" then
-                require("oil-git-status").setup()
-                return true -- removes this autocmd
-              end
-            end,
-          })
-        end
+        on_load("oil-git-status.nvim", function()
+          require("oil-git-status").setup()
+          refresh_oil_buffers()
+        end)
+        on_load("nvim-web-devicons", function()
+          register_icon_column()
+          refresh_oil_buffers()
+        end)
       end
 
       local group =

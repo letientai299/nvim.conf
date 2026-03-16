@@ -309,4 +309,26 @@ function M.enable()
   end
 end
 
+--- Run `fn` after `plugin_name` loads. If already loaded, runs immediately.
+--- Useful for progressive enhancement when a dependency is mid-clone.
+---@param plugin_name string  lazy.nvim plugin name (e.g. "nvim-web-devicons")
+---@param fn fun()
+function M.on_load(plugin_name, fn)
+  local cfg = package.loaded["lazy.core.config"]
+  local plugin = cfg and cfg.plugins[plugin_name]
+  if plugin and plugin._.loaded then
+    fn()
+    return
+  end
+  vim.api.nvim_create_autocmd("User", {
+    pattern = "LazyLoad",
+    callback = function(ev)
+      if ev.data == plugin_name then
+        fn()
+        return true
+      end
+    end,
+  })
+end
+
 return M
