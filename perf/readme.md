@@ -4,6 +4,9 @@ Scripts and sample files for profiling Neovim startup with this config.
 
 ## Quick start
 
+From a terminal (or tmux session — see
+[Running from a non-interactive shell](#running-from-a-non-interactive-shell)):
+
 ```sh
 # Verify config boots cleanly (headless + headful)
 bash perf/utils/sanity-check.sh
@@ -14,6 +17,55 @@ bash perf/utils/bench.sh
 # Capture lazy.nvim per-plugin profile
 bash perf/utils/lazy-profile.sh
 bash perf/utils/lazy-profile.sh perf/samples/app.tsx -o /tmp/profile.txt
+```
+
+## Terminal requirement
+
+All three scripts run nvim **headfully** (without `--headless`) for at least
+some cases. Headful nvim needs a real terminal — `UIEnter` fires on terminal
+attach, which triggers [lazy.nvim][lazy] plugin loading and colorscheme
+application. Running from a pipe, cron, or CI without a terminal will hang or
+produce wrong results.
+
+If you're in a regular terminal (iTerm, Alacritty, the macOS Terminal app), the
+scripts work directly. A brief nvim window flashes for each headful case — this
+is expected.
+
+## Running from a non-interactive shell
+
+AI agents, SSH pipes, and CI runners don't have a terminal attached. Use tmux to
+provide one. The pattern:
+
+```sh
+# 1. Start the script inside a detached tmux session.
+#    tmux allocates a pty, so headful nvim works normally.
+tmux new-session -d -s bench \
+  "bash perf/utils/bench.sh 2>&1 | tee /tmp/bench.txt; \
+   tmux wait-for -S bench-done"
+
+# 2. Block until the script finishes.
+tmux wait-for bench-done
+
+# 3. Read the captured output.
+cat /tmp/bench.txt
+
+# 4. Clean up.
+tmux kill-session -t bench 2>/dev/null
+```
+
+The same pattern works for `sanity-check.sh` and `lazy-profile.sh`. Key points:
+
+- `tmux new-session -d` creates a detached session with a real pty.
+- `tmux wait-for -S` / `tmux wait-for` is a clean signal — no polling.
+- Pipe through `tee` to capture output for later inspection.
+- Always kill the session afterward to avoid leaks.
+
+To reduce bench runtime during development, set `BENCH_RUNS`:
+
+```sh
+tmux new-session -d -s bench \
+  "BENCH_RUNS=5 bash perf/utils/bench.sh 2>&1 | tee /tmp/bench.txt; \
+   tmux wait-for -S bench-done"
 ```
 
 ## Scripts
@@ -30,8 +82,6 @@ batch — if any case fails, fix correctness before trusting timings.
 
 The headful round quits via a `LazyVimStarted` autocmd sourced with `-S`. Plain
 `+qa` races with UIEnter — lazy.nvim hooks into UIEnter and blocks the quit.
-Headful round requires a real terminal (run directly or via tmux, not from a
-non-interactive shell).
 
 ### `bench.sh`
 

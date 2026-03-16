@@ -50,7 +50,7 @@ vim.api.nvim_create_autocmd("User", {
       ),
     }
     for k, v in pairs(stats.times or {}) do
-      out[#out + 1] = ("  %-20s %.2fms"):format(k, v * 1000)
+      out[#out + 1] = ("  %-20s %.2fms"):format(k, v)
     end
     out[#out + 1] = ""
     if ok and Util._profiles and Util._profiles[1] then
