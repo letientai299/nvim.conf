@@ -38,26 +38,24 @@ local function get_symbol_rows(bufnr)
 
   local function walk(node)
     for child in node:iter_children() do
-      if not child:named() then
-        goto continue
-      end
-      local t = child:type()
-      if is_decl(t) then
-        add(child)
-        -- Recurse into class/struct to find members, but not into functions
-        if not (t:match("func") or t:match("method")) then
+      if child:named() then
+        local t = child:type()
+        if is_decl(t) then
+          add(child)
+          -- Recurse into class/struct to find members, but not into functions
+          if not (t:match("func") or t:match("method")) then
+            walk(child)
+          end
+        elseif
+          t:match("body")
+          or t:match("declaration_list")
+          or t:match("^export")
+          or t == "section"
+        then
+          -- Descend into structural wrapper nodes
           walk(child)
         end
-      elseif
-        t:match("body")
-        or t:match("declaration_list")
-        or t:match("^export")
-        or t == "section"
-      then
-        -- Descend into structural wrapper nodes
-        walk(child)
       end
-      ::continue::
     end
   end
 
@@ -97,11 +95,46 @@ local function jump_symbol(dir)
   vim.cmd("normal! ^")
 end
 
+-- Defer loading until first motion keypress instead of BufReadPre.
+-- Saves ~3ms on first file open; imperceptible on first keypress.
+local modes = { "n", "x", "o" }
+
+-- stylua: ignore
+local lazy_keys = {
+  -- Structural motions (trigger load on first use)
+  { "]m", desc = "Next function start" },
+  { "[m", desc = "Prev function start" },
+  { "]M", desc = "Next function end" },
+  { "[M", desc = "Prev function end" },
+  { "]]", desc = "Next class start" },
+  { "[[", desc = "Prev class start" },
+  { "][", desc = "Next class end" },
+  { "[]", desc = "Prev class end" },
+  { "]o", desc = "Next conditional/loop" },
+  { "[o", desc = "Prev conditional/loop" },
+  { "]O", desc = "Next conditional/loop end" },
+  { "[O", desc = "Prev conditional/loop end" },
+  { "<C-j>", desc = "Next symbol" },
+  { "<C-k>", desc = "Prev symbol" },
+  -- Repeat integration (f/F/t/T/;/, get ts_repeat wrappers)
+  { ";", desc = "Repeat last move (next)" },
+  { ",", desc = "Repeat last move (prev)" },
+  { "f", desc = "Find char forward" },
+  { "F", desc = "Find char backward" },
+  { "t", desc = "Till char forward" },
+  { "T", desc = "Till char backward" },
+}
+
+-- Expand mode into each key entry
+for _, k in ipairs(lazy_keys) do
+  k.mode = modes
+end
+
 return {
   "nvim-treesitter/nvim-treesitter-textobjects",
   branch = "main",
   dependencies = { "nvim-treesitter/nvim-treesitter" },
-  event = { "BufReadPre", "BufNewFile" },
+  keys = lazy_keys,
   config = function()
     require("nvim-treesitter-textobjects").setup({
       move = { set_jumps = true },
@@ -109,7 +142,6 @@ return {
 
     local move = require("nvim-treesitter-textobjects.move")
     local ts_repeat = require("nvim-treesitter-textobjects.repeatable_move")
-    local modes = { "n", "x", "o" }
 
     -- stylua: ignore
     local motions = {

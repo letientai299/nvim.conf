@@ -2,6 +2,19 @@ return {
   "nvim-treesitter/nvim-treesitter",
   branch = "main",
   event = { "BufReadPre", "BufNewFile" },
+  init = function()
+    -- Pre-warm treesitter on bare startup (no file args) so the first file
+    -- open doesn't pay the ~12ms plugin load penalty. VeryLazy is post-paint.
+    if vim.fn.argc(-1) == 0 then
+      vim.api.nvim_create_autocmd("User", {
+        pattern = "VeryLazy",
+        once = true,
+        callback = function()
+          require("lazy").load({ plugins = { "nvim-treesitter" } })
+        end,
+      })
+    end
+  end,
   config = function()
     local group =
       vim.api.nvim_create_augroup("UserTreesitter", { clear = true })

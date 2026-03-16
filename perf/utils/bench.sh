@@ -19,6 +19,12 @@ setup_isolated_env
 resolve_nvim
 trap cleanup_env EXIT
 
+# Pre-warm vim.loader bytecode cache in the isolated env so bench numbers
+# reflect real-world performance (warm cache) rather than cold-start penalty.
+# Without this, the isolated XDG dirs have an empty vim.loader cache, adding
+# ~9ms that doesn't exist in normal usage.
+"$_PERF_NVIM" --headless +qa >/dev/null 2>&1 || true
+
 # --- helpers ---
 
 stats() {
