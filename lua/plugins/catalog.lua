@@ -4,6 +4,10 @@ local this_dir = vim.fs.dirname(debug.getinfo(1, "S").source:sub(2))
 local cache_path = vim.fn.stdpath("state") .. "/plugin-spec_gen.lua"
 local refresh_scheduled = false
 
+local function files_signature(files)
+  return table.concat(files, ",")
+end
+
 local function plugin_files()
   local files = {}
 
@@ -32,9 +36,29 @@ local function mtime(path)
   return stat.mtime.sec * 1000000000 + stat.mtime.nsec
 end
 
+local function cached_files_signature()
+  local f = io.open(cache_path)
+  if not f then
+    return nil
+  end
+
+  f:read("*l")
+  local line = f:read("*l")
+  f:close()
+  if not line then
+    return nil
+  end
+
+  return line:match("^%-%- source_files: (.*)$")
+end
+
 local function cache_stale(files)
   local cached = mtime(cache_path)
   if not cached then
+    return true
+  end
+
+  if cached_files_signature() ~= files_signature(files) then
     return true
   end
 
@@ -75,7 +99,11 @@ local function write_cache(files)
     return false
   end
 
-  local lines = { "-- Auto-generated plugin spec cache.", "return {" }
+  local lines = {
+    "-- Auto-generated plugin spec cache.",
+    "-- source_files: " .. files_signature(files),
+    "return {",
+  }
 
   for _, file in ipairs(files) do
     local text = read_file(this_dir .. "/" .. file)
@@ -140,17 +168,16 @@ local function schedule_refresh()
 end
 
 function M.load_specs()
-  -- Fast path: load existing cache without staleness check.
-  -- Regeneration is deferred until VeryLazy so the first paint stays quiet.
+  local files = plugin_files()
   local bytecache = require("lib.bytecache")
-  local ok, specs = pcall(bytecache.load, cache_path)
-  if ok and type(specs) == "table" then
-    schedule_refresh()
-    return specs
+  if not cache_stale(files) then
+    local ok, specs = pcall(bytecache.load, cache_path)
+    if ok and type(specs) == "table" then
+      schedule_refresh()
+      return specs
+    end
   end
 
-  -- Cold start: no cache exists yet.
-  local files = plugin_files()
   return load_cache(files) or load_fallback(files)
 end
 

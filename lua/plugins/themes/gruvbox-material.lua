@@ -1,6 +1,9 @@
 return {
   "sainnhe/gruvbox-material",
   lazy = true,
+  init_globals = {
+    gruvbox_material_loaded_file_types = {},
+  },
   init = function()
     vim.g.gruvbox_material_enable_italic = 1
     vim.g.gruvbox_material_enable_bold = 1

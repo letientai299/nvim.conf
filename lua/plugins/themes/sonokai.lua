@@ -1,6 +1,9 @@
 return {
   "sainnhe/sonokai",
   lazy = true,
+  init_globals = {
+    sonokai_loaded_file_types = {},
+  },
   init = function()
     vim.g.sonokai_enable_italic = 1
     vim.g.sonokai_dim_inactive_windows = 1

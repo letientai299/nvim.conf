@@ -53,6 +53,32 @@ See `ts-context-commentstring.lua` and `snacks.lua` for examples.
   works. Theme plugins must declare a `themes` field listing their colorscheme
   names (see `lua/plugins/themes/` for examples).
 
+## Theme guard globals
+
+Some themes ship `after/syntax/*` files that read theme globals before
+`colors/*.vim` has initialized them during cached-theme / early-load paths. For
+those themes, declare required globals via `init_globals` on the theme spec and
+let `lua/lib/theme_helpers.lua` apply them before the theme's own `init()`.
+
+Example:
+
+```lua
+return {
+  "sainnhe/sonokai",
+  lazy = true,
+  init_globals = {
+    sonokai_loaded_file_types = {},
+  },
+  init = function()
+    vim.g.sonokai_better_performance = 1
+  end,
+}
+```
+
+Do **not** guess or auto-generate globals for every theme. Only declare
+theme-specific globals that you have confirmed are read early by that theme's
+own scripts.
+
 ## Performance benchmarking
 
 Scripts and sample files live in `perf/`. See `perf/readme.md` for the full

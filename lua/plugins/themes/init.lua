@@ -1,4 +1,6 @@
-local specs = require("plugins.themes.catalog").load_specs()
+local theme_helpers = require("lib.theme_helpers")
+local specs =
+  theme_helpers.prepare_specs(require("plugins.themes.catalog").load_specs())
 specs[#specs + 1] = {
   dir = vim.fn.stdpath("config") .. "/plugins/store-theme",
   name = "store-theme",
