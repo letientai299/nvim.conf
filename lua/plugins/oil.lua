@@ -217,10 +217,6 @@ return {
   {
     "stevearc/oil.nvim",
     priority = 900,
-    dependencies = {
-      "nvim-tree/nvim-web-devicons",
-      "refractalize/oil-git-status.nvim",
-    },
     cmd = "Oil",
     keys = {
       {
@@ -312,9 +308,36 @@ return {
       })
     end,
     config = function(_, opts)
+      -- Deps are not declared as dependencies so bootstrap (headless) only
+      -- clones oil.nvim itself. In interactive mode, trigger on-demand install.
+      -- Devicons loaded before oil.setup so icon column resolves providers.
+      -- oil-git-status loaded AFTER oil.setup — it validates oil's config.
+      local interactive = #vim.api.nvim_list_uis() > 0
+      if interactive then
+        require("lazy").load({ plugins = { "nvim-web-devicons" } })
+      end
       set_filetype_highlights()
       require("oil").setup(opts)
-      require("oil-git-status").setup()
+
+      if interactive then
+        require("lazy").load({ plugins = { "oil-git-status.nvim" } })
+        -- If already installed, lazy.load runs synchronously and setup
+        -- can proceed. If cloning (lazy_ondemand), defer until it loads.
+        local ok, git_status = pcall(require, "oil-git-status")
+        if ok then
+          git_status.setup()
+        else
+          vim.api.nvim_create_autocmd("User", {
+            pattern = "LazyLoad",
+            callback = function(ev)
+              if ev.data == "oil-git-status.nvim" then
+                require("oil-git-status").setup()
+                return true -- removes this autocmd
+              end
+            end,
+          })
+        end
+      end
 
       local group =
         vim.api.nvim_create_augroup("UserOilConfig", { clear = true })
