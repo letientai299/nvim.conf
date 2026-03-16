@@ -95,6 +95,7 @@ return {
   },
   opts = function()
     return {
+      quickfile = { enabled = true },
       notifier = {
         enabled = true,
         style = function(buf, notif, ctx)
