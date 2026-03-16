@@ -1,18 +1,42 @@
 #!/usr/bin/env bash
 # Select a test Dockerfile via fzf, build, and run with the project mounted.
+#
 # Usage:
-#   ./tests/run.sh              # fzf-select one distro, build & run
-#   ./tests/run.sh ub           # pre-filter fzf with "ub", auto-pick if one match
-#   ./tests/run.sh --boot ub    # build, run, install, source, open nvim
-#   ./tests/run.sh --build      # build all images (no interactive run)
-#   ./tests/run.sh --pull       # pull latest base images, then rebuild all
+#   ./tests/run.sh                # fzf-select one distro, build & run with proxy
+#   ./tests/run.sh ub             # pre-filter fzf with "ub", auto-pick if one match
+#   ./tests/run.sh -b ub          # build, run, install, source, open nvim
+#   ./tests/run.sh -x ub          # skip proxy, direct network
+#   ./tests/run.sh -s 4 ub        # replay cached responses 4x faster
+#   ./tests/run.sh --build        # build all images (no interactive run)
+#   ./tests/run.sh --pull         # pull latest base images
+#   ./tests/run.sh --clear-cache  # wipe proxy cache
+#   ./tests/run.sh -h             # show this help
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 INFRA_DIR="$SCRIPT_DIR/infra"
+PROXY_DIR="$SCRIPT_DIR/proxy"
 
 logf() { printf '\033[1;34m==>\033[0m \033[1m%s\033[0m\n' "$*"; }
+
+usage() {
+  cat <<'EOF'
+Usage: ./tests/run.sh [flags] [filter]
+
+Flags:
+  -b, --boot         Build, run, install, source bashrc, open nvim
+  -x, --bypass       Skip proxy, direct network access
+  -s, --speed N      Replay cached responses N times faster (e.g., -s 4)
+      --build        Build all test images (no interactive run)
+      --pull         Pull latest base images
+      --clear-cache  Wipe proxy cache directory
+  -h, --help         Show this help
+
+Arguments:
+  filter             Substring to match distro name (auto-selects if unique)
+EOF
+}
 
 resolve_base_digest() {
   # Pin the FROM image to its local digest so BuildKit skips the registry
@@ -45,9 +69,50 @@ build_image() {
     "$INFRA_DIR"
 }
 
-# --- --pull: pull latest base images ----------------------------------------
+# --- parse flags ------------------------------------------------------------
 
-if [[ "${1:-}" == "--pull" ]]; then
+BOOT=false
+BYPASS=false
+SPEED=""
+ACTION="" # build, pull, clear-cache, or empty (interactive)
+args=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+  -h | --help)
+    usage
+    exit 0
+    ;;
+  -b | --boot) BOOT=true ;;
+  -x | --bypass) BYPASS=true ;;
+  -s | --speed)
+    SPEED="${2:?--speed requires a number}"
+    shift
+    ;;
+  -s[0-9]*) SPEED="${1#-s}" ;;
+  --build) ACTION=build ;;
+  --pull) ACTION=pull ;;
+  --clear-cache) ACTION=clear-cache ;;
+  *) args+=("$1") ;;
+  esac
+  shift
+done
+set -- "${args[@]+${args[@]}}"
+
+# --- action: clear-cache ----------------------------------------------------
+
+if [[ "$ACTION" == "clear-cache" ]]; then
+  if [[ -d "$PROXY_DIR/cache" ]]; then
+    rm -rf "$PROXY_DIR/cache"
+    logf "Proxy cache cleared"
+  else
+    logf "No proxy cache to clear"
+  fi
+  exit 0
+fi
+
+# --- action: pull ------------------------------------------------------------
+
+if [[ "$ACTION" == "pull" ]]; then
   sed -n 's/^ARG BASE_IMAGE=\(.*\)/\1/p' "$INFRA_DIR"/*.Dockerfile | sort -u |
     while read -r base; do
       logf "Pulling $base"
@@ -56,28 +121,67 @@ if [[ "${1:-}" == "--pull" ]]; then
   exit 0
 fi
 
-# --- parse --boot flag anywhere in args ------------------------------------
+# --- action: build -----------------------------------------------------------
 
-BOOT=false
-args=()
-for arg in "$@"; do
-  if [[ "$arg" == "--boot" ]]; then
-    BOOT=true
-  else
-    args+=("$arg")
-  fi
-done
-set -- "${args[@]+${args[@]}}"
-
-# --- --build: build all images ---------------------------------------------
-
-if [[ "${1:-}" == "--build" ]]; then
+if [[ "$ACTION" == "build" ]]; then
   for df in "$INFRA_DIR"/*.Dockerfile; do
     name=$(basename "$df" .Dockerfile)
     build_image "$name"
   done
   exit 0
 fi
+
+# --- proxy lifecycle --------------------------------------------------------
+
+start_proxy() {
+  # Generate CA cert if missing — mitmproxy creates it on first run
+  if [[ ! -f "$PROXY_DIR/ca/mitmproxy-ca-cert.pem" ]]; then
+    logf "Generating proxy CA certificate"
+    mkdir -p "$PROXY_DIR/ca"
+    docker run --rm -v "$PROXY_DIR/ca:/root/.mitmproxy" \
+      mitmproxy/mitmproxy mitmdump --version >/dev/null
+  fi
+
+  # Reuse running container if speed setting matches
+  local running
+  running=$(docker inspect --format='{{.State.Running}}' nvim-test-proxy 2>/dev/null || true)
+  if [[ "$running" == "true" ]]; then
+    local cur_speed
+    cur_speed=$(docker inspect --format='{{range .Config.Env}}{{println .}}{{end}}' nvim-test-proxy |
+      sed -n 's/^PROXY_SPEED=//p')
+    if [[ "${cur_speed:-1}" == "${SPEED:-1}" ]]; then
+      logf "Proxy container already running"
+      return
+    fi
+    logf "Restarting proxy (speed changed: ${cur_speed:-1} -> ${SPEED:-1})"
+  fi
+
+  # Build proxy image (cached by Docker after first build)
+  logf "Building proxy image"
+  docker build -t nvim-test-proxy -f "$PROXY_DIR/Dockerfile" "$PROXY_DIR" >/dev/null
+
+  # Remove stopped container if it exists
+  docker rm -f nvim-test-proxy &>/dev/null || true
+  logf "Starting proxy container"
+  mkdir -p "$PROXY_DIR/cache"
+  docker run -d --name nvim-test-proxy \
+    -p 8080:8080 \
+    -v "$PROXY_DIR/ca:/root/.mitmproxy" \
+    -v "$PROXY_DIR/cache:/cache" \
+    ${SPEED:+-e "PROXY_SPEED=$SPEED"} \
+    nvim-test-proxy >/dev/null
+
+  # Wait for proxy to be ready
+  local retries=20
+  while ! curl -sf -o /dev/null -x http://localhost:8080 http://mitm.it/cert/pem 2>/dev/null; do
+    retries=$((retries - 1))
+    if [[ $retries -le 0 ]]; then
+      logf "ERROR: proxy failed to start"
+      exit 1
+    fi
+    sleep 0.5
+  done
+}
 
 # --- interactive: fzf-select one distro, build & run -----------------------
 
@@ -101,14 +205,28 @@ build_image "$selection"
 
 gh_token=$(gh auth token 2>/dev/null || true)
 
+# Start proxy unless --bypass
+if ! "$BYPASS"; then
+  start_proxy
+fi
+
 logf "Running nvim-test-${selection} (project mounted at ~/work)"
 
 run_args=(
   docker run --rm -it
   -v "$PROJECT_DIR:/home/testuser/work:ro"
   ${gh_token:+-e "GITHUB_TOKEN=$gh_token"}
-  "nvim-test-${selection}"
 )
+
+# Mount proxy CA and env script when proxy is active
+if ! "$BYPASS"; then
+  run_args+=(
+    -v "$PROXY_DIR/ca/mitmproxy-ca-cert.pem:/tmp/proxy-ca.pem:ro"
+    -v "$INFRA_DIR/proxy-env.sh:/tmp/proxy-env.sh:ro"
+  )
+fi
+
+run_args+=("nvim-test-${selection}")
 
 if "$BOOT"; then
   # shellcheck disable=SC2016 # $HOME expands inside the container, not on the host

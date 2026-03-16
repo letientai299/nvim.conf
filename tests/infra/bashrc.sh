@@ -6,3 +6,5 @@ export PS1
 alias v=nvim vi=nvim vim=nvim
 alias install='~/work/scripts/install.sh -y'
 alias se='source ~/.bashrc'
+
+[ -f /tmp/proxy-env.sh ] && . /tmp/proxy-env.sh
