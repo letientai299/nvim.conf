@@ -1,29 +1,35 @@
 --- Headless plugin bootstrap.
 ---
---- Simulates an interactive startup so on-demand installs trigger for plugins
---- that would load in a normal session (VeryLazy, VimEnter, first buffer).
---- Used by scripts/install.sh to pre-install startup-triggered plugins without
---- maintaining a hard-coded list. Command-, key-, and filetype-specific plugin
---- installs still happen later on first real use.
+--- Pre-installs a curated set of startup-essential plugins in --headless mode
+--- so the first interactive launch has a good UX:
 ---
---- In --headless mode UIEnter never fires, so VeryLazy never triggers and
---- startup plugins never load. This module fires those events manually,
---- waits for all async clones to finish, then quits.
+---   nvim         → mini.starter (greeter)
+---   nvim <dir>   → oil.nvim (file browser)
+---   nvim <file>  → catppuccin (theme) + nvim-treesitter (highlighting)
+---   any start    → mini.clue (key hints)
+---
+--- Catppuccin is installed by init.lua's colorscheme block before this runs.
+--- Command-, key-, and filetype-specific plugins install on first real use.
+---
+--- Used by scripts/install.sh to bootstrap a fresh deployment.
 
 local M = {}
 
---- Run the bootstrap: fire startup events, wait for startup-triggered installs,
---- then quit.
+--- Load essential plugins, wait for async installs, then quit.
 function M.run()
   local lazy_dir = vim.fn.stdpath("data") .. "/lazy"
 
-  -- UIEnter triggers the VeryLazy chain in lazy.nvim.
-  vim.api.nvim_exec_autocmds("UIEnter", { modeline = false })
-
-  -- BufReadPre/BufNewFile never fire in headless mode (no buffer opened).
-  -- Fire BufReadPre to trigger plugins gated on buffer events (e.g.
-  -- nvim-treesitter).
-  vim.api.nvim_exec_autocmds("BufReadPre", { modeline = false })
+  -- Explicitly load the curated plugin set. For uninstalled plugins,
+  -- lazy_ondemand's patched _load starts async clones automatically.
+  -- Catppuccin is already handled by init.lua's colorscheme block.
+  require("lazy").load({
+    plugins = {
+      "mini.clue",
+      "mini.starter",
+      "oil.nvim",
+      "nvim-treesitter",
+    },
+  })
 
   -- Poll until no .cloning marker files remain (lazy.nvim creates
   -- <plugin-dir>.cloning during git-clone and removes it on success).

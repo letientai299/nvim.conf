@@ -280,10 +280,9 @@ configure_lockfile() {
 
 # --- 7. Bootstrap plugins --------------------------------------------------
 #
-# Simulates an interactive startup in headless mode so on-demand installs
-# trigger for plugins that would load in a normal session. No plugin list
-# to maintain — lib/bootstrap.lua fires UIEnter (which triggers VeryLazy),
-# waits for all async clones to finish, then quits.
+# Loads a curated set of startup-essential plugins in headless mode.
+# lib/bootstrap.lua explicitly loads each plugin, triggering on-demand
+# installs via lazy_ondemand, then waits for async clones to finish.
 #
 # Default theme (catppuccin-mocha) is configured in init.lua and applies
 # when no store-theme state file exists yet.
