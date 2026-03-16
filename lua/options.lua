@@ -41,8 +41,8 @@ vim.opt.smartcase = true
 -- Spell-check language (activate per buffer with :set spell)
 vim.opt.spelllang = "en_us"
 
--- Never fall back to runtime syntax for normal file buffers. Replace the
--- default `Syntax *` handler with a treesitter-only startup path.
+-- Prefer treesitter highlighting for normal file buffers without waiting for
+-- the full nvim-treesitter plugin config to load.
 vim.api.nvim_create_autocmd({ "BufReadPre", "BufNewFile" }, {
   callback = function(args)
     if vim.bo[args.buf].buftype == "" then
@@ -72,34 +72,20 @@ local function is_normal_file_buffer(bufnr)
   return true
 end
 
-vim.api.nvim_create_autocmd("SourcePost", {
-  pattern = "*/syntax/synload.vim",
-  once = true,
+vim.api.nvim_create_autocmd("FileType", {
   callback = function()
-    vim.cmd("au! Syntax *")
-    vim.api.nvim_create_autocmd("Syntax", {
-      pattern = "*",
-      callback = function()
-        local syntax = vim.fn.expand("<amatch>")
-        if syntax == "" or syntax == "ON" or syntax == "OFF" then
-          return
-        end
+    local buf = vim.api.nvim_get_current_buf()
+    if not is_normal_file_buffer(buf) then
+      return
+    end
 
-        local buf = vim.api.nvim_get_current_buf()
-        if is_normal_file_buffer(buf) then
-          local ft = syntax
-          vim.schedule(function()
-            if vim.api.nvim_buf_is_valid(buf) then
-              require("lib.treesitter").enable_highlight(buf, ft)
-            end
-          end)
-          return
-        end
+    local ft = vim.bo[buf].filetype
+    if ft == "" then
+      return
+    end
 
-        vim.cmd.syntax("clear")
-        vim.cmd("runtime! syntax/" .. vim.fn.fnameescape(syntax) .. ".vim")
-      end,
-    })
+    local lib_ts = require("lib.treesitter")
+    lib_ts.request_highlight(buf, ft)
   end,
 })
 
