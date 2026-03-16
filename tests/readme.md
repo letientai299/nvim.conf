@@ -7,8 +7,9 @@ read-only at `~/work`.
 ## Quick start
 
 ```bash
-./tests/run.sh ub        # pick ubuntu, build, drop into shell
-./tests/run.sh -b fedora # boot: install, source bashrc, open nvim
+./tests/run.sh ub              # pick ubuntu, build, drop into shell
+./tests/run.sh -b fedora       # boot: install, source bashrc, open nvim
+./tests/run.sh -bs20 --check ub  # automated smoke test at 20x speed
 ```
 
 Inside the container, `install` runs the install script and `se` re-sources
@@ -58,6 +59,10 @@ where latency fidelity doesn't matter.
 ./tests/run.sh -s4 ub # 4x faster replay
 ```
 
+Git pack responses (`git-upload-pack`) are capped at 2x regardless of the global
+speed setting. Higher speeds cause git clone failures because the client
+receives data faster than it can process the packfile stream.
+
 The proxy container restarts automatically when the speed setting changes.
 
 ### Port
@@ -73,6 +78,24 @@ PROXY_PORT=9090 ./tests/run.sh ub
 The proxy container (`nvim-test-proxy`) stays running across test runs. It is
 not cleaned up automatically — stop it with `docker rm -f nvim-test-proxy` when
 done.
+
+## Smoke test
+
+`--check` (with `-b`) runs an automated verification instead of dropping to an
+interactive shell. After install + bootstrap, a headless nvim opens `.bashrc`
+and checks:
+
+- treesitter parser loads for bash
+- LSP diagnostics appear (shellcheck via bashls)
+- no errors in `:messages`
+
+Exits 0 on success, 1 on failure. A `--timeout` (default 120s in check mode)
+kills the container if the boot sequence hangs.
+
+```bash
+./tests/run.sh -bs20 --check ubuntu     # single distro
+./tests/run.sh -bs20 --check --timeout 90 fedora
+```
 
 [mitm]: https://mitmproxy.org/
 [ts]: https://github.com/tree-sitter/tree-sitter

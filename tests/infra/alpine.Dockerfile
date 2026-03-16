@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=alpine:3.21
+ARG BASE_IMAGE=alpine:edge
 FROM ${BASE_IMAGE}
 
 RUN apk add --no-cache git curl bash shadow neovim libatomic icu-libs

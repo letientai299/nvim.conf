@@ -10,6 +10,7 @@
 #   ./tests/run.sh --build        # build all images (no interactive run)
 #   ./tests/run.sh --pull         # pull latest base images
 #   ./tests/run.sh --clear-cache  # wipe proxy cache
+#   ./tests/run.sh -bs20 --check  # boot + automated smoke test
 #   ./tests/run.sh -h             # show this help
 set -euo pipefail
 
@@ -27,8 +28,10 @@ Usage: ./tests/run.sh [flags] [filter]
 
 Flags:
   -b, --boot         Build, run, install, source bashrc, open nvim
+  -c, --check        With -b: run automated smoke test instead of interactive shell
   -x, --bypass       Skip proxy, direct network access
   -s, --speed N      Replay cached responses N times faster (e.g., -s 4)
+  -t, --timeout N    Kill container after N seconds (default: 120 with --check)
       --build        Build all test images (no interactive run)
       --pull         Pull latest base images
       --clear-cache  Wipe proxy cache directory
@@ -73,14 +76,16 @@ build_image() {
 # --- parse flags ------------------------------------------------------------
 
 BOOT=false
+CHECK=false
 BYPASS=false
 SPEED=""
+TIMEOUT=""
 ACTION="" # build, pull, clear-cache, or empty (interactive)
 
 # Expand combined short flags: -bs20 → -b -s20, -bx → -b -x
 expanded=()
 for arg in "$@"; do
-  if [[ "$arg" =~ ^-[bxhs]{2,} ]] || [[ "$arg" =~ ^-[bxh]+s[0-9]+ ]]; then
+  if [[ "$arg" =~ ^-[bcxhs]{2,} ]] || [[ "$arg" =~ ^-[bcxh]+s[0-9]+ ]]; then
     chars="${arg#-}"
     while [[ -n "$chars" ]]; do
       c="${chars:0:1}"
@@ -105,7 +110,12 @@ while [[ $# -gt 0 ]]; do
     exit 0
     ;;
   -b | --boot) BOOT=true ;;
+  -c | --check) CHECK=true ;;
   -x | --bypass) BYPASS=true ;;
+  -t | --timeout)
+    TIMEOUT="${2:?--timeout requires a number}"
+    shift
+    ;;
   -s | --speed)
     SPEED="${2:?--speed requires a number}"
     shift
@@ -238,8 +248,13 @@ docker rm -f "$container_name" 2>/dev/null || true
 logf "Running nvim-test-${selection} (project mounted at ~/work)"
 
 run_args=(
-  docker run --rm -it --name "$container_name"
+  docker run --rm -i
+)
+if ! "$CHECK"; then run_args+=(-t); fi
+run_args+=(
+  --name "$container_name"
   -v "$PROJECT_DIR:/home/testuser/work:ro"
+  -e "NVIM_BOOTSTRAP_TIMEOUT=30000"
   ${gh_token:+-e "GITHUB_TOKEN=$gh_token"}
 )
 
@@ -254,17 +269,39 @@ fi
 
 run_args+=("nvim-test-${selection}")
 
-if "$BOOT"; then
-  # shellcheck disable=SC2016 # $HOME expands inside the container, not on the host
-  # Install, then open nvim in a fresh login shell.
-  # We cannot rely on exec bash -lc because Ubuntu's default .bashrc has an
-  # early-exit guard ("case $- in *i*) ;; *) return ;; esac") that skips the
-  # rest of the file — including the PATH/mise lines appended by install.sh —
-  # when the shell is non-interactive. Prepending the shim path inline avoids
-  # the guard entirely and matches what activate_mise() does for the install
-  # script itself.
+# shellcheck disable=SC2016 # $HOME expands inside the container, not on the host
+# We cannot rely on exec bash -lc because Ubuntu's default .bashrc has an
+# early-exit guard ("case $- in *i*) ;; *) return ;; esac") that skips the
+# rest of the file — including the PATH/mise lines appended by install.sh —
+# when the shell is non-interactive. Prepending the shim path inline avoids
+# the guard entirely and matches what activate_mise() does for the install
+# script itself.
+MISE_PATH='PATH=$HOME/.local/share/mise/shims:$HOME/.local/bin:$PATH'
+
+run_with_timeout() {
+  if [[ -n "${TIMEOUT:-}" ]]; then
+    timeout --signal=KILL "$TIMEOUT" "$@"
+    local rc=$?
+    if [[ $rc -eq 137 ]]; then
+      logf "ERROR: container killed after ${TIMEOUT}s timeout"
+      return 1
+    fi
+    return $rc
+  else
+    "$@"
+  fi
+}
+
+if "$BOOT" && "$CHECK"; then
+  # Default timeout for check mode
+  : "${TIMEOUT:=120}"
+  # shellcheck disable=SC2016
+  run_with_timeout "${run_args[@]}" bash -lc \
+    '$HOME/work/scripts/install.sh -y && exec bash -lc "'"$MISE_PATH"' nvim --headless -c \"luafile \$HOME/work/tests/infra/check.lua\" \$HOME/.bashrc"'
+elif "$BOOT"; then
+  # shellcheck disable=SC2016
   "${run_args[@]}" bash -lc \
-    '$HOME/work/scripts/install.sh -y && exec bash -lc "PATH=$HOME/.local/share/mise/shims:$HOME/.local/bin:$PATH nvim .bashrc; exec bash -l"'
+    '$HOME/work/scripts/install.sh -y && exec bash -lc "'"$MISE_PATH"' nvim .bashrc; exec bash -l"'
 else
   "${run_args[@]}" bash -l
 fi

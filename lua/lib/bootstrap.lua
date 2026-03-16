@@ -27,7 +27,8 @@ function M.run()
 
   -- Poll until no .cloning marker files remain (lazy.nvim creates
   -- <plugin-dir>.cloning during git-clone and removes it on success).
-  vim.wait(300000, function()
+  local timeout = tonumber(vim.env.NVIM_BOOTSTRAP_TIMEOUT) or 60000
+  vim.wait(timeout, function()
     for name in vim.fs.dir(lazy_dir) do
       if name:match("%.cloning$") then
         return false

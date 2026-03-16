@@ -14,6 +14,8 @@ from mitmproxy import ctx, http
 CACHE_DIR = Path("/cache")
 # PROXY_SPEED > 1 replays cached responses faster (e.g., 4 = 4x speed).
 SPEED = max(1.0, float(os.environ.get("PROXY_SPEED", "1")))
+# Git pack responses break at high speed — cap to 2x regardless of global speed.
+GIT_PACK_MAX_SPEED = 2.0
 
 
 def _cache_key(flow: http.HTTPFlow) -> str:
@@ -42,7 +44,13 @@ class HttpCache:
             meta = json.loads(meta_path.read_text())
             body = data_path.read_bytes()
 
-            duration = meta.get("duration", 0) / SPEED
+            is_git_pack = (
+                "/git-upload-pack" in flow.request.pretty_url
+                or meta.get("headers", {}).get("content-type", "")
+                == "application/x-git-upload-pack-result"
+            )
+            speed = min(SPEED, GIT_PACK_MAX_SPEED) if is_git_pack else SPEED
+            duration = meta.get("duration", 0) / speed
             if duration > 0:
                 # Block synchronously — mitmproxy runs request hooks in a
                 # thread so time.sleep won't stall the event loop.
