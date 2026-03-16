@@ -1,0 +1,6 @@
+autocopy-api	autocopy.txt	/*autocopy-api*
+autocopy-contents	autocopy.txt	/*autocopy-contents*
+autocopy-intro	autocopy.txt	/*autocopy-intro*
+autocopy-setup	autocopy.txt	/*autocopy-setup*
+autocopy.toggle()	autocopy.txt	/*autocopy.toggle()*
+autocopy.txt	autocopy.txt	/*autocopy.txt*

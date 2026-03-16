@@ -1,0 +1,12 @@
+yanker-api	yanker.txt	/*yanker-api*
+yanker-contents	yanker.txt	/*yanker-contents*
+yanker-intro	yanker.txt	/*yanker-intro*
+yanker.absolute()	yanker.txt	/*yanker.absolute()*
+yanker.buf_path()	yanker.txt	/*yanker.buf_path()*
+yanker.diagnostic()	yanker.txt	/*yanker.diagnostic()*
+yanker.git()	yanker.txt	/*yanker.git()*
+yanker.name()	yanker.txt	/*yanker.name()*
+yanker.put()	yanker.txt	/*yanker.put()*
+yanker.relative()	yanker.txt	/*yanker.relative()*
+yanker.relpath()	yanker.txt	/*yanker.relpath()*
+yanker.txt	yanker.txt	/*yanker.txt*
