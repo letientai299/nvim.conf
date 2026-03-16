@@ -5,78 +5,7 @@ local default_languages_registered = false
 local custom_parsers_registered = false
 local custom_parser_autocmd_registered = false
 local known_rtp_entries = {} ---@type table<string, boolean>
-local startup_highlight_autocmd_registered = false
-local startup_highlight_queue = {} ---@type table<integer, string>
 local highlighter_destroy_patched = false
-local startup_defer_filetypes = nil ---@type table<string, boolean>?
-local fallback_syntax_available = {} ---@type table<string, boolean>
-
-local function add_startup_defer_filetype(filetype)
-  if type(filetype) ~= "string" or filetype == "" then
-    return
-  end
-
-  startup_defer_filetypes = startup_defer_filetypes or {}
-  startup_defer_filetypes[filetype] = true
-end
-
-local function register_startup_defer_filetypes(filetypes)
-  if type(filetypes) == "string" then
-    add_startup_defer_filetype(filetypes)
-    return
-  end
-
-  if type(filetypes) ~= "table" then
-    return
-  end
-
-  for _, filetype in ipairs(filetypes) do
-    add_startup_defer_filetype(filetype)
-  end
-end
-
-local function discover_startup_defer_filetypes()
-  if startup_defer_filetypes then
-    return startup_defer_filetypes
-  end
-
-  startup_defer_filetypes = {}
-
-  local ftplugin_dir = vim.fs.joinpath(vim.fn.stdpath("config"), "ftplugin")
-  local ok, iter = pcall(vim.fs.dir, ftplugin_dir)
-  if not ok then
-    return startup_defer_filetypes
-  end
-
-  for name, ftype in iter do
-    if ftype == "file" then
-      local filetype = name:match("^(.*)%.lua$")
-      if filetype then
-        startup_defer_filetypes[filetype] = true
-      end
-    end
-  end
-
-  return startup_defer_filetypes
-end
-
-local function should_defer_startup(filetype)
-  return discover_startup_defer_filetypes()[filetype] == true
-end
-
-local function has_fallback_syntax(filetype)
-  local cached = fallback_syntax_available[filetype]
-  if cached ~= nil then
-    return cached
-  end
-
-  local found = #api.nvim_get_runtime_file(
-    "syntax/" .. filetype .. ".vim",
-    true
-  ) > 0
-  fallback_syntax_available[filetype] = found
-  return found
-end
 
 --- Monkey-patch TSHighlighter:destroy to avoid a hang during :bdelete.
 ---
@@ -217,25 +146,6 @@ local function queue_auto_install(bufnr)
   end)
 end
 
-local function enable_fallback_syntax(bufnr, filetype)
-  if vim.b[bufnr].current_syntax then
-    return
-  end
-
-  local ft = filetype
-  if type(ft) ~= "string" or ft == "" then
-    ft = vim.bo[bufnr].filetype
-  end
-  if ft == "" then
-    return
-  end
-
-  api.nvim_buf_call(bufnr, function()
-    vim.cmd.syntax("clear")
-    vim.cmd("runtime! syntax/" .. vim.fn.fnameescape(ft) .. ".vim")
-  end)
-end
-
 function M.enable_highlight(bufnr, filetype)
   if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
     return false
@@ -292,33 +202,6 @@ local function start_requested_highlight(bufnr, filetype)
   end
 end
 
-local function flush_startup_highlights()
-  local pending = startup_highlight_queue
-  startup_highlight_queue = {}
-
-  for bufnr, filetype in pairs(pending) do
-    if vim.api.nvim_buf_is_valid(bufnr) then
-      start_requested_highlight(bufnr, filetype)
-    end
-  end
-end
-
-local function ensure_startup_highlight_autocmd()
-  if startup_highlight_autocmd_registered then
-    return
-  end
-
-  startup_highlight_autocmd_registered = true
-  api.nvim_create_autocmd("UIEnter", {
-    once = true,
-    callback = function()
-      -- Let the first screen draw with the runtime syntax fallback, then swap in
-      -- treesitter on the next loop turn.
-      vim.schedule(flush_startup_highlights)
-    end,
-  })
-end
-
 function M.request_highlight(bufnr, filetype)
   if not bufnr or not api.nvim_buf_is_valid(bufnr) then
     return
@@ -337,22 +220,7 @@ function M.request_highlight(bufnr, filetype)
     return
   end
 
-  if
-    vim.v.vim_did_enter == 0
-    and should_defer_startup(ft)
-    and has_fallback_syntax(ft)
-  then
-    enable_fallback_syntax(bufnr, ft)
-    startup_highlight_queue[bufnr] = ft
-    ensure_startup_highlight_autocmd()
-    return
-  end
-
   start_requested_highlight(bufnr, ft)
-end
-
-function M.register_startup_defer_filetypes(filetypes)
-  register_startup_defer_filetypes(filetypes)
 end
 
 local installing = {} ---@type table<string, true?>
