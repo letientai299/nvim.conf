@@ -22,8 +22,8 @@ return {
     local starter = require("mini.starter")
     return {
       autoopen = false, -- we handle open manually in init
+      footer = "",
       items = {
-        { name = "New file", action = "enew", section = "Actions" },
         starter.sections.recent_files(10, true, true),
         starter.sections.recent_files(10, false, true),
         { name = "Quit", action = "qa", section = "Actions" },
