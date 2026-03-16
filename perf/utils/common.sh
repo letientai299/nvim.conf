@@ -47,6 +47,17 @@ setup_isolated_env() {
     cp -R "$real_mise_trust" "$_PERF_STATE/mise/trusted-configs"
   fi
 
+  # Copy theme state and highlight cache so the fast path (hl cache replay)
+  # is exercised — matching real-world startup behavior.
+  if [[ -f "$real_state/nvim/store/theme.lua" ]]; then
+    mkdir -p "$_PERF_STATE/nvim/store"
+    cp "$real_state/nvim/store/theme.lua" "$_PERF_STATE/nvim/store/theme.lua"
+  fi
+  if [[ -f "$real_state/nvim/theme-highlight-startup.lua" ]]; then
+    cp "$real_state/nvim/theme-highlight-startup.lua" \
+      "$_PERF_STATE/nvim/theme-highlight-startup.lua"
+  fi
+
   export NVIM_TEST=1
   export XDG_CONFIG_HOME="$_PERF_CFG"
   export XDG_CACHE_HOME="$_PERF_CACHE"
