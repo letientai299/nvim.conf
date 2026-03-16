@@ -152,6 +152,20 @@ install_cli_tools() {
   log "Installing global CLI tools:$missing"
   # shellcheck disable=SC2086
   mise use -g $missing
+
+  # tree-sitter v0.26+ prebuilt binaries need glibc ≥2.35; RHEL 9 / Rocky 9
+  # ship 2.34. Try progressively older versions until one runs.
+  # See https://github.com/tree-sitter/tree-sitter/issues/4174
+  if command -v tree-sitter >/dev/null 2>&1 && ! tree-sitter --version >/dev/null 2>&1; then
+    for ts_fallback in 0.25 0.24; do
+      log "tree-sitter binary incompatible (likely glibc), trying v${ts_fallback}"
+      mise use -g "tree-sitter@${ts_fallback}"
+      tree-sitter --version >/dev/null 2>&1 && break
+    done
+    if ! tree-sitter --version >/dev/null 2>&1; then
+      log "WARNING: no compatible tree-sitter binary found; parsers won't compile"
+    fi
+  fi
 }
 
 # --- 5. Handle ~/.config/nvim -----------------------------------------------
