@@ -92,6 +92,20 @@ return {
       end,
       desc = "Select scratch buffer",
     },
+    {
+      "<Leader>zz",
+      function()
+        lazy_require("snacks").zen()
+      end,
+      desc = "Zen mode",
+    },
+    {
+      "<Leader>zo",
+      function()
+        lazy_require("snacks").zen.zoom()
+      end,
+      desc = "Zoom mode",
+    },
   },
   opts = function()
     return {
@@ -127,6 +141,7 @@ return {
         ft = "markdown",
       },
       image = { enabled = true },
+      zen = { enabled = true, toggles = { dim = false } },
     }
   end,
 }
