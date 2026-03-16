@@ -29,3 +29,11 @@ vim.keymap.set("x", "<C-Space>", function()
   end
   vim.cmd("normal! \27") -- exit visual mode
 end, { buffer = true, desc = "Toggle checklist" })
+
+-- Q: insert a fenced code block with cursor on the closing line
+vim.keymap.set("n", "Q", function()
+  local row = vim.api.nvim_win_get_cursor(0)[1]
+  vim.api.nvim_buf_set_lines(0, row, row, false, { "```", "", "```" })
+  vim.api.nvim_win_set_cursor(0, { row + 2, 3 })
+  vim.cmd("startinsert!")
+end, { buffer = true, desc = "Insert code block" })

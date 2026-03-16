@@ -33,5 +33,10 @@
     "prefix": "\\cases",
     "body": ["\\\\begin{cases}", "$0", "\\\\end{cases}"],
     "description": "\\begin{cases} ... \\end{cases}"
+  },
+  "Code fence": {
+    "prefix": "cf",
+    "body": ["```${1:}", "$0", "```"],
+    "description": "Fenced code block"
   }
 }
