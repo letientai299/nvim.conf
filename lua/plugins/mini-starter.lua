@@ -10,7 +10,10 @@ return {
         pattern = "VeryLazy",
         once = true,
         callback = function()
-          pcall(require("mini.starter").open)
+          local ok, starter = pcall(require, "mini.starter")
+          if ok then
+            starter.open()
+          end
         end,
       })
     end
