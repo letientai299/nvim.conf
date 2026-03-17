@@ -21,7 +21,7 @@ vim.opt.number = true
 -- Highlight the line the cursor is on
 vim.opt.cursorline = true
 
--- Disable the fixed-column ruler (0 = off)
+-- Column ruler at textwidth (editorconfig/prettier can override per-buffer)
 vim.opt.colorcolumn = "+0"
 
 -- Soft-wrap long lines at window edge (avoids horizontal scroll from ghost text)
@@ -153,6 +153,25 @@ vim.api.nvim_create_autocmd("User", {
       virtual_text = { spacing = 4, prefix = "●" },
       severity_sort = true,
     })
+
+    -- Override textwidth from prettier printWidth when a config exists nearby.
+    -- Deferred here so lib.prettier isn't loaded at startup.
+    local function apply_prettier_tw(bufnr)
+      if is_normal_file_buffer(bufnr) then
+        require("lib.prettier").resolve_print_width(bufnr)
+      end
+    end
+
+    vim.api.nvim_create_autocmd("BufEnter", {
+      callback = function(args)
+        apply_prettier_tw(args.buf)
+      end,
+    })
+
+    -- VeryLazy fires after the initial BufEnter — resolve for existing buffers.
+    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+      apply_prettier_tw(buf)
+    end
   end,
 })
 
