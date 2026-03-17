@@ -136,7 +136,7 @@ local function find_project_exrc()
 end
 
 map("n", "<Leader>vl", function()
-  vim.cmd.edit(config_root .. "/lua/local/local.lua")
+  vim.cmd.edit(config_root .. "/lua/local/init.lua")
 end, { desc = "Edit machine-local config" })
 
 map("n", "<Leader>vp", function()
