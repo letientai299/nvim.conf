@@ -3,3 +3,6 @@ lua/local.lua
 lua/local/
 .local-plugin-names
 *_gen.lua
+
+# too annoying to be tracked
+lazy-lock.json
