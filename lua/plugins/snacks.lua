@@ -141,7 +141,17 @@ return {
         ft = "markdown",
       },
       image = { enabled = true },
-      zen = { enabled = true, toggles = { dim = false } },
+      zen = {
+        enabled = true,
+        toggles = { dim = false },
+        win = {
+          backdrop = {
+            transparent = false,
+            blend = 0,
+            win = { wo = { winhighlight = "Normal:Normal,NormalFloat:Normal" } },
+          },
+        },
+      },
     }
   end,
 }
