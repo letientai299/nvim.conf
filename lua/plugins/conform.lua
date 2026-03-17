@@ -14,6 +14,13 @@ return {
             return fc.flags(spec, ctx.dirname)
           end,
         },
+        stylua = {
+          prepend_args = function(_, ctx)
+            local fc = require("lib.fallback_config")
+            local spec = require("lib.stylua").fallback_spec
+            return fc.flags(spec, ctx.dirname)
+          end,
+        },
         prettier = {
           prepend_args = function(_, ctx)
             local args = { "--ignore-unknown", "--ignore-path", "/dev/null" }
