@@ -81,6 +81,29 @@ cleanup_env() {
   rm -rf ${_PERF_CLEANUP_DIRS:-}
 }
 
+# Print sample targets for perf scripts.
+# Files in perf/samples/ are targets directly. Directories can expose a
+# representative entry file via Program.cs so a sample can include project files
+# without making the harness open the directory or auxiliary metadata files.
+sample_targets() {
+  local entry
+  for entry in "$REPO_ROOT"/perf/samples/*; do
+    if [[ -f "$entry" ]]; then
+      printf '%s\n' "$entry"
+      continue
+    fi
+
+    if [[ -f "$entry/Program.cs" ]]; then
+      printf '%s\n' "$entry/Program.cs"
+    fi
+  done
+}
+
+sample_label() {
+  local target="$1"
+  printf '%s\n' "${target#"$REPO_ROOT"/perf/samples/}"
+}
+
 # extract_startup_ms <startuptime-log>
 #   Prints the final "NVIM STARTED" time in milliseconds.
 #   Returns empty string if the log doesn't contain NVIM STARTED (crash/timeout).

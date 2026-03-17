@@ -36,9 +36,9 @@ printf 'Round 1: headless boot\n'
 run_case "bare" "$_PERF_NVIM" --headless +qa
 run_case "directory" "$_PERF_NVIM" --headless . +qa
 
-for f in "$REPO_ROOT"/perf/samples/*; do
-  run_case "$(basename "$f")" "$_PERF_NVIM" --headless "$f" +qa
-done
+while IFS= read -r target; do
+  run_case "$(sample_label "$target")" "$_PERF_NVIM" --headless "$target" +qa
+done < <(sample_targets)
 
 # --- Round 2: headful (UIEnter fires, lazy.nvim loads) ---
 # Plain +qa races with UIEnter — lazy.nvim hooks into UIEnter and blocks the
@@ -61,9 +61,9 @@ printf '\nRound 2: headful boot (terminal window opens briefly)\n'
 run_case "bare" "$_PERF_NVIM" -S "$quit_lua"
 run_case "directory" "$_PERF_NVIM" . -S "$quit_lua"
 
-for f in "$REPO_ROOT"/perf/samples/*; do
-  run_case "$(basename "$f")" "$_PERF_NVIM" "$f" -S "$quit_lua"
-done
+while IFS= read -r target; do
+  run_case "$(sample_label "$target")" "$_PERF_NVIM" "$target" -S "$quit_lua"
+done < <(sample_targets)
 rm -f "$quit_lua"
 
 # --- Result ---

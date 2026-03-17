@@ -79,10 +79,10 @@ baseline_cmds+=("$_PERF_NVIM . +qa")
 sample_names=()
 sample_cmds=()
 
-for f in "$REPO_ROOT"/perf/samples/*; do
-  sample_names+=("$(basename "$f")")
-  sample_cmds+=("$_PERF_NVIM $f +qa")
-done
+while IFS= read -r target; do
+  sample_names+=("$(sample_label "$target")")
+  sample_cmds+=("$_PERF_NVIM $target +qa")
+done < <(sample_targets)
 
 # --- run ---
 
