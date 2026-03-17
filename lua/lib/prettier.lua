@@ -24,7 +24,7 @@ M.fallback_spec = {
     "prettier.config.ts",
   },
   flag = "--config",
-  fallback = vim.fn.stdpath("config") .. "/configs/.prettierrc",
+  fallback = vim.fn.stdpath("config") .. "/configs/prettierrc.yml",
 }
 
 --- @return tool-installer.Tool
