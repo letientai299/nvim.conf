@@ -1,8 +1,10 @@
 local function lsp_active()
-  if not next(vim.lsp.get_clients({ bufnr = 0 })) then
+  local clients = vim.lsp.get_clients({ bufnr = 0 })
+  local count = #clients
+  if count == 0 then
     return ""
   end
-  return ""
+  return "󰕥 " .. count
 end
 
 return {
@@ -53,7 +55,7 @@ return {
         },
         lualine_c = { "aerial", "searchcount" },
         lualine_x = {
-          lsp_active,
+          { lsp_active },
           "diagnostics",
         },
         lualine_y = { "progress" },

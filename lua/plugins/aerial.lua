@@ -1,6 +1,6 @@
 return {
   "stevearc/aerial.nvim",
-  cmd = { "AerialToggle", "AerialOpen", "AerialClose" },
+  cmd = { "AerialToggle", "AerialNavToggle" },
   keys = {
     { "<C-F11>", "<Cmd>AerialToggle!<CR>", desc = "Toggle outline" },
     { "<F35>", "<Cmd>AerialToggle!<CR>", desc = "Toggle outline" },
