@@ -6,3 +6,6 @@ lua/local/
 
 # too annoying to be tracked
 lazy-lock.json
+
+# vim help tags, auto generated
+tags
