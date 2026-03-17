@@ -8,8 +8,8 @@ return {
     end
 
     local font = require("store-guifont").new("firenvim")
+    local want = { lines = 16, columns = 100 }
 
-    -- Minimal UI — set early so the window doesn't flash with bars.
     vim.o.laststatus = 0
     vim.o.showtabline = 0
     vim.o.number = true
@@ -25,19 +25,31 @@ return {
       },
     }
 
-    -- Re-apply after VeryLazy so lualine doesn't override.
-    -- Defer lines/columns to avoid racing firenvim's grid_resize
-    -- (see glacambre/firenvim#800).
+    local function restore_size()
+      if vim.o.lines ~= want.lines or vim.o.columns ~= want.columns then
+        vim.o.lines = want.lines
+        vim.o.columns = want.columns
+      end
+    end
+
+    -- Re-apply after VeryLazy so lualine doesn't override statusline/tabline.
+    -- Delay lets firenvim's initial resize cascade settle (#800).
     vim.api.nvim_create_autocmd("User", {
       pattern = "VeryLazy",
       callback = function()
         vim.o.laststatus = 0
         vim.o.showtabline = 0
         font:apply("JetBrainsMono Nerd Font Mono:h11")
-        vim.defer_fn(function()
-          vim.o.lines = 20
-          vim.o.columns = 80
-        end, 200)
+        vim.defer_fn(restore_size, 100)
+      end,
+    })
+
+    -- :w syncs text back to the textarea → ResizeObserver → grid resize.
+    -- Restore after a delay. Not using VimResized — it creates an
+    -- unbreakable async loop across the neovim/browser boundary.
+    vim.api.nvim_create_autocmd("BufWritePost", {
+      callback = function()
+        vim.defer_fn(restore_size, 100)
       end,
     })
 
