@@ -197,9 +197,10 @@ function M.enable_highlight(bufnr, filetype)
 end
 
 local function start_requested_highlight(bufnr, filetype)
-  if not M.enable_highlight(bufnr, filetype) then
-    queue_auto_install(bufnr)
-  end
+  M.enable_highlight(bufnr, filetype)
+  -- Always run auto_install for companion/injection parsers, even when the
+  -- primary parser is bundled and enable_highlight succeeded.
+  queue_auto_install(bufnr)
 end
 
 function M.request_highlight(bufnr, filetype)
@@ -341,7 +342,46 @@ local companion_parsers = {
   cpp = { "printf" },
   vim = { "regex" },
   python = { "regex" },
+  markdown = { "markdown_inline", "html", "yaml" },
+  vue = { "html", "css", "javascript", "typescript" },
+  svelte = { "html", "css", "javascript", "typescript" },
+  astro = { "html", "typescript", "css" },
+  html = { "css", "javascript" },
+  tsx = { "jsdoc", "regex" },
+  typescript = { "jsdoc", "regex" },
+  javascript = { "jsdoc", "regex" },
 }
+
+-- Rare deps installed at idle after primary + common deps are done.
+local deferred_parsers = {
+  vue = { "scss", "pug" },
+  svelte = { "scss", "pug" },
+  astro = { "scss" },
+  javascript = { "graphql" },
+  typescript = { "graphql" },
+  tsx = { "graphql" },
+  markdown = { "toml", "latex" },
+}
+
+--- Scan a markdown buffer for fenced code block language tags and install
+--- the corresponding treesitter parsers.
+---@param bufnr integer
+local function scan_markdown_injections(bufnr)
+  local lines = api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  local langs = {}
+  local seen = {}
+  for _, line in ipairs(lines) do
+    local lang = line:match("^```(%w+)")
+    if lang and not seen[lang] then
+      seen[lang] = true
+      local ts_lang = vim.treesitter.language.get_lang(lang) or lang
+      langs[#langs + 1] = ts_lang
+    end
+  end
+  if #langs > 0 then
+    M.ensure_parsers(langs, bufnr)
+  end
+end
 
 function M.auto_install(bufnr)
   local ft = vim.bo[bufnr].filetype
@@ -354,7 +394,17 @@ function M.auto_install(bufnr)
   -- Install companion/injection parsers for this filetype on demand.
   local companions = companion_parsers[lang]
   if companions then
-    M.ensure_parsers(companions)
+    M.ensure_parsers(companions, bufnr)
+  end
+
+  -- Schedule deferred (rare) parsers at idle.
+  local deferred = deferred_parsers[lang]
+  if deferred then
+    vim.defer_fn(function()
+      if api.nvim_buf_is_valid(bufnr) then
+        M.ensure_parsers(deferred, bufnr)
+      end
+    end, 2000)
   end
 
   if installing[lang] then
@@ -363,6 +413,10 @@ function M.auto_install(bufnr)
 
   -- In-memory check: if the parser .so is already loaded, skip install
   if pcall(vim.treesitter.language.inspect, lang) then
+    -- Primary parser already present — still scan markdown for dynamic deps.
+    if lang == "markdown" then
+      scan_markdown_injections(bufnr)
+    end
     return
   end
 
@@ -391,11 +445,15 @@ function M.auto_install(bufnr)
       :await(function()
         installing[lang] = nil
         vim.schedule(function()
-          if not vim.api.nvim_buf_is_valid(bufnr) then
+          if not api.nvim_buf_is_valid(bufnr) then
             return
           end
           M.enable_highlight(bufnr)
           vim.cmd("redraw!")
+          -- Scan markdown for fenced block languages after primary parser.
+          if lang == "markdown" then
+            scan_markdown_injections(bufnr)
+          end
         end)
       end)
   end)
@@ -403,15 +461,18 @@ end
 
 --- Install parsers that are missing on disk (e.g. injection-only languages
 --- that auto_install never sees via filetype). Runs asynchronously.
---- Uses a stat check instead of `language.inspect` to avoid dlopen on startup.
+--- Checks all runtime parser directories (including bundled parsers) to avoid
+--- re-installing parsers that ship with neovim.
+--- When `bufnr` is provided, refreshes treesitter highlighting after install
+--- so newly available injection parsers take effect immediately.
 ---@param langs string[]
-function M.ensure_parsers(langs)
-  local parser_dir = vim.fs.joinpath(vim.fn.stdpath("data"), "site", "parser")
+---@param bufnr? integer
+function M.ensure_parsers(langs, bufnr)
   local missing = {}
   for _, lang in ipairs(langs) do
     if
       not installing[lang]
-      and not vim.uv.fs_stat(parser_dir .. "/" .. lang .. ".so")
+      and #api.nvim_get_runtime_file("parser/" .. lang .. ".so", false) == 0
     then
       missing[#missing + 1] = lang
     end
@@ -428,6 +489,29 @@ function M.ensure_parsers(langs)
     ts.install(missing, { summary = false }):await(function()
       for _, lang in ipairs(missing) do
         installing[lang] = nil
+      end
+      if bufnr then
+        vim.schedule(function()
+          if not api.nvim_buf_is_valid(bufnr) then
+            return
+          end
+          -- Reset the LanguageTree's injection cache so newly installed
+          -- parsers are picked up on re-parse. Without this, the tree
+          -- thinks injections are already processed and won't create
+          -- children for newly available languages.
+          local parser_ok, parser = pcall(vim.treesitter.get_parser, bufnr)
+          if parser_ok and parser then
+            parser._processed_injection_range = nil
+            parser:invalidate()
+          end
+          vim.treesitter.stop(bufnr)
+          M.enable_highlight(bufnr)
+          -- Force synchronous re-parse so injection children are created
+          -- immediately (async parse may not reach offscreen injections).
+          if parser_ok and parser then
+            parser:parse(true)
+          end
+        end)
       end
     end)
   end)

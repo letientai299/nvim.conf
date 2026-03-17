@@ -6,9 +6,9 @@ authors: [jdoe, asmith]
 tags: [architecture, events, cqrs]
 ---
 
-# ADR-042: Event Sourcing for Order Management
+## ADR-042: Event Sourcing for Order Management
 
-## Context
+### Context
 
 The order management service handles ~50k orders/day with complex state
 transitions: created → confirmed → shipped → delivered (with cancellation and
@@ -18,13 +18,13 @@ return branches at each stage). The current CRUD approach leads to:
 - Race conditions during concurrent status changes
 - Difficulty replaying scenarios for debugging
 
-## Decision
+### Decision
 
 Adopt **event sourcing** for the order aggregate. Every state change is an
 immutable event appended to an event store. Current state is derived by folding
 events.
 
-### Event Schema
+#### Event Schema
 
 | Field        | Type          | Description                         |
 | ------------ | ------------- | ----------------------------------- |
@@ -36,7 +36,7 @@ events.
 | `metadata`   | `jsonb`       | Correlation ID, actor, timestamp    |
 | `created_at` | `timestamptz` | Server-side append time             |
 
-### Projection Strategy
+#### Projection Strategy
 
 Read models are rebuilt from events via **catch-up subscriptions**:
 
@@ -49,7 +49,7 @@ ORDER BY version ASC;
 
 Projections run in separate processes. Failures don't block writes.
 
-### Snapshotting
+#### Snapshotting
 
 For aggregates with >1000 events, store periodic snapshots:
 
@@ -63,7 +63,23 @@ For aggregates with >1000 events, store periodic snapshots:
 
 Fold resumes from the snapshot version instead of event zero.
 
-## Consequences
+#### State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> Created
+    Created --> Confirmed
+    Created --> Cancelled
+    Confirmed --> Shipped
+    Confirmed --> Cancelled
+    Shipped --> Delivered
+    Shipped --> Returned
+    Delivered --> [*]
+    Cancelled --> [*]
+    Returned --> [*]
+```
+
+### Consequences
 
 **Benefits:**
 
@@ -78,7 +94,7 @@ Fold resumes from the snapshot version instead of event zero.
 - Eventual consistency for read models (acceptable for this domain)
 - Schema evolution requires versioned event upcasters
 
-## References
+### References
 
 - [Event Sourcing pattern — Microsoft][ms-es]
 - [Versioning in an Event Sourced System — Greg Young][gy-versioning]
