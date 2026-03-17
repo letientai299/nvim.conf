@@ -1,6 +1,5 @@
-local run = require("tool-installer.backend.run")
-
 local M = {}
+local log = require("tool-installer.log")
 
 local _script_dir = ""
 
@@ -23,7 +22,33 @@ function M.install(spec, _, callback)
     callback(false, "script not found: " .. path)
     return
   end
-  run({ path }, callback)
+  local function append_stream(data, level)
+    if not data or data == "" then
+      return
+    end
+    local lines = vim.split(data, "\n", { plain = true, trimempty = true })
+    for _, line in ipairs(lines) do
+      log.append(level, "[script:" .. spec .. "] " .. line)
+    end
+  end
+
+  vim.system({
+    path,
+  }, {
+    text = true,
+    stdout = function(_, data)
+      append_stream(data, vim.log.levels.INFO)
+    end,
+    stderr = function(_, data)
+      append_stream(data, vim.log.levels.ERROR)
+    end,
+  }, function(result)
+    if result.code == 0 then
+      callback(true)
+    else
+      callback(false, result.stderr or ("exit " .. result.code))
+    end
+  end)
 end
 
 return M

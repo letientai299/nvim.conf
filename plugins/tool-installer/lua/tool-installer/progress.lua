@@ -1,6 +1,14 @@
 local M = {}
 
 local NOTIFY_ID = "tool-installer"
+local log = require("tool-installer.log")
+
+---@param message string
+---@param level integer
+local function emit(message, level)
+  log.append(level, message)
+  vim.notify(message, level, { id = NOTIFY_ID, title = "tool-installer" })
+end
 
 ---@class tool-installer.Progress
 ---@field total integer
@@ -12,30 +20,24 @@ Progress.__index = Progress
 ---@return tool-installer.Progress
 function M.start(total)
   local self = setmetatable({ total = total, done = 0 }, Progress)
-  vim.notify(
-    "Installing " .. total .. " tool(s)...",
-    vim.log.levels.INFO,
-    { id = NOTIFY_ID, title = "tool-installer" }
-  )
+  emit("Installing " .. total .. " tool(s)...", vim.log.levels.INFO)
   return self
 end
 
 ---@param name string
 function Progress:installing(name)
-  vim.notify(
+  emit(
     "Installing " .. name .. "... (" .. self.done .. "/" .. self.total .. ")",
-    vim.log.levels.INFO,
-    { id = NOTIFY_ID, title = "tool-installer" }
+    vim.log.levels.INFO
   )
 end
 
 ---@param name string
 function Progress:installed(name)
   self.done = self.done + 1
-  vim.notify(
+  emit(
     name .. " ready (" .. self.done .. "/" .. self.total .. ")",
-    vim.log.levels.INFO,
-    { id = NOTIFY_ID, title = "tool-installer" }
+    vim.log.levels.INFO
   )
 end
 
@@ -43,18 +45,14 @@ end
 ---@param err? string
 function Progress:fail(name, err)
   self.done = self.done + 1
-  vim.notify(
+  emit(
     "Failed: " .. name .. (err and (": " .. err) or ""),
-    vim.log.levels.ERROR,
-    { id = NOTIFY_ID, title = "tool-installer" }
+    vim.log.levels.ERROR
   )
 end
 
 function Progress:finish()
-  vim.notify("All tools processed.", vim.log.levels.INFO, {
-    id = NOTIFY_ID,
-    title = "tool-installer",
-  })
+  emit("All tools processed.", vim.log.levels.INFO)
 end
 
 return M

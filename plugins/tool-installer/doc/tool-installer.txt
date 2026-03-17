@@ -10,7 +10,8 @@ CONTENTS                                          *tool-installer-contents*
   5. Backends ..................................... |tool-installer-backends|
   6. Dependencies ................................. |tool-installer-deps|
   7. Cache ........................................ |tool-installer-cache|
-  8. Health check ................................. |tool-installer-health|
+  8. Commands ..................................... |tool-installer-commands|
+  9. Health check ................................. |tool-installer-health|
 
 ==============================================================================
 1. OVERVIEW                                       *tool-installer-overview*
@@ -26,6 +27,7 @@ Features:
 - Mise spec deduplication (one install for multiple binaries)
 - Concurrent `ensure()` safety via subscriber pattern
 - Progress notifications via `vim.notify` (snacks.nvim replaces in-place)
+- Built-in log panel via `:ToolInstallerLog`
 - `:checkhealth tool-installer` integration
 
 ==============================================================================
@@ -174,7 +176,17 @@ The cache is flushed to disk after each install batch and on
 timestamps are refreshed.
 
 ==============================================================================
-8. HEALTH CHECK                                   *tool-installer-health*
+8. COMMANDS                                       *tool-installer-commands*
+
+:ToolInstallerLog
+    Open a scratch split with the in-memory installer log. The panel contains
+    timestamped entries for progress updates and tool-installer warnings/errors.
+    Notifications stay concise; this panel includes backend details (mise/brew/
+    script), install specs, grouped installs, status transitions, and script
+    stdout/stderr lines when using the script backend.
+
+==============================================================================
+9. HEALTH CHECK                                   *tool-installer-health*
 
 Run `:checkhealth tool-installer` to see:
 

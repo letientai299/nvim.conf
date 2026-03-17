@@ -1,4 +1,5 @@
 local M = {}
+local log = require("tool-installer.log")
 
 --- Flatten tools with their dependencies into a dependency-first ordered list.
 --- Dependencies are resolved from the catalog by string key.
@@ -18,13 +19,12 @@ function M.flatten(tools, catalog)
       return
     end
     if in_stack[tool.bin] then
-      vim.notify(
-        "[tool-installer] Dependency cycle: "
-          .. table.concat(path, " → ")
-          .. " → "
-          .. tool.bin,
-        vim.log.levels.ERROR
-      )
+      local message = "[tool-installer] Dependency cycle: "
+        .. table.concat(path, " → ")
+        .. " → "
+        .. tool.bin
+      log.append(vim.log.levels.ERROR, message)
+      vim.notify(message, vim.log.levels.ERROR)
       return
     end
 
@@ -37,10 +37,9 @@ function M.flatten(tools, catalog)
         if dep then
           visit(dep, path)
         else
-          vim.notify(
-            "[tool-installer] Unknown dependency: " .. dep_name,
-            vim.log.levels.ERROR
-          )
+          local message = "[tool-installer] Unknown dependency: " .. dep_name
+          log.append(vim.log.levels.ERROR, message)
+          vim.notify(message, vim.log.levels.ERROR)
         end
       end
     end

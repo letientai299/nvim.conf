@@ -13,6 +13,7 @@
 ---@field cache_ttl integer
 
 local M = {}
+local log = require("tool-installer.log")
 
 ---@type tool-installer.Config
 local _config = {
@@ -33,6 +34,11 @@ function M.setup(opts)
   if _config.script_dir ~= "" then
     require("tool-installer.backend.script").set_script_dir(_config.script_dir)
   end
+  if vim.fn.exists(":ToolInstallerLog") == 0 then
+    vim.api.nvim_create_user_command("ToolInstallerLog", function()
+      log.open()
+    end, { desc = "Open tool-installer log panel" })
+  end
 end
 
 --- Read-only copy of current config. For health checks.
@@ -49,14 +55,14 @@ local BACKENDS = {
 
 --- Pick the first available backend for a tool spec.
 ---@param tool tool-installer.Tool
----@return {backend: table, spec: string}?
+---@return {backend: table, spec: string, backend_name: string}?
 local function select_backend(tool)
   for _, b in ipairs(BACKENDS) do
     local spec = tool[b.field]
     if spec then
       local backend = require(b.mod)
       if backend.available() then
-        return { backend = backend, spec = spec }
+        return { backend = backend, spec = spec, backend_name = b.field }
       end
     end
   end
@@ -95,7 +101,7 @@ local function install_batch(tools, on_done)
   local progress = require("tool-installer.progress")
   local remaining = 0
   local mise_groups = {} ---@type table<string, tool-installer.Tool[]>
-  local jobs = {} ---@type {tool: tool-installer.Tool, backend: table, spec: string}[]
+  local jobs = {} ---@type {tool: tool-installer.Tool, backend: table, backend_name: string, spec: string}[]
 
   local function check_done()
     remaining = remaining - 1
@@ -103,10 +109,9 @@ local function install_batch(tools, on_done)
       cache.flush()
       local ok, err = pcall(on_done)
       if not ok then
-        vim.notify(
-          "[tool-installer] on_complete error: " .. tostring(err),
-          vim.log.levels.ERROR
-        )
+        local message = "[tool-installer] on_complete error: " .. tostring(err)
+        log.append(vim.log.levels.ERROR, message)
+        vim.notify(message, vim.log.levels.ERROR)
       end
     end
   end
@@ -121,6 +126,14 @@ local function install_batch(tools, on_done)
     elseif t.mise and mise_groups[t.mise] then
       -- Deduplicate shared mise specs — piggyback on existing job
       mise_groups[t.mise][#mise_groups[t.mise] + 1] = t
+      log.append(
+        vim.log.levels.INFO,
+        "[tool-installer] Grouped "
+          .. (t.name or t.bin)
+          .. " with existing mise install (spec="
+          .. t.mise
+          .. ")"
+      )
       _installing[t.bin] = {}
     else
       local choice = select_backend(t)
@@ -130,13 +143,16 @@ local function install_batch(tools, on_done)
         end
         _installing[t.bin] = {}
         remaining = remaining + 1
-        jobs[#jobs + 1] =
-          { tool = t, backend = choice.backend, spec = choice.spec }
+        jobs[#jobs + 1] = {
+          tool = t,
+          backend = choice.backend,
+          backend_name = choice.backend_name,
+          spec = choice.spec,
+        }
       else
-        vim.notify(
-          "[tool-installer] No backend for " .. (t.name or t.bin),
-          vim.log.levels.WARN
-        )
+        local message = "[tool-installer] No backend for " .. (t.name or t.bin)
+        log.append(vim.log.levels.WARN, message)
+        vim.notify(message, vim.log.levels.WARN)
       end
     end
   end
@@ -152,19 +168,50 @@ local function install_batch(tools, on_done)
     local t = job.tool
     local display = t.name or t.bin
     tracker:installing(display)
+    log.append(
+      vim.log.levels.INFO,
+      "[tool-installer] Installing "
+        .. display
+        .. " via "
+        .. job.backend_name
+        .. " (spec="
+        .. job.spec
+        .. (t.version and (", version=" .. t.version) or "")
+        .. ")"
+    )
 
     job.backend.install(job.spec, t.version, function(ok, err)
       vim.schedule(function()
         rehash()
         local group = t.mise and mise_groups[t.mise] or { t }
+        local bins = {}
+        for _, gt in ipairs(group) do
+          bins[#bins + 1] = gt.bin
+        end
         if ok then
           for _, gt in ipairs(group) do
             if vim.fn.executable(gt.bin) == 1 then
               cache.set(gt.bin, true)
             end
           end
+          log.append(
+            vim.log.levels.INFO,
+            "[tool-installer] Installed via "
+              .. job.backend_name
+              .. ": "
+              .. table.concat(bins, ", ")
+          )
           tracker:installed(display)
         else
+          log.append(
+            vim.log.levels.ERROR,
+            "[tool-installer] Install failed via "
+              .. job.backend_name
+              .. " ("
+              .. table.concat(bins, ", ")
+              .. "): "
+              .. tostring(err or "unknown error")
+          )
           tracker:fail(display, err)
         end
 

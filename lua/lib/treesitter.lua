@@ -576,7 +576,7 @@ function M.auto_install(bufnr)
   end
 
   local parsers = get_known_parser_definitions()
-  if not parsers[lang] then
+  if not parsers or not parsers[lang] then
     return -- no parser definition exists in nvim-treesitter
   end
 
