@@ -181,12 +181,9 @@ function source:resolve(item, callback)
     return callback(item)
   end
 
-  local lines = {}
-  for line in data:gmatch("[^\n]*") do
-    lines[#lines + 1] = line
-    if #lines >= PREVIEW_LINES then
-      break
-    end
+  local lines = vim.split(data, "\n")
+  if #lines > PREVIEW_LINES then
+    lines = { unpack(lines, 1, PREVIEW_LINES) }
   end
 
   local ft = vim.filetype.match({ filename = full_path }) or ""
