@@ -1,0 +1,6 @@
+# This is a configuration file for CSharpier, an opinionated code formatter for
+# C# and XML (i.e. *.csproj, *.props). https://csharpier.com/docs/Configuration
+printWidth: 100
+useTabs: false
+indentSize: 2
+endOfLine: lf

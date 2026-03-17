@@ -1,4 +1,5 @@
 local M = {}
+local csharpier = require("lib.csharpier")
 
 function M.setup(bufnr)
   require("langs.shared.entry").setup("csharp", bufnr, {
@@ -9,11 +10,7 @@ function M.setup(bufnr)
         script = "install-roslyn-ls.sh",
         dependencies = { "dotnet", "7zip" },
       },
-      {
-        bin = "csharpier",
-        mise = "dotnet:csharpier",
-        dependencies = { "dotnet" },
-      },
+      csharpier.tool(),
     },
     formatter_fts = "cs",
     formatters = { "csharpier" },

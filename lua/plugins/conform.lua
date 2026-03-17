@@ -7,6 +7,13 @@ return {
   opts = function()
     return {
       formatters = {
+        csharpier = {
+          prepend_args = function(_, ctx)
+            local fc = require("lib.fallback_config")
+            local spec = require("lib.csharpier").fallback_spec
+            return fc.flags(spec, ctx.dirname)
+          end,
+        },
         prettier = {
           prepend_args = function(_, ctx)
             local args = { "--ignore-unknown", "--ignore-path", "/dev/null" }
