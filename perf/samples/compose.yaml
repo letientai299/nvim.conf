@@ -9,6 +9,29 @@ x-common: &common
       max-size: "10m"
       max-file: "3"
 
+x-smoke-check: &smoke-check
+  script: |
+    set -euo pipefail
+    curl -fsS http://api:3000/health
+    curl -fsS http://worker:3000/metrics | grep -q "jobs_processed_total"
+    redis-cli -u redis://cache:6379/0 ping
+
+x-alert-rule: &alert-rule
+  expr: |
+    sum by (service) (
+      rate(http_requests_total{service=~"api|worker", status!~"2.."}[5m])
+    ) > 20
+
+x-json-template: &json-template
+  cmd: |
+    cat <<'JSON'
+    {
+      // json5-style payload that generic discovery should install on demand
+      dashboard: 'operations',
+      widgets: ['errors', 'latency', 'queueDepth'],
+    }
+    JSON
+
 services:
   api:
     <<: *common
@@ -25,6 +48,8 @@ services:
       REDIS_URL: redis://cache:6379/0
       JWT_SECRET: ${JWT_SECRET}
       LOG_LEVEL: ${LOG_LEVEL:-info}
+    x-smoke:
+      <<: *smoke-check
     depends_on:
       db:
         condition: service_healthy
@@ -52,6 +77,8 @@ services:
       DATABASE_URL: postgres://app:${DB_PASSWORD}@db:5432/app
       REDIS_URL: redis://cache:6379/0
       CONCURRENCY: ${WORKER_CONCURRENCY:-4}
+    x-bootstrap:
+      <<: *json-template
     depends_on:
       db:
         condition: service_healthy
@@ -86,6 +113,13 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+
+  observability:
+    <<: *common
+    image: prom/prometheus:v3.1.0
+    profiles: ["ops"]
+    x-alert:
+      <<: *alert-rule
 
 volumes:
   pgdata:

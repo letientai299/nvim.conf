@@ -79,6 +79,53 @@ stateDiagram-v2
     Returned --> [*]
 ```
 
+#### Alert Rule
+
+```promql
+sum by (service, status) (
+  rate(http_requests_total{service=~"api|worker", status!~"2.."}[5m])
+) > 10
+```
+
+#### Persisted View Config
+
+```json5
+{
+  title: "Project health",
+  refreshIntervalMs: 15_000,
+  filters: {
+    teams: ["platform", "growth"],
+    environments: ["staging", "prod"],
+  },
+  panels: [
+    { id: "throughput", kind: "timeseries", unit: "req/s" },
+    { id: "error-budget", kind: "gauge", thresholds: [99.9, 99.5] },
+  ],
+}
+```
+
+#### API Contract
+
+```graphql
+query ProjectSummary($tenant: ID!, $project: ID!) {
+  tenant(id: $tenant) {
+    id
+    name
+    project(id: $project) {
+      id
+      name
+      status
+      completionPct
+      openTasks {
+        id
+        title
+        priority
+      }
+    }
+  }
+}
+```
+
 ### Consequences
 
 **Benefits:**

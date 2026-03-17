@@ -225,6 +225,8 @@ function M.request_highlight(bufnr, filetype)
 end
 
 local installing = {} ---@type table<string, true?>
+local pending_injection_discovery = {} ---@type table<integer, true?>
+local schedule_injection_discovery ---@type fun(bufnr: integer, delay_ms?: integer)?
 
 --- Install a tool via the shared mise backend (serialized to prevent
 --- concurrent writes to config.toml).
@@ -329,6 +331,179 @@ local function ensure_build_deps(callback)
   end)
 end
 
+---@param lang string
+---@return string
+local function parser_runtime_pattern(lang)
+  return "parser/" .. lang .. ".*"
+end
+
+---@param lang string
+---@return boolean
+local function has_runtime_parser(lang)
+  return #api.nvim_get_runtime_file(parser_runtime_pattern(lang), false) > 0
+end
+
+---@return table<string, any>?
+local function get_known_parser_definitions()
+  M.ensure_runtime()
+  if not package.loaded["nvim-treesitter"] then
+    pcall(function()
+      require("lazy").load({ plugins = { "nvim-treesitter" } })
+    end)
+  end
+
+  local ok, parsers = pcall(require, "nvim-treesitter.parsers")
+  if not ok then
+    return nil
+  end
+
+  maybe_register_custom_parsers()
+  return parsers
+end
+
+---@param alias string?
+---@return string?
+local function resolve_injection_lang(alias)
+  if type(alias) ~= "string" or alias:match("^[%w_]+$") ~= alias then
+    return nil
+  end
+
+  alias = alias:lower()
+  return vim.treesitter.language.get_lang(alias) or alias
+end
+
+---@param ltree vim.treesitter.LanguageTree
+---@param query vim.treesitter.Query
+---@param match table<integer, TSNode[]>
+---@param metadata vim.treesitter.query.TSMetadata
+---@return string?
+local function get_requested_injection_lang(ltree, query, match, metadata)
+  local injection_lang = metadata["injection.language"]
+  local parent = ltree:parent()
+  local lang = metadata["injection.self"] ~= nil and ltree:lang()
+    or metadata["injection.parent"] ~= nil and parent and parent:lang()
+    or (
+      type(injection_lang) == "string"
+      and resolve_injection_lang(injection_lang)
+    )
+
+  for id, nodes in pairs(match) do
+    local capture = query.captures[id]
+    for _, node in ipairs(nodes) do
+      if capture == "injection.language" then
+        local text = vim.treesitter.get_node_text(
+          node,
+          ltree:source(),
+          { metadata = metadata[id] }
+        )
+        lang = resolve_injection_lang(text and text:lower() or nil)
+      elseif capture == "injection.filename" then
+        local text = vim.treesitter.get_node_text(
+          node,
+          ltree:source(),
+          { metadata = metadata[id] }
+        )
+        local ft = vim.filetype.match({ filename = text })
+        if ft then
+          lang = resolve_injection_lang(ft)
+        end
+      end
+    end
+  end
+
+  return lang
+end
+
+---@param ltree vim.treesitter.LanguageTree
+---@param langs table<string, true>
+local function collect_requested_injection_langs(ltree, langs)
+  local query = ltree._injection_query
+  if query and #query.captures > 0 then
+    for _, tree in pairs(ltree:trees()) do
+      local root = tree:root()
+      local start_line, _, end_line = root:range()
+      for _, match, metadata in
+        query:iter_matches(root, ltree:source(), start_line, end_line + 1)
+      do
+        local lang = get_requested_injection_lang(ltree, query, match, metadata)
+        if lang then
+          langs[lang] = true
+        end
+      end
+    end
+  end
+
+  for _, child in pairs(ltree:children()) do
+    langs[child:lang()] = true
+    collect_requested_injection_langs(child, langs)
+  end
+end
+
+---@param bufnr integer
+local function discover_missing_injection_parsers(bufnr)
+  local parser_ok, parser = pcall(vim.treesitter.get_parser, bufnr)
+  if not parser_ok or not parser then
+    return {}
+  end
+
+  if not pcall(function()
+    parser:parse(true)
+  end) then
+    return {}
+  end
+
+  local parsers = get_known_parser_definitions()
+  if not parsers then
+    return {}
+  end
+
+  local langs = {} ---@type table<string, true>
+  collect_requested_injection_langs(parser, langs)
+
+  local missing = {}
+  for lang in pairs(langs) do
+    if
+      not installing[lang]
+      and not has_runtime_parser(lang)
+      and parsers[lang]
+    then
+      missing[#missing + 1] = lang
+    end
+  end
+
+  table.sort(missing)
+  return missing
+end
+
+---@param bufnr integer
+local function refresh_parser_after_install(bufnr)
+  if not api.nvim_buf_is_valid(bufnr) then
+    return
+  end
+
+  -- Reset the LanguageTree's injection cache so newly installed parsers are
+  -- picked up on re-parse. Without this, the tree thinks injections are already
+  -- processed and won't create children for newly available languages.
+  local parser_ok, parser = pcall(vim.treesitter.get_parser, bufnr)
+  if parser_ok and parser then
+    parser._processed_injection_range = nil
+    parser:invalidate()
+  end
+
+  vim.treesitter.stop(bufnr)
+  M.enable_highlight(bufnr)
+
+  -- Force synchronous re-parse so injection children are created immediately
+  -- even when embedded regions are offscreen.
+  if parser_ok and parser then
+    parser:parse(true)
+  end
+
+  if schedule_injection_discovery then
+    schedule_injection_discovery(bufnr, 150)
+  end
+end
+
 --- Auto-install a missing parser for the buffer's filetype, then enable
 --- highlighting. Uses nvim-treesitter's async install; re-triggers
 --- enable_highlight on completion.
@@ -352,35 +527,28 @@ local companion_parsers = {
   javascript = { "jsdoc", "regex" },
 }
 
--- Rare deps installed at idle after primary + common deps are done.
-local deferred_parsers = {
-  vue = { "scss", "pug" },
-  svelte = { "scss", "pug" },
-  astro = { "scss" },
-  javascript = { "graphql" },
-  typescript = { "graphql" },
-  tsx = { "graphql" },
-  markdown = { "toml", "latex" },
-}
+schedule_injection_discovery = function(bufnr, delay_ms)
+  if not api.nvim_buf_is_valid(bufnr) then
+    pending_injection_discovery[bufnr] = nil
+    return
+  end
 
---- Scan a markdown buffer for fenced code block language tags and install
---- the corresponding treesitter parsers.
----@param bufnr integer
-local function scan_markdown_injections(bufnr)
-  local lines = api.nvim_buf_get_lines(bufnr, 0, -1, false)
-  local langs = {}
-  local seen = {}
-  for _, line in ipairs(lines) do
-    local lang = line:match("^```(%w+)")
-    if lang and not seen[lang] then
-      seen[lang] = true
-      local ts_lang = vim.treesitter.language.get_lang(lang) or lang
-      langs[#langs + 1] = ts_lang
+  if pending_injection_discovery[bufnr] then
+    return
+  end
+
+  pending_injection_discovery[bufnr] = true
+  vim.defer_fn(function()
+    pending_injection_discovery[bufnr] = nil
+    if not api.nvim_buf_is_valid(bufnr) then
+      return
     end
-  end
-  if #langs > 0 then
-    M.ensure_parsers(langs, bufnr)
-  end
+
+    local missing = discover_missing_injection_parsers(bufnr)
+    if #missing > 0 then
+      M.ensure_parsers(missing, bufnr)
+    end
+  end, delay_ms or 150)
 end
 
 function M.auto_install(bufnr)
@@ -397,41 +565,17 @@ function M.auto_install(bufnr)
     M.ensure_parsers(companions, bufnr)
   end
 
-  -- Schedule deferred (rare) parsers at idle.
-  local deferred = deferred_parsers[lang]
-  if deferred then
-    vim.defer_fn(function()
-      if api.nvim_buf_is_valid(bufnr) then
-        M.ensure_parsers(deferred, bufnr)
-      end
-    end, 2000)
-  end
-
   if installing[lang] then
     return
   end
 
   -- In-memory check: if the parser .so is already loaded, skip install
   if pcall(vim.treesitter.language.inspect, lang) then
-    -- Primary parser already present — still scan markdown for dynamic deps.
-    if lang == "markdown" then
-      scan_markdown_injections(bufnr)
-    end
+    schedule_injection_discovery(bufnr)
     return
   end
 
-  M.ensure_runtime()
-  if not package.loaded["nvim-treesitter"] then
-    pcall(function()
-      require("lazy").load({ plugins = { "nvim-treesitter" } })
-    end)
-  end
-
-  local ok, parsers = pcall(require, "nvim-treesitter.parsers")
-  if not ok then
-    return
-  end
-  maybe_register_custom_parsers()
+  local parsers = get_known_parser_definitions()
   if not parsers[lang] then
     return -- no parser definition exists in nvim-treesitter
   end
@@ -450,10 +594,7 @@ function M.auto_install(bufnr)
           end
           M.enable_highlight(bufnr)
           vim.cmd("redraw!")
-          -- Scan markdown for fenced block languages after primary parser.
-          if lang == "markdown" then
-            scan_markdown_injections(bufnr)
-          end
+          schedule_injection_discovery(bufnr)
         end)
       end)
   end)
@@ -468,11 +609,17 @@ end
 ---@param langs string[]
 ---@param bufnr? integer
 function M.ensure_parsers(langs, bufnr)
+  local parsers = get_known_parser_definitions()
+  if not parsers then
+    return
+  end
+
   local missing = {}
   for _, lang in ipairs(langs) do
     if
       not installing[lang]
-      and #api.nvim_get_runtime_file("parser/" .. lang .. ".so", false) == 0
+      and not has_runtime_parser(lang)
+      and parsers[lang]
     then
       missing[#missing + 1] = lang
     end
@@ -492,25 +639,7 @@ function M.ensure_parsers(langs, bufnr)
       end
       if bufnr then
         vim.schedule(function()
-          if not api.nvim_buf_is_valid(bufnr) then
-            return
-          end
-          -- Reset the LanguageTree's injection cache so newly installed
-          -- parsers are picked up on re-parse. Without this, the tree
-          -- thinks injections are already processed and won't create
-          -- children for newly available languages.
-          local parser_ok, parser = pcall(vim.treesitter.get_parser, bufnr)
-          if parser_ok and parser then
-            parser._processed_injection_range = nil
-            parser:invalidate()
-          end
-          vim.treesitter.stop(bufnr)
-          M.enable_highlight(bufnr)
-          -- Force synchronous re-parse so injection children are created
-          -- immediately (async parse may not reach offscreen injections).
-          if parser_ok and parser then
-            parser:parse(true)
-          end
+          refresh_parser_after_install(bufnr)
         end)
       end
     end)

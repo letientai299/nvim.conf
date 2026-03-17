@@ -25,6 +25,13 @@ COPY tsconfig.json ./
 COPY src/ src/
 RUN npm run build \
     && rm -rf src/ tsconfig.json
+RUN <<'SH'
+set -euo pipefail
+mkdir -p /tmp/build-meta
+printf '%s\n' "commit=${GIT_COMMIT:-dev}" > /tmp/build-meta/release.env
+node -e "console.log(JSON.stringify({ builtAt: new Date().toISOString() }))" \
+  > /tmp/build-meta/build.json
+SH
 
 # --- API target ---
 FROM base AS api
@@ -47,5 +54,15 @@ CMD ["node", "dist/worker.js"]
 FROM dev-deps AS dev
 ENV NODE_ENV=development
 COPY . .
+RUN <<'SH'
+set -euo pipefail
+cat <<'JSON5' >/tmp/dev-dashboard.json5
+{
+  title: 'dev sandbox',
+  refreshIntervalMs: 5000,
+  panels: ['requests', 'errors', 'workers'],
+}
+JSON5
+SH
 EXPOSE 3000 9229
 CMD ["npx", "tsx", "watch", "--inspect=0.0.0.0:9229", "src/server.ts"]
