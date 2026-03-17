@@ -14,7 +14,7 @@ hasn't changed. The cache converts the result into a flat Lua file of
 
 ### Theme state
 
-The [store-theme][store-theme] plugin persists the active colorscheme to a
+The [store-theme][store-theme-doc] plugin persists the active colorscheme to a
 single Lua file at `~/.local/state/nvim/store/theme.lua`. The file returns a
 table with `colorscheme`, `before`/`after` hook code, and the lazy.nvim plugin
 name. On startup, `init.lua` calls `dofile()` — no JSON decode, no staleness
@@ -86,4 +86,5 @@ flowchart TD
 [init]: ../init.lua
 [on-demand-plugin]: ./on-demand-plugin.md
 [store]: ../plugins/store-theme/lua/store-theme/init.lua
+[store-theme-doc]: ./store-theme.md
 [store-theme]: ../plugins/store-theme
