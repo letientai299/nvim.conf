@@ -12,7 +12,7 @@ function M.available()
 end
 
 --- Serialize mise calls to prevent concurrent writes to config.toml.
----@type {cmd: string[], cb: fun(ok: boolean, err?: string)}[]
+---@type {cmd: string[], opts?: vim.SystemOpts, cb: fun(ok: boolean, err?: string)}[]
 local _queue = {}
 local _running = false
 
@@ -22,7 +22,7 @@ local function drain()
   end
   _running = true
   local job = table.remove(_queue, 1)
-  run(job.cmd, function(ok, err)
+  run(job.cmd, job.opts, function(ok, err)
     _running = false
     job.cb(ok, err)
     drain()
@@ -34,7 +34,15 @@ end
 ---@param callback fun(ok: boolean, err?: string)
 function M.install(spec, version, callback)
   local target = version and (spec .. "@" .. version) or spec
-  _queue[#_queue + 1] = { cmd = { "mise", "use", "-g", target }, cb = callback }
+  _queue[#_queue + 1] = {
+    cmd = { "mise", "use", "-g", target },
+    opts = {
+      env = {
+        MISE_EXPERIMENTAL = "1",
+      },
+    },
+    cb = callback,
+  }
   drain()
 end
 
