@@ -57,6 +57,24 @@ end
 -- Resolve printWidth from prettier config (async, cached)
 -- ---------------------------------------------------------------------------
 
+--- Set textwidth on a buffer.
+--- vim.bo doesn't fire OptionSet, so we also schedule a :setlocal to notify
+--- listeners (e.g. virtcolumn.nvim) that need OptionSet to re-resolve
+--- colorcolumn. The immediate vim.bo ensures textwidth takes effect without
+--- waiting for the next event-loop tick.
+--- @param buf integer
+--- @param tw number
+local function set_textwidth(buf, tw)
+  vim.bo[buf].textwidth = tw
+  vim.schedule(function()
+    if vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].textwidth == tw then
+      vim.api.nvim_buf_call(buf, function()
+        vim.cmd("setlocal textwidth=" .. tw)
+      end)
+    end
+  end)
+end
+
 -- Node script: resolve prettier's own module path from the binary, then call
 -- resolveConfig(). Handles all 13+ config formats and per-file overrides.
 local RESOLVE_SCRIPT = [[
@@ -188,7 +206,7 @@ local function apply_result(key, pw)
   end
   for _, buf in ipairs(bufs) do
     if vim.api.nvim_buf_is_valid(buf) then
-      vim.bo[buf].textwidth = pw
+      set_textwidth(buf, pw)
     end
   end
 end
@@ -214,7 +232,7 @@ function M.resolve_print_width(bufnr)
   end
   if cached ~= nil then
     if cached and cached > 0 then
-      vim.bo[bufnr].textwidth = cached
+      set_textwidth(bufnr, cached)
     end
     return
   end
@@ -227,7 +245,7 @@ function M.resolve_print_width(bufnr)
     if mtime and mtime == disk_entry.mtime then
       _cache[key] = disk_entry.pw
       if disk_entry.pw and disk_entry.pw > 0 then
-        vim.bo[bufnr].textwidth = disk_entry.pw
+        set_textwidth(bufnr, disk_entry.pw)
       end
       return
     end
