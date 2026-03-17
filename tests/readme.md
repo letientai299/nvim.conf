@@ -78,7 +78,44 @@ The proxy container (`nvim-test-proxy`) stays running across test runs. It is
 not cleaned up automatically — stop it with `docker rm -f nvim-test-proxy` when
 done.
 
+## E2E tests
+
+`e2e.sh` runs three test cases per distro via tmux:
+
+- **ts** — opens `nvim .bashrc`, polls until treesitter has an active parser
+- **oil** — opens `nvim .` in the project dir, checks for file listing
+- **starter** — opens `nvim` with no args, polls for [mini.starter][starter]
+
+```bash
+./tests/e2e.sh                   # all distros
+./tests/e2e.sh ubuntu fedora     # subset
+```
+
+Results go to `.ai.dump/e2e/results.txt`. Screenshots and evidence (`:messages`,
+`:Notifications`) are saved alongside. The script also checks for nvim errors —
+a test that passes verification but has errors in `:messages` is marked WARN.
+
+## Screenshots
+
+`capture.sh` captures a single PNG screenshot of nvim's final state using
+[asciinema][asc] + [agg][agg]. Requires a nerd font for icons.
+
+```bash
+./tests/capture.sh ubuntu oil          # default settle
+./tests/capture.sh ubuntu ts 10        # custom settle (seconds)
+NERD_FONT_DIR=~/.fonts ./tests/capture.sh alpine starter
+```
+
+Output: `.ai.dump/e2e/screenshots/<distro>-<test>.png`
+
+The [catppuccin mocha][cat] theme is baked into agg's `--theme` flag so the
+terminal background matches nvim's colorscheme.
+
 [mitm]: https://mitmproxy.org/
 [ts]: https://github.com/tree-sitter/tree-sitter
 [eks]: https://aws.amazon.com/eks/
 [aks]: https://azure.microsoft.com/en-us/products/kubernetes-service
+[starter]: https://github.com/echasnovski/mini.starter
+[asc]: https://asciinema.org/
+[agg]: https://github.com/asciinema/agg
+[cat]: https://github.com/catppuccin/catppuccin
