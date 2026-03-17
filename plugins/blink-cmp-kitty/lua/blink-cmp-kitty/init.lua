@@ -10,6 +10,14 @@
 local MAX_WINDOWS = 4
 local NS_PER_SEC = 1e9
 
+-- stylua: ignore start
+local PAT_URL     = "^(https?://[%w%-%.%_%~%:%/%?#%[%]@!%$&'%(%)%*%+,;%%=]+)()"
+local PAT_PATH_ABS = "^([~%.][%w%-%.%_%~/]+/[%w%-%.%_%~/]*[%w%.%_])()"       -- ~/.config, ./foo
+local PAT_PATH_REL = "^([%w][%w%-%.%_]*/[%w%-%.%_%~]+/[%w%-%.%_%~/]*[%w%.%_])()" -- a/b/c (2+ slashes)
+local PAT_DOTTED  = "^([%w_][%w_]*%.[%w_.]*[%w_])()"                          -- package.loaded
+local PAT_WORD    = "^([%w][%w%-_]+[%w])()"
+-- stylua: ignore end
+
 --- @module 'blink.cmp'
 --- @class blink.cmp.Source
 local source = {}
@@ -19,7 +27,6 @@ function source.new(opts)
   local self = setmetatable({}, { __index = source })
   self.cache = nil
   self.cache_ttl = ((opts and opts.cache_ttl) or 5) * NS_PER_SEC
-  -- Cached once — env vars don't change during a session.
   self.listen_on = vim.env.KITTY_LISTEN_ON
   self.kitty_available = vim.env.KITTY_PID ~= nil and self.listen_on ~= nil
   return self
@@ -35,7 +42,6 @@ end
 
 --- Shallow-copy items. blink.cmp mutates items in-place (adds source_id,
 --- score_offset, etc.), so the cache must not be handed out directly.
---- A shallow per-item copy suffices since all values are primitives.
 local function copy_items(items)
   local out = {}
   for i = 1, #items do
@@ -46,37 +52,32 @@ local function copy_items(items)
   return out
 end
 
---- Try to match a URL, file path, or word at the given position.
---- Patterns are tried in priority order: URL > path > word.
---- Returns (label, kind, score_offset, end_pos) or nil.
----@param text string
----@param pos number
----@param Kind table  CompletionItemKind enum from blink.cmp
+--- Try to match a URL, file path, dotted identifier, or word at pos.
+--- Patterns are tried in priority order; first match wins.
 ---@return string?, number?, number?, number?
 local function extract_token(text, pos, Kind)
-  local url, url_end =
-    text:match("^(https?://[%w%-%.%_%~%:%/%?#%[%]@!%$&'%(%)%*%+,;%%=]+)()", pos)
+  local url, url_end = text:match(PAT_URL, pos)
   if url then
     return url, Kind.Reference, 10, url_end
   end
 
-  local path, path_end =
-    text:match("^([~/%.][%w%-%.%_%~/]+/[%w%-%.%_%~/]*[%w%.%_])()", pos)
+  local path, path_end = text:match(PAT_PATH_ABS, pos)
+  if not path then
+    path, path_end = text:match(PAT_PATH_REL, pos)
+  end
   if path then
-    path = path:gsub("%.+$", "") -- strip trailing sentence punctuation
+    path = path:gsub("%.+$", "")
     if #path >= 4 then
       return path, Kind.File, 8, path_end
     end
   end
 
-  -- Dotted identifiers: package.loaded, vim.api.nvim_buf_set_lines, etc.
-  -- Requires at least one dot; must not start/end with a dot.
-  local dotted, dotted_end = text:match("^([%w_][%w_]*%.[%w_.]*[%w_])()", pos)
+  local dotted, dotted_end = text:match(PAT_DOTTED, pos)
   if dotted and #dotted >= 4 then
     return dotted, Kind.Field, 4, dotted_end
   end
 
-  local word, word_end = text:match("^([%w][%w%-_]+[%w])()", pos)
+  local word, word_end = text:match(PAT_WORD, pos)
   if word and #word >= 4 then
     return word, Kind.Text, 0, word_end
   end
@@ -86,15 +87,13 @@ end
 
 --- Single-pass tokenizer: scan text left-to-right, extracting the longest
 --- token at each position. Deduplicates via a hash set. After extraction,
---- removes truncated URLs/paths caused by terminal line wraps (e.g., a
---- long URL split across two lines produces both a truncated and full match).
----@param text string  concatenated screen text from kitty panes
+--- removes truncated URLs/paths caused by terminal line wraps.
 local function parse_items(text)
   local Kind = require("blink.cmp.types").CompletionItemKind
   local seen = {}
   local items = {}
-  local len = #text
   local pos = 1
+  local len = #text
 
   while pos <= len do
     local label, kind, offset, next_pos = extract_token(text, pos, Kind)
@@ -110,10 +109,8 @@ local function parse_items(text)
     end
   end
 
-  -- Deduplicate truncated URLs/paths: sort URLs/paths to the front by
-  -- (kind, label) so prefixes are adjacent, then drop any item whose
-  -- label is a prefix of the next item's. Words (Text kind) sort last
-  -- and are never prefix-checked.
+  -- Prefix-dedup: sort URLs/paths to the front so truncated fragments
+  -- (from terminal line wraps) are adjacent to their full versions.
   table.sort(items, function(a, b)
     local a_link = (a.kind == Kind.Reference or a.kind == Kind.File) and 0 or 1
     local b_link = (b.kind == Kind.Reference or b.kind == Kind.File) and 0 or 1
@@ -130,14 +127,14 @@ local function parse_items(text)
   local write = 0
   for i = 1, n do
     local it = items[i]
-    local dominated = false
+    local is_prefix = false
     if it.kind == Kind.Reference or it.kind == Kind.File then
       local nxt = items[i + 1]
-      dominated = nxt
+      is_prefix = nxt
         and nxt.kind == it.kind
         and nxt.label:sub(1, #it.label) == it.label
     end
-    if not dominated then
+    if not is_prefix then
       write = write + 1
       items[write] = it
     end
@@ -150,23 +147,15 @@ local function parse_items(text)
 end
 
 --- Fetch screen text from the N most recently focused windows in the active
---- tab, in parallel. Skips recent:0 (neovim's own window). Calls on_done
---- with concatenated text once all subprocesses finish.
----@param listen_on string  kitty IPC socket path (KITTY_LISTEN_ON)
+--- tab, in parallel. Skips recent:0 (neovim's own window).
+---@param listen_on string
 ---@param on_done fun(text: string)
----@return fun() cancel  kills all in-flight subprocesses
+---@return fun() cancel
 local function fetch_recent_panes(listen_on, on_done)
   local cancelled = false
   local jobs = {}
   local texts = {}
   local remaining = MAX_WINDOWS
-
-  local function cancel()
-    cancelled = true
-    for _, j in ipairs(jobs) do
-      j:kill()
-    end
-  end
 
   local function on_exit(result)
     if not cancelled and result.code == 0 and result.stdout then
@@ -182,7 +171,7 @@ local function fetch_recent_panes(listen_on, on_done)
   end
 
   for i = 1, MAX_WINDOWS do
-    local j = vim.system({
+    jobs[i] = vim.system({
       "kitty",
       "@",
       "--to",
@@ -193,38 +182,38 @@ local function fetch_recent_panes(listen_on, on_done)
       "--extent",
       "screen",
     }, { text = true }, on_exit)
-    jobs[#jobs + 1] = j
   end
 
-  return cancel
-end
-
-local function make_response(items)
-  return {
-    items = items,
-    is_incomplete_forward = false,
-    is_incomplete_backward = false,
-  }
+  return function()
+    cancelled = true
+    for _, j in ipairs(jobs) do
+      j:kill()
+    end
+  end
 end
 
 function source:get_completions(_, callback)
   local now = vim.uv.hrtime()
   if self.cache and (now - self.cache.ts) < self.cache_ttl then
-    return callback(make_response(copy_items(self.cache.items)))
+    callback({
+      items = copy_items(self.cache.items),
+      is_incomplete_forward = false,
+      is_incomplete_backward = false,
+    })
+    return
   end
 
-  local cancel = fetch_recent_panes(self.listen_on, function(text)
-    local items = {}
-    if #text > 0 then
-      items = parse_items(text)
-    end
+  return fetch_recent_panes(self.listen_on, function(text)
+    local items = #text > 0 and parse_items(text) or {}
     if #items > 0 then
       self.cache = { items = items, ts = vim.uv.hrtime() }
     end
-    callback(make_response(copy_items(items)))
+    callback({
+      items = copy_items(items),
+      is_incomplete_forward = false,
+      is_incomplete_backward = false,
+    })
   end)
-
-  return cancel
 end
 
 return source
