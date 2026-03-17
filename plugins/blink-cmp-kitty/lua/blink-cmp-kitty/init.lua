@@ -7,8 +7,6 @@
 --- Requires `allow_remote_control` and `listen_on` in kitty.conf.
 --- The source auto-disables when KITTY_PID or KITTY_LISTEN_ON is unset.
 
---- Max panes to fetch per cache miss. Kitty's `recent:N` is scoped to the
---- active tab, so 4 covers most split layouts without excessive subprocesses.
 local MAX_WINDOWS = 4
 local NS_PER_SEC = 1e9
 
@@ -31,11 +29,13 @@ function source:enabled()
   return self.kitty_available
 end
 
+function source:get_trigger_characters()
+  return { "." }
+end
+
 --- Shallow-copy items. blink.cmp mutates items in-place (adds source_id,
 --- score_offset, etc.), so the cache must not be handed out directly.
 --- A shallow per-item copy suffices since all values are primitives.
----@param items lsp.CompletionItem[]
----@return lsp.CompletionItem[]
 local function copy_items(items)
   local out = {}
   for i = 1, #items do
@@ -69,6 +69,13 @@ local function extract_token(text, pos, Kind)
     end
   end
 
+  -- Dotted identifiers: package.loaded, vim.api.nvim_buf_set_lines, etc.
+  -- Requires at least one dot; must not start/end with a dot.
+  local dotted, dotted_end = text:match("^([%w_][%w_]*%.[%w_.]*[%w_])()", pos)
+  if dotted and #dotted >= 4 then
+    return dotted, Kind.Field, 4, dotted_end
+  end
+
   local word, word_end = text:match("^([%w][%w%-_]+[%w])()", pos)
   if word and #word >= 4 then
     return word, Kind.Text, 0, word_end
@@ -82,7 +89,6 @@ end
 --- removes truncated URLs/paths caused by terminal line wraps (e.g., a
 --- long URL split across two lines produces both a truncated and full match).
 ---@param text string  concatenated screen text from kitty panes
----@return lsp.CompletionItem[]
 local function parse_items(text)
   local Kind = require("blink.cmp.types").CompletionItemKind
   local seen = {}
@@ -104,36 +110,43 @@ local function parse_items(text)
     end
   end
 
-  -- Deduplicate truncated URLs/paths: sort by (kind, label) so prefixes are
-  -- adjacent, then drop any item whose label is a prefix of the next item's.
-  local linkable = {}
-  local rest = {}
-  for _, it in ipairs(items) do
-    if it.kind == Kind.Reference or it.kind == Kind.File then
-      linkable[#linkable + 1] = it
-    else
-      rest[#rest + 1] = it
+  -- Deduplicate truncated URLs/paths: sort URLs/paths to the front by
+  -- (kind, label) so prefixes are adjacent, then drop any item whose
+  -- label is a prefix of the next item's. Words (Text kind) sort last
+  -- and are never prefix-checked.
+  table.sort(items, function(a, b)
+    local a_link = (a.kind == Kind.Reference or a.kind == Kind.File) and 0 or 1
+    local b_link = (b.kind == Kind.Reference or b.kind == Kind.File) and 0 or 1
+    if a_link ~= b_link then
+      return a_link < b_link
     end
-  end
-  table.sort(linkable, function(a, b)
     if a.kind ~= b.kind then
       return a.kind < b.kind
     end
     return a.label < b.label
   end)
-  local out = {}
-  for i, it in ipairs(linkable) do
-    local nxt = linkable[i + 1]
-    local is_prefix = nxt
-      and nxt.kind == it.kind
-      and nxt.label:sub(1, #it.label) == it.label
-    if not is_prefix then
-      out[#out + 1] = it
+
+  local n = #items
+  local write = 0
+  for i = 1, n do
+    local it = items[i]
+    local dominated = false
+    if it.kind == Kind.Reference or it.kind == Kind.File then
+      local nxt = items[i + 1]
+      dominated = nxt
+        and nxt.kind == it.kind
+        and nxt.label:sub(1, #it.label) == it.label
+    end
+    if not dominated then
+      write = write + 1
+      items[write] = it
     end
   end
-  vim.list_extend(out, rest)
+  for i = write + 1, n do
+    items[i] = nil
+  end
 
-  return out
+  return items
 end
 
 --- Fetch screen text from the N most recently focused windows in the active
@@ -186,7 +199,6 @@ local function fetch_recent_panes(listen_on, on_done)
   return cancel
 end
 
----@param items lsp.CompletionItem[]
 local function make_response(items)
   return {
     items = items,
