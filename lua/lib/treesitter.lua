@@ -382,4 +382,36 @@ function M.auto_install(bufnr)
   end)
 end
 
+--- Install parsers that are missing on disk (e.g. injection-only languages
+--- that auto_install never sees via filetype). Runs asynchronously.
+--- Uses a stat check instead of `language.inspect` to avoid dlopen on startup.
+---@param langs string[]
+function M.ensure_parsers(langs)
+  local parser_dir = vim.fs.joinpath(vim.fn.stdpath("data"), "site", "parser")
+  local missing = {}
+  for _, lang in ipairs(langs) do
+    if
+      not installing[lang]
+      and not vim.uv.fs_stat(parser_dir .. "/" .. lang .. ".so")
+    then
+      missing[#missing + 1] = lang
+    end
+  end
+  if #missing == 0 then
+    return
+  end
+
+  ensure_build_deps(function()
+    local ts = require("nvim-treesitter")
+    for _, lang in ipairs(missing) do
+      installing[lang] = true
+    end
+    ts.install(missing, { summary = false }):await(function()
+      for _, lang in ipairs(missing) do
+        installing[lang] = nil
+      end
+    end)
+  end)
+end
+
 return M

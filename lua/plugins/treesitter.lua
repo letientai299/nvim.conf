@@ -17,5 +17,15 @@ return {
     require("nvim-treesitter").setup({ install_dir = install_dir })
     require("nvim-treesitter.parsers")
     lib_ts.register_default_languages()
+
+    -- Parsers used as injections (not auto-installed via filetype detection).
+    lib_ts.ensure_parsers({
+      "diff",
+      "git_rebase",
+      "gitcommit",
+      "regex",
+      "luadoc",
+      "printf",
+    })
   end,
 }
