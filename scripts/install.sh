@@ -124,7 +124,39 @@ install_neovim() {
 
 # --- 4. Install global CLI tools --------------------------------------------
 
+# True on musl libc (Alpine, Void, etc.) where mise's prebuilt glibc binaries
+# for tree-sitter and zig fail to exec (missing ELF interpreter).
+is_musl() { ldd --version 2>&1 | grep -qi musl; }
+
+# On musl systems, install tree-sitter CLI and a C compiler via the system
+# package manager. Alpine's tree-sitter-cli package patches cc-rs to recognise
+# musl targets, so `tree-sitter build` works correctly.
+# https://github.com/tree-sitter/tree-sitter/issues/4184
+install_musl_build_deps() {
+  is_musl || return 0
+
+  # Already satisfied — nothing to do
+  if command -v tree-sitter >/dev/null 2>&1 && command -v gcc >/dev/null 2>&1; then
+    return 0
+  fi
+
+  if command -v apk >/dev/null 2>&1; then
+    if [ "$(id -u)" -eq 0 ]; then
+      log "musl detected — installing build-base + tree-sitter-cli via apk"
+      apk add --no-cache build-base tree-sitter-cli
+    else
+      log "WARNING: musl detected but not root — cannot apk add build-base tree-sitter-cli"
+      log "Install them manually: sudo apk add build-base tree-sitter-cli"
+    fi
+  else
+    log "WARNING: musl detected but no supported package manager found"
+    log "Install a C compiler and tree-sitter CLI manually"
+  fi
+}
+
 install_cli_tools() {
+  install_musl_build_deps
+
   missing=""
   for pair in "fzf:fzf" "fd:fd" "ripgrep:rg" "tree-sitter:tree-sitter"; do
     pkg="${pair%%:*}"

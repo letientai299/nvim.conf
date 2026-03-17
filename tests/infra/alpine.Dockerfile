@@ -1,7 +1,8 @@
 ARG BASE_IMAGE=alpine:edge
 FROM ${BASE_IMAGE}
 
-RUN apk add --no-cache git curl bash shadow neovim libatomic icu-libs
+RUN apk add --no-cache git curl bash shadow neovim libatomic icu-libs \
+      build-base tree-sitter-cli
 
 ARG UID=1000
 ARG GID=1000
