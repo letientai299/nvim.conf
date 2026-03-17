@@ -9,8 +9,8 @@
 -- https://github.com/barrettruth/diffs.nvim
 -- https://github.com/NeogitOrg/neogit/discussions/1187
 return {
-  "barrettruth/diffs.nvim",
-  lazy = true,
+  "letientai299/diffs.nvim",
+  ft = { "git", "gitcommit" },
   init = function()
     vim.g.diffs = {
       highlights = {

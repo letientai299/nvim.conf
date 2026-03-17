@@ -5,7 +5,7 @@ return {
   dependencies = {
     "nvim-lua/plenary.nvim",
     "sindrets/diffview.nvim",
-    "barrettruth/diffs.nvim",
+    "letientai299/diffs.nvim",
   },
   keys = {
     {
