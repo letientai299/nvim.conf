@@ -49,27 +49,30 @@ function useDebounce<T>(value: T, delay: number): T {
 function useFilterReducer(initial: FilterState) {
   const [state, setState] = useState(initial);
 
-  const dispatch = useCallback((action: FilterAction) => {
-    setState((prev) => {
-      switch (action.type) {
-        case "SET_QUERY":
-          return { ...prev, query: action.payload };
-        case "SET_ROLE":
-          return { ...prev, role: action.payload };
-        case "TOGGLE_SORT":
-          return {
-            ...prev,
-            sortBy: action.payload,
-            sortDir:
-              prev.sortBy === action.payload && prev.sortDir === "asc"
-                ? "desc"
-                : "asc",
-          };
-        case "RESET":
-          return initial;
-      }
-    });
-  }, [initial]);
+  const dispatch = useCallback(
+    (action: FilterAction) => {
+      setState((prev) => {
+        switch (action.type) {
+          case "SET_QUERY":
+            return { ...prev, query: action.payload };
+          case "SET_ROLE":
+            return { ...prev, role: action.payload };
+          case "TOGGLE_SORT":
+            return {
+              ...prev,
+              sortBy: action.payload,
+              sortDir:
+                prev.sortBy === action.payload && prev.sortDir === "asc"
+                  ? "desc"
+                  : "asc",
+            };
+          case "RESET":
+            return initial;
+        }
+      });
+    },
+    [initial],
+  );
 
   return [state, dispatch] as const;
 }
@@ -136,7 +139,9 @@ export default function UserTable({ users }: { users: User[] }) {
       if (filter.role !== "all" && u.role !== filter.role) return false;
       if (!debouncedQuery) return true;
       const q = debouncedQuery.toLowerCase();
-      return u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
+      return (
+        u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
+      );
     });
 
     result.sort((a, b) => {
@@ -193,7 +198,9 @@ export default function UserTable({ users }: { users: User[] }) {
                   field={field}
                   current={filter.sortBy}
                   dir={filter.sortDir}
-                  onToggle={(f) => dispatch({ type: "TOGGLE_SORT", payload: f })}
+                  onToggle={(f) =>
+                    dispatch({ type: "TOGGLE_SORT", payload: f })
+                  }
                 >
                   {field === "lastLogin" ? "Last Login" : field}
                 </SortButton>
