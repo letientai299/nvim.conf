@@ -1,0 +1,107 @@
+*blink-cmp-path.txt*  Project-wide path completions for blink.cmp
+
+==============================================================================
+CONTENTS                                            *blink-cmp-path-contents*
+
+    1. Introduction .......................... |blink-cmp-path-intro|
+    2. Requirements .......................... |blink-cmp-path-requirements|
+    3. Configuration ......................... |blink-cmp-path-config|
+    4. Commands .............................. |blink-cmp-path-commands|
+    5. How it works .......................... |blink-cmp-path-details|
+
+==============================================================================
+1. INTRODUCTION                                        *blink-cmp-path-intro*
+
+A custom |blink.cmp| source that completes file paths relative to the project
+root. Indexes files via `git ls-files` (with `fd` fallback) and serves
+pre-built |CompletionItem| objects scoped by directory prefix.
+
+The index updates incrementally on |BufWritePost| and |BufDelete|, and
+rebuilds fully on |FocusGained| and |DirChanged| (debounced to 5 seconds).
+
+==============================================================================
+2. REQUIREMENTS                                 *blink-cmp-path-requirements*
+
+- |blink.cmp| installed
+- One of: `git` (preferred) or `fd` for file discovery
+
+==============================================================================
+3. CONFIGURATION                                      *blink-cmp-path-config*
+
+Register the source in your blink.cmp provider config: >lua
+
+    sources = {
+      default = { "lsp", "snippets", "path", "buffer", "cwd" },
+      providers = {
+        cwd = {
+          name = "cwd",
+          module = "blink-cmp-path",
+          score_offset = 90,
+        },
+      },
+    }
+<
+                                              *blink-cmp-path-config-options*
+Options passed via `opts` in the provider table:
+
+  `always_index`  (string[], default {})
+    Glob patterns to index in addition to git/fd results. Useful for
+    gitignored directories that should still complete. >lua
+
+        opts = {
+          always_index = { ".ai.dump/**" },
+        },
+<
+
+==============================================================================
+4. COMMANDS                                         *blink-cmp-path-commands*
+
+                                                          *:PathCmpRefresh*
+:PathCmpRefresh
+    Force a full index rebuild. Shows a notification with the file count
+    when complete. Use when the index seems stale.
+
+==============================================================================
+5. HOW IT WORKS                                      *blink-cmp-path-details*
+
+File discovery ~
+
+The scanner picks a backend based on what's available:
+  1. `git ls-files -co --exclude-standard` if `.git/` exists
+  2. `fd --type f --hidden --exclude .git` otherwise
+
+Both use null-separated output (`-z` / `--print0`) to handle spaces in
+filenames. If `always_index` patterns are set, their results are merged
+before deduplication.
+
+Index ~
+
+Files are sorted and deduplicated in a single pass. Each entry is a
+pre-built CompletionItem with `label` (relative path) and `kind = File`.
+
+Prefix lookup uses binary search to find the range of items matching a
+directory prefix (e.g., typing `plugins/` returns all paths under that
+directory).
+
+Incremental updates ~
+
+- |BufWritePost|: patches the index — inserts new files or removes deleted
+  ones at the correct sorted position.
+- |BufDelete|: removes the file from the index.
+- |FocusGained|, |DirChanged|: full rebuild (debounced, 5-second minimum
+  interval between rebuilds).
+
+Resolve ~
+
+When a completion item is selected, the source reads the first 4096 bytes
+of the file, detects the filetype with |vim.filetype.match()|, and shows
+the first 10 lines as a fenced code block in the documentation popup.
+
+fsmonitor ~
+
+On first load, the source checks `git config core.fsmonitor`. If unset, it
+shows a one-time suggestion to enable it for faster `git ls-files` in large
+repos.
+
+==============================================================================
+vim:tw=78:ts=8:ft=help:norl:
