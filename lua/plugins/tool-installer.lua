@@ -10,6 +10,7 @@ return {
         node = { bin = "node", mise = "node" },
         rust = { bin = "cargo", mise = "rust" },
         dotnet = { bin = "dotnet", mise = "dotnet" },
+        ["7zip"] = { bin = "7zz", mise = "aqua:ip7z/7zip" },
       },
     })
   end,
