@@ -10,24 +10,113 @@ vim.api.nvim_create_user_command("SudoWrite", function()
   vim.cmd.edit({ bang = true })
 end, { desc = "Write file with sudo" })
 
-vim.api.nvim_create_user_command("Reload", function()
-  local config = vim.fn.stdpath("config") .. "/lua/"
-  for mod, _ in pairs(package.loaded) do
-    local path = package.searchpath(mod, package.path)
-    if path and path:find(config, 1, true) then
-      package.loaded[mod] = nil
+do
+  local config_dir = vim.fn.stdpath("config")
+
+  local function source_if_exists(path)
+    if vim.uv.fs_stat(path) then
+      vim.cmd.source(path)
     end
   end
-  -- Re-source non-plugin modules only; lazy.nvim cannot be re-setup at runtime.
-  local modules = { "options", "keymaps", "commands" }
-  for _, mod in ipairs(modules) do
-    local ok, err = pcall(require, mod)
-    if not ok then
-      vim.notify("Reload failed (" .. mod .. "): " .. err, vim.log.levels.ERROR)
+
+  --- Read persisted theme state and apply if the colorscheme changed.
+  --- Returns the new colorscheme name, or nil.
+  local function reload_theme()
+    local state_path = vim.fn.stdpath("state") .. "/store/theme.lua"
+    if not vim.uv.fs_stat(state_path) then
       return
     end
+
+    local ok, entry = pcall(function()
+      return require("lib.bytecache").load(state_path)
+    end)
+    if not ok or not entry or not entry.colorscheme then
+      return
+    end
+    if entry.colorscheme == (vim.g.colors_name or "") then
+      return
+    end
+
+    -- Ensure the owning plugin is loaded before applying.
+    if entry.plugin and entry.plugin ~= "" then
+      pcall(function()
+        require("lazy.core.loader").load(
+          { entry.plugin },
+          { cmd = "colorscheme" }
+        )
+      end)
+    end
+
+    local aok, aerr = pcall(function()
+      require("store-theme").apply(entry, false)
+    end)
+    if not aok then
+      vim.notify("Reload: theme apply failed: " .. aerr, vim.log.levels.WARN)
+      return
+    end
+    return entry.colorscheme
   end
-end, { desc = "Invalidate Lua cache and reload config" })
+
+  vim.api.nvim_create_user_command("Reload", function(opts)
+    -- Reload a specific lazy.nvim plugin by name.
+    if opts.args ~= "" then
+      local ok, loader = pcall(require, "lazy.core.loader")
+      if not ok then
+        vim.notify("Reload: lazy.nvim loader unavailable", vim.log.levels.ERROR)
+        return
+      end
+      loader.reload(opts.args)
+      vim.notify("Reloaded plugin: " .. opts.args)
+      return
+    end
+
+    -- 1. Clear module cache for config modules and local plugins.
+    local cleared = 0
+    for mod, _ in pairs(package.loaded) do
+      local found = vim.loader.find(mod)
+      local path = found[1] and found[1].modpath
+      if path and path:find(config_dir, 1, true) then
+        package.loaded[mod] = nil
+        cleared = cleared + 1
+      end
+    end
+
+    -- 2. Invalidate vim.loader bytecode cache.
+    vim.loader.reset()
+
+    -- 3. Re-require core modules (keymaps/commands pull in _late variants
+    --    because vim.v.vim_did_enter == 1 at reload time).
+    for _, mod in ipairs({ "options", "keymaps", "commands" }) do
+      local ok, err = pcall(require, mod)
+      if not ok then
+        vim.notify(
+          "Reload failed (" .. mod .. "): " .. err,
+          vim.log.levels.ERROR
+        )
+        return
+      end
+    end
+
+    -- 4. Re-source local config and project exrc.
+    source_if_exists(config_dir .. "/lua/local/init.lua")
+    source_if_exists(vim.fn.getcwd() .. "/.nvim.lua")
+
+    -- 5. Reload theme from persisted state if it changed.
+    local theme = reload_theme()
+    local suffix = theme and (", theme → " .. theme) or ""
+    vim.notify(string.format("Reloaded %d modules%s", cleared, suffix))
+  end, {
+    nargs = "?",
+    complete = function()
+      local ok, cfg = pcall(require, "lazy.core.config")
+      if not ok then
+        return {}
+      end
+      return vim.tbl_keys(cfg.plugins)
+    end,
+    desc = "Reload config modules, theme, or a specific plugin",
+  })
+end
 
 vim.api.nvim_create_user_command("W", function()
   vim.cmd("noautocmd write")

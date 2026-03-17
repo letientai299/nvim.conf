@@ -132,7 +132,10 @@ local function flush_disk_cache()
   end
 end
 
-vim.api.nvim_create_autocmd("VimLeavePre", { callback = flush_disk_cache })
+vim.api.nvim_create_autocmd("VimLeavePre", {
+  group = vim.api.nvim_create_augroup("PrettierCache", { clear = true }),
+  callback = flush_disk_cache,
+})
 
 --- Find the prettier config file nearest to `path`, searching upward to `root`.
 --- @param path string file path to search from

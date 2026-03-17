@@ -41,9 +41,12 @@ vim.opt.smartcase = true
 -- Spell-check language (activate per buffer with :set spell)
 vim.opt.spelllang = "en_us"
 
+local augroup = vim.api.nvim_create_augroup("UserOptions", { clear = true })
+
 -- Prefer treesitter highlighting for normal file buffers without waiting for
 -- the full nvim-treesitter plugin config to load.
 vim.api.nvim_create_autocmd({ "BufReadPre", "BufNewFile" }, {
+  group = augroup,
   callback = function(args)
     if vim.bo[args.buf].buftype == "" then
       vim.b[args.buf].ts_highlight = false
@@ -73,6 +76,7 @@ local function is_normal_file_buffer(bufnr)
 end
 
 vim.api.nvim_create_autocmd("FileType", {
+  group = augroup,
   callback = function()
     local buf = vim.api.nvim_get_current_buf()
     if not is_normal_file_buffer(buf) then
@@ -109,6 +113,7 @@ vim.opt.listchars = {
 
 -- Swap eol icon: thin ↲ for LF, bold ⏎ for CRLF
 vim.api.nvim_create_autocmd({ "BufReadPost", "BufNewFile" }, {
+  group = augroup,
   callback = function()
     local eol = vim.bo.fileformat == "dos" and "⏎" or "↲"
     vim.opt_local.listchars:append({ eol = eol })
@@ -135,45 +140,51 @@ vim.opt.completeopt:append("fuzzy")
 -- Rounded borders on every floating window globally (0.11+)
 vim.o.winborder = "rounded"
 
--- Diagnostics: defer config to avoid loading vim.diagnostic at startup
-vim.api.nvim_create_autocmd("User", {
-  pattern = "VeryLazy",
-  once = true,
-  callback = function()
-    -- Delay treesitter fold setup so startup doesn't pull in parser code just to
-    -- render the first screen. Folds still start open once enabled.
-    vim.opt.foldmethod = "expr"
-    vim.opt.foldexpr = "v:lua.vim.treesitter.foldexpr()"
-    vim.opt.foldtext = "" -- render first line with syntax highlighting (0.10+)
-    vim.opt.foldlevel = 99
-    vim.opt.foldlevelstart = 99
+-- Settings deferred until VeryLazy to avoid loading vim.diagnostic and
+-- treesitter fold code at startup. On :Reload (vim_did_enter == 1) VeryLazy
+-- has already fired, so apply immediately.
+local function apply_deferred_options()
+  vim.opt.foldmethod = "expr"
+  vim.opt.foldexpr = "v:lua.vim.treesitter.foldexpr()"
+  vim.opt.foldtext = "" -- render first line with syntax highlighting (0.10+)
+  vim.opt.foldlevel = 99
+  vim.opt.foldlevelstart = 99
 
-    vim.diagnostic.config({
-      jump = { float = true },
-      virtual_text = { spacing = 4, prefix = "●" },
-      severity_sort = true,
-    })
+  vim.diagnostic.config({
+    jump = { float = true },
+    virtual_text = { spacing = 4, prefix = "●" },
+    severity_sort = true,
+  })
 
-    -- Override textwidth from prettier printWidth when a config exists nearby.
-    -- Deferred here so lib.prettier isn't loaded at startup.
-    local function apply_prettier_tw(bufnr)
-      if is_normal_file_buffer(bufnr) then
-        require("lib.prettier").resolve_print_width(bufnr)
-      end
+  -- Override textwidth from prettier printWidth when a config exists nearby.
+  local function apply_prettier_tw(bufnr)
+    if is_normal_file_buffer(bufnr) then
+      require("lib.prettier").resolve_print_width(bufnr)
     end
+  end
 
-    vim.api.nvim_create_autocmd("BufEnter", {
-      callback = function(args)
-        apply_prettier_tw(args.buf)
-      end,
-    })
+  vim.api.nvim_create_autocmd("BufEnter", {
+    group = augroup,
+    callback = function(args)
+      apply_prettier_tw(args.buf)
+    end,
+  })
 
-    -- VeryLazy fires after the initial BufEnter — resolve for existing buffers.
-    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-      apply_prettier_tw(buf)
-    end
-  end,
-})
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    apply_prettier_tw(buf)
+  end
+end
+
+if vim.v.vim_did_enter == 1 then
+  apply_deferred_options()
+else
+  vim.api.nvim_create_autocmd("User", {
+    group = augroup,
+    pattern = "VeryLazy",
+    once = true,
+    callback = apply_deferred_options,
+  })
+end
 
 vim.api.nvim_create_user_command("GitRoot", function()
   local root = vim.fs.root(0, ".git")
