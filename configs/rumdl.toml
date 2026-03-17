@@ -8,4 +8,5 @@ disable = [
   "MD041", # first-line-h1: not all files start with h1
   "MD047", # single new line ending: we prefer a trailing blank line.
   "MD053", # link-image-reference-definitions: false positives with footnotes
+  "MD036", # Emphasis used instead of a heading: no need
 ]

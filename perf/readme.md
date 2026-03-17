@@ -152,14 +152,14 @@ lang-module setups (LSP servers, formatters, linters). Each is 50–200 lines.
 | `style.css`      | css        | css         | css-ls, prettier, biomejs                               |
 | `Component.vue`  | vue        | vue         | vue-language-server, prettier, biomejs                  |
 | `models.go`      | go         | go          | gopls, goimports, golangci-lint                         |
-| `parser.rs`      | rust       | rust        | rust-analyzer                                           |
+| `parser.rs`      | rust       | rust        | Treesitter-focused sample; no Rust workspace for LSP    |
 | `pipeline.py`    | python     | python      | basedpyright, ruff                                      |
 | `config.lua`     | lua        | lua         | lua-language-server, stylua                             |
 | `migrations.sql` | sql        | sql         | sqls, sql-formatter                                     |
 | `document.md`    | markdown   | —           | Treesitter only; fenced SQL/JSON/Mermaid/PromQL/GraphQL |
 | `compose.yaml`   | yaml       | —           | Treesitter only; YAML-hosted bash, PromQL, and JSON5    |
 | `Dockerfile`     | dockerfile | docker      | dockerls, hadolint; Dockerfile-hosted bash and JSON5    |
-| `Example.java`   | java       | java        | jdtls                                                   |
+| `Example.java`   | java       | —           | Treesitter-focused sample; no Java LSP configured       |
 
 ## Verifying an improvement
 
