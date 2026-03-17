@@ -331,6 +331,18 @@ end
 --- Auto-install a missing parser for the buffer's filetype, then enable
 --- highlighting. Uses nvim-treesitter's async install; re-triggers
 --- enable_highlight on completion.
+-- Injection/companion parsers to install alongside the primary filetype parser.
+local companion_parsers = {
+  diff = { "diff" },
+  gitcommit = { "gitcommit", "diff" },
+  git_rebase = { "git_rebase" },
+  lua = { "luadoc" },
+  c = { "printf" },
+  cpp = { "printf" },
+  vim = { "regex" },
+  python = { "regex" },
+}
+
 function M.auto_install(bufnr)
   local ft = vim.bo[bufnr].filetype
   if ft == "" then
@@ -338,6 +350,13 @@ function M.auto_install(bufnr)
   end
 
   local lang = vim.treesitter.language.get_lang(ft) or ft
+
+  -- Install companion/injection parsers for this filetype on demand.
+  local companions = companion_parsers[lang]
+  if companions then
+    M.ensure_parsers(companions)
+  end
+
   if installing[lang] then
     return
   end
