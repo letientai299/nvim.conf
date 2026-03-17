@@ -1,6 +1,7 @@
 return {
   "glacambre/firenvim",
   lazy = not vim.g.started_by_firenvim,
+  cond = vim.g.started_by_firenvim ~= nil,
   build = ":call firenvim#install(0)",
   init = function()
     if not vim.g.started_by_firenvim then
