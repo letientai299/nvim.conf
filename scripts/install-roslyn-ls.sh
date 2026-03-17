@@ -7,11 +7,33 @@ set -euo pipefail
 
 INSTALL_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/nvim/roslyn-ls"
 MISE_SHIMS="${MISE_SHIMS:-$HOME/.local/share/mise/shims}"
+WRAPPER_DIR="${ROSLYN_WRAPPER_DIR:-$HOME/.local/bin}"
 REPO="Crashdummyy/roslynLanguageServer"
 
 # Keep the script aligned with the repo's main installer: make the mise binary
 # path and shims visible before any command checks or installs.
 export PATH="$HOME/.local/bin:$MISE_SHIMS:$PATH"
+
+write_wrapper() {
+  local dir="$1"
+  mkdir -p "$dir"
+  cat >"$dir/roslyn" <<EOF
+#!/usr/bin/env bash
+exec dotnet "$INSTALL_DIR/Microsoft.CodeAnalysis.LanguageServer.dll" "\$@"
+EOF
+  chmod +x "$dir/roslyn"
+}
+
+ensure_wrapper() {
+  # Place wrapper in ~/.local/bin (always on PATH in our test harness) and
+  # also in mise shims for environments that include that path.
+  write_wrapper "$WRAPPER_DIR"
+  write_wrapper "$MISE_SHIMS"
+}
+
+is_install_healthy() {
+  [ -f "$INSTALL_DIR/Microsoft.CodeAnalysis.LanguageServer.dll" ]
+}
 
 # `dotnet` and `7zz` are installed via tool-installer before this script runs.
 # `curl` remains a host requirement.
@@ -48,7 +70,11 @@ fi
 
 # Skip if already installed at this version
 if [ -f "$INSTALL_DIR/.version" ] && [ "$(cat "$INSTALL_DIR/.version")" = "$version" ]; then
-  exit 0
+  ensure_wrapper
+  if is_install_healthy; then
+    exit 0
+  fi
+  echo "Cached Roslyn version is incomplete; reinstalling..." >&2
 fi
 
 tmp_dir=$(mktemp -d)
@@ -74,11 +100,11 @@ cp -R "$dll_dir"/* "$INSTALL_DIR/"
 printf '%s' "$version" >"$INSTALL_DIR/.version"
 
 # Wrapper script so vim.fn.executable("roslyn") resolves through mise's tool dir.
-mkdir -p "$MISE_SHIMS"
-cat >"$MISE_SHIMS/roslyn" <<EOF
-#!/usr/bin/env bash
-exec dotnet "$INSTALL_DIR/Microsoft.CodeAnalysis.LanguageServer.dll" "\$@"
-EOF
-chmod +x "$MISE_SHIMS/roslyn"
+ensure_wrapper
+
+if ! is_install_healthy; then
+  echo "Roslyn install failed: missing language server DLL" >&2
+  exit 1
+fi
 
 echo "Roslyn LSP v$version installed"

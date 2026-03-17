@@ -64,9 +64,10 @@ function M.setup(key, bufnr, opts)
   local function setup_buffer()
     local lsps = listify(resolve(opts.lsps or opts.lsp))
     local tools = resolve(opts.tools)
+    local lsp = require("lib.lsp")
 
     for _, name in ipairs(lsps) do
-      require("lib.lsp").enable(name, bufnr)
+      lsp.enable_until_ready(name, bufnr)
     end
 
     if opts.each then
@@ -81,7 +82,7 @@ function M.setup(key, bufnr, opts)
         -- Retry after tool installs; the first enable may have run before the
         -- server binary existed on PATH.
         for _, name in ipairs(lsps) do
-          require("lib.lsp").enable(name, bufnr)
+          lsp.enable_until_ready(name, bufnr)
         end
       end)
     end
