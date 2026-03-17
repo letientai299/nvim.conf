@@ -31,7 +31,7 @@ return {
             end,
           },
         },
-        lualine_c = { { "filename", path = 1 }, "searchcount" },
+        lualine_c = { { "filename", path = 1 }, "aerial", "searchcount" },
         lualine_x = {
           { "lsp_status", symbols = { done = "", separator = " " } },
           "diagnostics",
