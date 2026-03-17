@@ -32,8 +32,8 @@ silently absorbing method calls and indexing.
 local lazy_require = require("lib.lazy_ondemand").lazy_require
 
 -- In init, keys, or top-level functions that may run before the plugin loads:
-lazy_require("oil").open(path)        -- no-op if oil is installing
-lazy_require("toggleterm.terminal")   -- returns proxy, .get_all() etc. are safe
+lazy_require("oil").open(path) -- no-op if oil is installing
+lazy_require("toggleterm.terminal") -- returns proxy, .get_all() etc. are safe
 ```
 
 **When `lazy_require` is NOT enough** — use `package.loaded` guards instead:
