@@ -97,7 +97,7 @@ return {
     },
     {
       "<leader>fS",
-      "<Cmd>FzfLua lsp_workspace_symbols<CR>",
+      "<Cmd>FzfLua lsp_live_workspace_symbols<CR>",
       desc = "LSP symbols (workspace)",
     },
     { "<leader>fx", "<Cmd>FzfLua commands<CR>", desc = "Commands" },
