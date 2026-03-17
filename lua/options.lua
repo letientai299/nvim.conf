@@ -22,7 +22,7 @@ vim.opt.number = true
 vim.opt.cursorline = true
 
 -- Disable the fixed-column ruler (0 = off)
-vim.opt.colorcolumn = "80"
+vim.opt.colorcolumn = "+0"
 
 -- Soft-wrap long lines at window edge (avoids horizontal scroll from ghost text)
 vim.opt.wrap = true
