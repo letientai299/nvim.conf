@@ -146,7 +146,7 @@ function source:get_completions(context, callback)
   local out = {}
   for i = start, stop do
     local it = items[i]
-    out[#out + 1] = { label = it.label, kind = it.kind, data = it.data }
+    out[#out + 1] = { label = it.label, kind = it.kind }
   end
 
   return callback({
@@ -157,11 +157,14 @@ function source:get_completions(context, callback)
 end
 
 --- Read first N lines of the file for documentation preview.
+--- Derives full_path from Index.cwd + item.label (no per-item data table).
 function source:resolve(item, callback)
-  local full_path = item.data and item.data.full_path
-  if not full_path then
+  local cwd = self.index.cwd
+  if not cwd then
     return callback(item)
   end
+
+  local full_path = cwd .. "/" .. item.label
 
   local stat = vim.uv.fs_stat(full_path)
   if not stat or stat.type ~= "file" then

@@ -7,15 +7,12 @@ local scanner = require("blink-cmp-path.scanner")
 local Kind -- lazily resolved
 
 --- Build a single CompletionItem from a relative path.
+--- Stores only label + kind; full_path is derived in source:resolve()
+--- from Index.cwd to avoid a table + string alloc per file.
 ---@param rel string  relative path from project root
----@param cwd string  project root (captured at build time)
-local function make_item(rel, cwd)
+local function make_item(rel)
   Kind = Kind or require("blink.cmp.types").CompletionItemKind
-  return {
-    label = rel,
-    kind = Kind.File,
-    data = { full_path = cwd .. "/" .. rel },
-  }
+  return { label = rel, kind = Kind.File }
 end
 
 --- Binary search for the first item whose label >= prefix.
@@ -113,23 +110,18 @@ function Index:build(callback)
 
   return scan(cwd, function(paths)
     local function finish(all_paths)
-      -- Deduplicate
+      -- Sort first, then single-pass adjacent-dedup (avoids temp hash table)
+      table.sort(all_paths)
+
       local set = {}
-      local deduped = {}
-      for _, rel in ipairs(all_paths) do
-        if not set[rel] then
-          set[rel] = true
-          deduped[#deduped + 1] = rel
-        end
-      end
-
-      -- Sort for binary search
-      table.sort(deduped)
-
-      -- Build items in sorted order
       local items = {}
-      for i, rel in ipairs(deduped) do
-        items[i] = make_item(rel, cwd)
+      local prev
+      for _, rel in ipairs(all_paths) do
+        if rel ~= prev then
+          prev = rel
+          set[rel] = true
+          items[#items + 1] = make_item(rel)
+        end
       end
 
       self.items = items
@@ -150,26 +142,36 @@ function Index:build(callback)
   end)
 end
 
+--- Strip cwd prefix from an absolute path, returning the relative path.
+--- Returns nil if the file is outside cwd.
+---@param self blink-cmp-path.Index
+---@param file string  absolute path
+---@return string?
+local function to_rel(self, file)
+  if not self.cwd then
+    return nil
+  end
+  local prefix = self.cwd .. "/"
+  if file:sub(1, #prefix) ~= prefix then
+    return nil
+  end
+  return file:sub(#prefix + 1)
+end
+
 --- Incremental patch on BufWritePost. Adds new files or removes deleted ones.
 ---@param file string  absolute path of the file
 function Index:patch(file)
-  if not self.cwd then
+  local rel = to_rel(self, file)
+  if not rel then
     return
   end
-
-  local prefix = self.cwd .. "/"
-  if file:sub(1, #prefix) ~= prefix then
-    return
-  end
-  local rel = file:sub(#prefix + 1)
 
   local stat = vim.uv.fs_stat(file)
   if stat and stat.type == "file" then
     if not self.set[rel] then
       self.set[rel] = true
-      -- Insert in sorted position
       local pos = lower_bound(self.items, rel)
-      table.insert(self.items, pos, make_item(rel, self.cwd))
+      table.insert(self.items, pos, make_item(rel))
     end
   else
     self:_swap_remove(rel)
@@ -179,15 +181,11 @@ end
 --- Remove a file from the index (BufDelete).
 ---@param file string  absolute path
 function Index:remove(file)
-  if not self.cwd then
+  local rel = to_rel(self, file)
+  if not rel then
     return
   end
-
-  local prefix = self.cwd .. "/"
-  if file:sub(1, #prefix) ~= prefix then
-    return
-  end
-  self:_swap_remove(file:sub(#prefix + 1))
+  self:_swap_remove(rel)
 end
 
 --- O(1) swap-remove + re-sort the swapped element into place.
