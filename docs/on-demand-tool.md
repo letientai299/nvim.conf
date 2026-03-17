@@ -34,7 +34,6 @@ flowchart TD
 - `lua/lib/lang_registry.lua` owns formatter and linter mappings.
 - `lua/lib/lang_registry_gen.lua` is the generated fast path for formatter
   lookup.
-- [tools.txt][tools-txt] is the eager install path used by `mise run sync`.
 
 ## Important behavior
 
@@ -55,7 +54,6 @@ When a new language is added, it touches three places:
 
 1. `ftplugin/<ft>.lua`
 2. a shared language module under `lua/langs/shared/`
-3. [tools.txt][tools-txt]
 
 That keeps filetype detection, editor wiring, and install metadata in sync.
 
@@ -70,11 +68,9 @@ That keeps filetype detection, editor wiring, and install metadata in sync.
 
 ## Related docs
 
-- [On-demand plugin install][on-demand-plugin-install]
-- [`tools.txt`][tools-txt]
+- [On-demand plugin install][on-demand-plugin]
 - [`lua/lib/treesitter.lua`][treesitter]
 
 [mise]: https://mise.jdx.dev/
-[on-demand-plugin-install]: ./on-demand-plugin-install.md
-[tools-txt]: ../tools.txt
+[on-demand-plugin]: ./on-demand-plugin.md
 [treesitter]: ../lua/lib/treesitter.lua

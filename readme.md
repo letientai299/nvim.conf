@@ -78,7 +78,6 @@ there's no dirty changes.
 ### Remote install
 
 ```sh
-
 curl -fsSL https://raw.githubusercontent.com/letientai299/nvim.conf/main/scripts/install.sh | sh
 ```
 

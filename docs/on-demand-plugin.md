@@ -70,11 +70,11 @@ flowchart TD
 
 ## Related docs
 
-- [On-demand tool install][on-demand-tool-install]
+- [On-demand tool install][on-demand-tool]
 - [`./scripts/install.sh`][install-script]
 - [`lua/lib/bootstrap.lua`][bootstrap]
 
 [bootstrap]: ../lua/lib/bootstrap.lua
 [install-script]: ../scripts/install.sh
 [lazy]: https://lazy.folke.io/
-[on-demand-tool-install]: ./on-demand-tool-install.md
+[on-demand-tool]: ./on-demand-tool.md

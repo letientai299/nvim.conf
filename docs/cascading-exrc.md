@@ -28,7 +28,7 @@ built-in exrc loads a file first, `mark()` keeps the table in sync.
 
 ## Example hierarchy
 
-```
+```text
 ~/projects/
   .nvim.lua                     -- shared web-grep context
   monorepo/
