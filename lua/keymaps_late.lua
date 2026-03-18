@@ -130,10 +130,10 @@ local config_root = vim.fn.stdpath("config") --[[@as string]]
 
 --- Find the nearest .nvim.lua from cwd up to git root, or return git root path.
 local function find_project_exrc()
-  local root = vim.fs.root(0, ".git") or vim.uv.cwd()
+  local root = vim.fs.root(0, ".git") or vim.uv.cwd() or "."
   local found = vim.fs.find(".nvim.lua", {
     upward = true,
-    path = vim.uv.cwd(),
+    path = vim.uv.cwd() or ".",
     stop = vim.fn.fnamemodify(root, ":h"),
   })
   if found[1] then
