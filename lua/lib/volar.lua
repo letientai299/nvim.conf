@@ -8,6 +8,9 @@ function M.get_tsdk(root)
   if not root then
     root = vim.uv.cwd()
   end
+  if not root then
+    return nil
+  end
   local project = root .. "/node_modules/typescript/lib"
   if vim.uv.fs_stat(project) then
     return project

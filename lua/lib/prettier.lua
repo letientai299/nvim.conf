@@ -223,7 +223,7 @@ function M.resolve_print_width(bufnr)
     return
   end
 
-  local root = vim.fs.root(file, ".git") or vim.fn.fnamemodify(file, ":h")
+  local root = vim.fs.root(file, ".git") or vim.fn.fnamemodify(file, ":h") --[[@as string]]
   local ext = vim.fn.fnamemodify(file, ":e")
   local key = root .. "::" .. ext
 
@@ -235,7 +235,7 @@ function M.resolve_print_width(bufnr)
   end
   if cached ~= nil then
     if cached and cached > 0 then
-      set_textwidth(bufnr, cached)
+      set_textwidth(bufnr, cached --[[@as number]])
     end
     return
   end
