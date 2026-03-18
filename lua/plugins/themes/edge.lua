@@ -3,6 +3,7 @@ return {
   lazy = true,
   init_globals = {
     edge_loaded_file_types = {},
+    edge_lsp_kind_color = {},
   },
   init = function()
     vim.g.edge_enable_italic = 1
