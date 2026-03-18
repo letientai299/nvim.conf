@@ -75,6 +75,7 @@ return {
         { mode = "x", keys = "<Leader>s", desc = "+Search" },
         { mode = "n", keys = "<Leader>c", desc = "+Code" },
         { mode = "n", keys = "<Leader>d", desc = "+Diagnostics" },
+        { mode = "n", keys = "<Leader>q", desc = "+Quit" },
         { mode = "n", keys = "<C-q>", desc = "+Terminal" },
         { mode = "t", keys = "<C-q>", desc = "+Terminal" },
       },
