@@ -20,7 +20,12 @@ return {
   init = function()
     -- mini.starter's autoopen fires on VimEnter, but we load on VeryLazy
     -- (after VimEnter). Manually open on empty starts.
-    if vim.fn.argc(-1) == 0 and not vim.env.NVIM_PAGER then
+    local reading_stdin = vim.tbl_contains(vim.v.argv, "-")
+    if
+      vim.fn.argc(-1) == 0
+      and not vim.env.NVIM_PAGER
+      and not reading_stdin
+    then
       vim.api.nvim_create_autocmd("User", {
         pattern = "VeryLazy",
         once = true,

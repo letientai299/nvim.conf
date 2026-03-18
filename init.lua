@@ -3,9 +3,23 @@ vim.loader.enable()
 -- Defer ShaDa reading — marks, registers, command history aren't needed for
 -- first paint. Restore after VeryLazy. Skip deferral for bare `nvim` so
 -- mini.starter can read v:oldfiles immediately.
-local _defer_shada = vim.fn.argc(-1) > 0
+local _reading_stdin = vim.tbl_contains(vim.v.argv, "-")
+local _defer_shada = vim.fn.argc(-1) > 0 or _reading_stdin
 if _defer_shada then
   vim.o.shadafile = "NONE"
+end
+
+-- When reading stdin (`echo foo | nvim -`), mark the buffer as scratch so
+-- `:q` works without `:q!` and the buffer name is descriptive.
+if _reading_stdin then
+  vim.api.nvim_create_autocmd("StdinReadPost", {
+    once = true,
+    callback = function()
+      vim.bo.buftype = "nofile"
+      vim.bo.modified = false
+      vim.api.nvim_buf_set_name(0, "[stdin]")
+    end,
+  })
 end
 
 -- Cache stdpath results (each call crosses the Lua→Vimscript bridge)
