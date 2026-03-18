@@ -143,20 +143,30 @@ return {
     local move = require("nvim-treesitter-textobjects.move")
     local ts_repeat = require("nvim-treesitter-textobjects.repeatable_move")
 
+    -- Guard: skip move commands in buffers without a treesitter parser.
+    local function ts_guard(fn)
+      return function(...)
+        if not pcall(vim.treesitter.get_parser, 0) then
+          return
+        end
+        return fn(...)
+      end
+    end
+
     -- stylua: ignore
     local motions = {
-      { "]m", function() move.goto_next_start("@function.outer", "textobjects") end, "Next function start" },
-      { "[m", function() move.goto_previous_start("@function.outer", "textobjects") end, "Prev function start" },
-      { "]M", function() move.goto_next_end("@function.outer", "textobjects") end, "Next function end" },
-      { "[M", function() move.goto_previous_end("@function.outer", "textobjects") end, "Prev function end" },
-      { "]]", function() move.goto_next_start("@class.outer", "textobjects") end, "Next class start" },
-      { "[[", function() move.goto_previous_start("@class.outer", "textobjects") end, "Prev class start" },
-      { "][", function() move.goto_next_end("@class.outer", "textobjects") end, "Next class end" },
-      { "[]", function() move.goto_previous_end("@class.outer", "textobjects") end, "Prev class end" },
-      { "]o", function() move.goto_next_start({ "@conditional.outer", "@loop.outer" }, "textobjects") end, "Next conditional/loop" },
-      { "[o", function() move.goto_previous_start({ "@conditional.outer", "@loop.outer" }, "textobjects") end, "Prev conditional/loop" },
-      { "]O", function() move.goto_next_end({ "@conditional.outer", "@loop.outer" }, "textobjects") end, "Next conditional/loop end" },
-      { "[O", function() move.goto_previous_end({ "@conditional.outer", "@loop.outer" }, "textobjects") end, "Prev conditional/loop end" },
+      { "]m", ts_guard(function() move.goto_next_start("@function.outer", "textobjects") end), "Next function start" },
+      { "[m", ts_guard(function() move.goto_previous_start("@function.outer", "textobjects") end), "Prev function start" },
+      { "]M", ts_guard(function() move.goto_next_end("@function.outer", "textobjects") end), "Next function end" },
+      { "[M", ts_guard(function() move.goto_previous_end("@function.outer", "textobjects") end), "Prev function end" },
+      { "]]", ts_guard(function() move.goto_next_start("@class.outer", "textobjects") end), "Next class start" },
+      { "[[", ts_guard(function() move.goto_previous_start("@class.outer", "textobjects") end), "Prev class start" },
+      { "][", ts_guard(function() move.goto_next_end("@class.outer", "textobjects") end), "Next class end" },
+      { "[]", ts_guard(function() move.goto_previous_end("@class.outer", "textobjects") end), "Prev class end" },
+      { "]o", ts_guard(function() move.goto_next_start({ "@conditional.outer", "@loop.outer" }, "textobjects") end), "Next conditional/loop" },
+      { "[o", ts_guard(function() move.goto_previous_start({ "@conditional.outer", "@loop.outer" }, "textobjects") end), "Prev conditional/loop" },
+      { "]O", ts_guard(function() move.goto_next_end({ "@conditional.outer", "@loop.outer" }, "textobjects") end), "Next conditional/loop end" },
+      { "[O", ts_guard(function() move.goto_previous_end({ "@conditional.outer", "@loop.outer" }, "textobjects") end), "Prev conditional/loop end" },
     }
 
     local function set_motions(buf)
