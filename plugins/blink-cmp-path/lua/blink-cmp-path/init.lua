@@ -13,15 +13,31 @@ local DEBOUNCE_NS = 5e9 -- 5 seconds in nanoseconds
 --- @class blink.cmp.Source
 local source = {}
 
---- Extract the path-like WORD before cursor. Returns nil if no `/` present.
+--- Extract path context before cursor.
+--- Supports both bare paths (needs `/`) and `@<path>` syntax.
 ---@param context table
----@return string?  directory prefix up to last `/` (e.g. "plugins/")
-local function get_dir_prefix(context)
-  local word = context.line:sub(1, context.cursor[2]):match("%S+$")
-  if not word or not word:find("/") then
-    return nil
+---@return string?  directory prefix for index lookup
+---@return number?  0-indexed column of `@` (nil for bare paths)
+local function get_path_context(context)
+  local line = context.line:sub(1, context.cursor[2])
+  local word = line:match("%S+$")
+  if not word then
+    return nil, nil
   end
-  return word:match("^(.*/)") or ""
+
+  -- @<path> syntax for AI agent prompts
+  if word:sub(1, 1) == "@" then
+    local path = word:sub(2)
+    local dir_prefix = path:match("^(.*/)") or ""
+    local at_col = context.cursor[2] - #word -- 0-indexed column of @
+    return dir_prefix, at_col
+  end
+
+  -- Original: bare path with /
+  if not word:find("/") then
+    return nil, nil
+  end
+  return word:match("^(.*/)") or "", nil
 end
 
 local EMPTY =
@@ -127,11 +143,11 @@ function source:enabled()
 end
 
 function source:get_trigger_characters()
-  return { "/" }
+  return { "/", "@" }
 end
 
 function source:get_completions(context, callback)
-  local dir_prefix = get_dir_prefix(context)
+  local dir_prefix, at_col = get_path_context(context)
   if not dir_prefix then
     return callback(EMPTY)
   end
@@ -144,9 +160,26 @@ function source:get_completions(context, callback)
 
   -- Copy the matching slice — blink mutates items in-place
   local out = {}
-  for i = start, stop do
-    local it = items[i]
-    out[#out + 1] = { label = it.label, kind = it.kind }
+  if at_col then
+    -- @<path> trigger: attach textEdit to preserve the @ prefix.
+    -- Share the range table — blink reads but doesn't mutate it.
+    local range = {
+      start = { line = context.cursor[1] - 1, character = at_col },
+      ["end"] = { line = context.cursor[1] - 1, character = context.cursor[2] },
+    }
+    for i = start, stop do
+      local it = items[i]
+      out[#out + 1] = {
+        label = it.label,
+        kind = it.kind,
+        textEdit = { range = range, newText = "@" .. it.label },
+      }
+    end
+  else
+    for i = start, stop do
+      local it = items[i]
+      out[#out + 1] = { label = it.label, kind = it.kind }
+    end
   end
 
   return callback({

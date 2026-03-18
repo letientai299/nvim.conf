@@ -83,6 +83,12 @@ Prefix lookup uses binary search to find the range of items matching a
 directory prefix (e.g., typing `plugins/` returns all paths under that
 directory).
 
+@-path syntax ~
+
+Typing `@` triggers path completion for use in AI agent prompts (e.g.,
+`@src/utils/foo.lua`). The `@` prefix is preserved on accept via
+|textEdit|. Bare `/`-triggered completions are unaffected.
+
 Incremental updates ~
 
 - |BufWritePost|: patches the index — inserts new files or removes deleted
