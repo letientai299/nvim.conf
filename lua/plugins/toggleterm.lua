@@ -18,24 +18,6 @@ local layouts = {
   f = { "float",      nil },
 }
 
---- Build a tab label like "[1] [2*] [3]" for float titles.
---- The active terminal is marked with `*`.
-local function tab_label(active_id)
-  local terms = lazy_require("toggleterm.terminal").get_all()
-  local parts = {}
-  for _, t in ipairs(terms) do
-    local label = "[" .. t.id .. (t.id == active_id and "*" or "") .. "]"
-    table.insert(parts, label)
-  end
-  return table.concat(parts, " ")
-end
-
-local function set_float_title(term)
-  if M.direction == "float" then
-    term.display_name = tab_label(term.id)
-  end
-end
-
 local function size(direction)
   if direction == "horizontal" then
     return 15
@@ -68,7 +50,6 @@ function M.toggle()
     return
   end
 
-  set_float_title(term)
   term:open(size(M.direction), M.direction)
 
   if M.wincmd then
@@ -115,7 +96,6 @@ function M.switch(n)
     end
   end
 
-  set_float_title(term)
   term:open(size(M.direction), M.direction)
   if M.wincmd then
     vim.cmd("wincmd " .. M.wincmd)
@@ -143,7 +123,6 @@ function M.create()
     end
   end
 
-  set_float_title(term)
   term:open(size(M.direction), M.direction)
   if M.wincmd then
     vim.cmd("wincmd " .. M.wincmd)
@@ -240,14 +219,9 @@ return {
       size = function(term)
         return size(term.direction)
       end,
-      shade_terminals = false,
+      shade_terminals = true,
       float_opts = { border = "rounded", title_pos = "center" },
-      winbar = {
-        enabled = true,
-        name_formatter = function(term)
-          return "[" .. term.id .. "]"
-        end,
-      },
+      winbar = { enabled = true },
     }
   end,
 }
