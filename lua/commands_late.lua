@@ -118,6 +118,64 @@ do
   })
 end
 
+-- Auto-source `.nvim.lua` on save so changes take effect immediately.
+vim.api.nvim_create_autocmd("BufWritePost", {
+  group = vim.api.nvim_create_augroup("exrc_auto_source", { clear = true }),
+  pattern = "*",
+  callback = function(ev)
+    if vim.fn.fnamemodify(ev.match, ":t") ~= ".nvim.lua" then
+      return
+    end
+
+    local file = vim.fn.fnamemodify(ev.match, ":p")
+    local escaped = vim.fn.fnameescape(file)
+    local cur_tab = vim.api.nvim_get_current_tabpage()
+    local cur = vim.api.nvim_get_current_win()
+    local targets = {} ---@type integer[]
+    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+      if vim.api.nvim_buf_is_loaded(buf) and vim.bo[buf].buftype == "" then
+        targets[#targets + 1] = buf
+      end
+    end
+
+    if #targets == 0 then
+      targets = { ev.buf }
+    end
+
+    local wins = vim.api.nvim_list_wins()
+    local ok, err = pcall(function()
+      for _, win in ipairs(wins) do
+        local original = vim.api.nvim_win_get_buf(win)
+        vim.api.nvim_win_call(win, function()
+          for _, buf in ipairs(targets) do
+            vim.cmd("silent noautocmd keepalt keepjumps buffer " .. buf)
+            vim.cmd("silent source " .. escaped)
+          end
+          vim.cmd("silent noautocmd keepalt keepjumps buffer " .. original)
+        end)
+      end
+    end)
+    if vim.api.nvim_tabpage_is_valid(cur_tab) then
+      vim.api.nvim_set_current_tabpage(cur_tab)
+    end
+    if vim.api.nvim_win_is_valid(cur) then
+      vim.api.nvim_set_current_win(cur)
+    end
+    if ok then
+      vim.notify(
+        string.format(
+          "Sourced %s in %d buffers (%d windows)",
+          file,
+          #targets,
+          #wins
+        )
+      )
+    else
+      vim.notify("exrc error: " .. err, vim.log.levels.ERROR)
+    end
+  end,
+})
+
 vim.api.nvim_create_user_command("W", function()
   vim.cmd("noautocmd write")
 end, { desc = "Write file without formatting" })
