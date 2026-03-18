@@ -1,4 +1,5 @@
 local lazy_require = require("lib.lazy_ondemand").lazy_require
+local nav = require("lib.nav_keys")
 
 --- Jump to the next (dir=1) or previous (dir=-1) fold region (section
 --- headers and file items) across the entire buffer.
@@ -68,8 +69,8 @@ return {
     integrations = { diffview = true },
     mappings = {
       status = {
-        ["<C-j>"] = false, -- replaced by buffer-local item jump below
-        ["<C-k>"] = false,
+        [nav.next] = false, -- replaced by buffer-local item jump below
+        [nav.prev] = false,
       },
     },
   },
@@ -80,10 +81,10 @@ return {
       pattern = "NeogitStatus",
       callback = function(ev)
         local o = { buffer = ev.buf }
-        vim.keymap.set("n", "<C-j>", function()
+        vim.keymap.set("n", nav.next, function()
           jump_fold(1)
         end, o)
-        vim.keymap.set("n", "<C-k>", function()
+        vim.keymap.set("n", nav.prev, function()
           jump_fold(-1)
         end, o)
       end,

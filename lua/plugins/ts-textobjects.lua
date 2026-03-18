@@ -3,6 +3,8 @@
 -- <C-j>/<C-k> jump through ALL symbols (classes, fields, methods) in order.
 -- All moves are repeatable with ;/,.
 
+local nav = require("lib.nav_keys")
+
 --- Check if a treesitter node type represents a declaration/definition.
 local function is_decl(t)
   -- stylua: ignore
@@ -114,8 +116,8 @@ local lazy_keys = {
   { "[o", desc = "Prev conditional/loop" },
   { "]O", desc = "Next conditional/loop end" },
   { "[O", desc = "Prev conditional/loop end" },
-  { "<C-j>", desc = "Next symbol" },
-  { "<C-k>", desc = "Prev symbol" },
+  { nav.next, desc = "Next symbol" },
+  { nav.prev, desc = "Prev symbol" },
   -- Repeat integration (f/F/t/T/;/, get ts_repeat wrappers)
   { ";", desc = "Repeat last move (next)" },
   { ",", desc = "Repeat last move (prev)" },
@@ -201,10 +203,10 @@ return {
     local jump_sym = ts_repeat.make_repeatable_move(function(opts)
       jump_symbol(opts.forward and 1 or -1)
     end)
-    vim.keymap.set(modes, "<C-j>", function()
+    vim.keymap.set(modes, nav.next, function()
       jump_sym({ forward = true })
     end, { desc = "Next symbol" })
-    vim.keymap.set(modes, "<C-k>", function()
+    vim.keymap.set(modes, nav.prev, function()
       jump_sym({ forward = false })
     end, { desc = "Prev symbol" })
 
