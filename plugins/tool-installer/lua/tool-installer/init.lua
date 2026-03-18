@@ -38,6 +38,10 @@ function M.setup(opts)
     vim.api.nvim_create_user_command("ToolInstallerLog", function()
       log.open()
     end, { desc = "Open tool-installer log panel" })
+    vim.api.nvim_create_user_command("ToolInstallerClearCache", function()
+      require("tool-installer.cache").clear()
+      vim.notify("[tool-installer] Cache cleared", vim.log.levels.INFO)
+    end, { desc = "Clear tool-installer check cache" })
   end
 end
 

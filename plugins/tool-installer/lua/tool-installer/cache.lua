@@ -68,6 +68,13 @@ function M.stats()
   return { path = cache_path, count = vim.tbl_count(tools) }
 end
 
+--- Clear all cached entries (in-memory and on disk).
+function M.clear()
+  _tools = {}
+  _dirty = false
+  os.remove(cache_path)
+end
+
 --- Write cache to disk if dirty.
 function M.flush()
   if not _dirty or not _tools then
