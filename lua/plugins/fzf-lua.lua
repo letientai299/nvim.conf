@@ -18,28 +18,62 @@ local function glob_to_path_regex(pat)
     .. "/"
 end
 
+--- Shell snippet that reads .gitignore (cwd + git root) and emits -E flags
+--- for bare-name patterns, so the --no-ignore fd call skips heavy dirs
+--- (node_modules, dist, ios, etc.) it would otherwise traverse.
+--- @param skip string[] patterns to NOT exclude (our include_dirs)
+local function gitignore_excludes_sh(skip)
+  local skip_grep = ""
+  if #skip > 0 then
+    -- grep -vxF removes exact matches for our include_dirs
+    skip_grep = " | grep -vxF " .. vim.fn.shellescape(table.concat(skip, "\n"))
+  end
+  -- sed: skip comments/negations, strip trailing /, drop globs and paths
+  return "$("
+    .. "sed -n '/^[^#!]/{ s/\\/$//; /[*?\\[]/d; /\\//d; p; }'"
+    .. ' .gitignore "$(git rev-parse --show-toplevel 2>/dev/null)/.gitignore"'
+    .. " 2>/dev/null | sort -u"
+    .. skip_grep
+    .. " | sed 's/.*/-E &/' | tr '\\n' ' '"
+    .. ")"
+end
+
 --- Build an fd command that respects .gitignore but also finds the exceptions.
---- Two fd calls: one gitignore-aware base, one --no-ignore with a combined
---- full-path regex for all exception dirs and root files.
+--- Three parallel fd calls:
+---  1. Base (gitignore-aware) for normal files.
+---  2. Direct search inside concrete include_dirs (fast: dirs are small).
+---  3. --no-ignore scan for glob dirs + include_files, with -E flags derived
+---     from .gitignore to avoid traversing heavy ignored dirs.
 local function files_cmd()
-  -- Base: respect .gitignore, show hidden, skip .git
   local parts = { "fd --hidden --type f -E .git" }
 
-  -- Build a single regex that matches all gitignored exceptions.
-  local alts = {}
-
+  -- Split include_dirs into concrete paths vs glob patterns.
+  local concrete_dirs = {}
+  local glob_alts = {}
   for _, d in ipairs(include_dirs) do
     if has_glob(d) then
-      -- **/local -> /local/  (substring match at any depth)
-      table.insert(alts, glob_to_path_regex(d))
+      table.insert(glob_alts, glob_to_path_regex(d))
     else
-      -- .ai.dump -> /\.ai\.dump/  (substring match; fd normalises away leading ./)
-      table.insert(alts, "/" .. d:gsub("%.", "\\.") .. "/")
+      table.insert(concrete_dirs, d)
     end
   end
 
+  -- Search concrete gitignored dirs directly (avoids whole-tree traversal).
+  if #concrete_dirs > 0 then
+    local paths = vim.tbl_map(function(d)
+      return "--search-path " .. vim.fn.shellescape(d)
+    end, concrete_dirs)
+    table.insert(
+      parts,
+      "fd --no-ignore --hidden --type f -E .git "
+        .. table.concat(paths, " ")
+        .. " 2>/dev/null"
+    )
+  end
+
+  -- Glob dirs and include_files need a whole-tree --no-ignore scan.
+  local alts = vim.list_extend({}, glob_alts)
   if #include_files > 0 then
-    -- {".envrc", ".env.*"} -> /\.(envrc|env\..*)$
     local file_alts = vim.tbl_map(function(f)
       return f:sub(2):gsub("%.", "\\."):gsub("%*", ".*")
     end, include_files)
@@ -50,7 +84,9 @@ local function files_cmd()
     local regex = table.concat(alts, "|")
     table.insert(
       parts,
-      "fd --hidden --no-ignore -E .git --type f --full-path "
+      "fd --hidden --no-ignore -E .git "
+        .. gitignore_excludes_sh(concrete_dirs)
+        .. " --type f --full-path "
         .. vim.fn.shellescape(regex)
         .. " 2>/dev/null"
     )
