@@ -1,13 +1,11 @@
 return {
   dir = vim.fn.stdpath("config") .. "/plugins/notes.nvim",
-  cmd = "NoteToday",
+  cmd = "LocalTodo",
   keys = {
     {
       "<Leader>td",
-      function()
-        require("notes").note_today()
-      end,
-      desc = "Open today's diary note",
+      "<Cmd>LocalTodo<CR>",
+      desc = "Open local todo",
     },
   },
   config = function()

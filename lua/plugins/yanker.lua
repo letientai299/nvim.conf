@@ -19,5 +19,15 @@ return {
       end,
       desc = "Copy diagnostic with path:line",
     },
+    {
+      "<Leader>yM",
+      function()
+        vim.fn.setreg(
+          "+",
+          vim.api.nvim_exec2("messages", { output = true }).output
+        )
+      end,
+      desc = "Copy :messages to clipboard",
+    },
   },
 }
