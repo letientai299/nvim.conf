@@ -24,34 +24,41 @@ lazy-load trigger fires for an uninstalled plugin, the clone runs in the
 background and the trigger is **dropped** — the plugin loads only after the
 clone finishes.
 
-Use `lazy_require` from `lib.lazy_ondemand` when calling plugin modules outside
-`config`/`opts`. It returns a **no-op proxy** if the module isn't loaded,
-silently absorbing method calls and indexing.
+**Every new plugin and tool addition MUST be verified for on-demand install
+compatibility.** The initial lazy-load trigger is dropped during async clone, so
+any side effects (activation, buffer setup, keymaps) that ran as no-ops will not
+automatically replay. Use `on_load` to defer work until the plugin is ready.
+
+### Choosing the right pattern
+
+| Situation                                                       | Pattern                                                             |
+| --------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Fire-and-forget call (no return value needed)                   | `lazy_require("mod").method()` — no-op proxy absorbs the call       |
+| Side effect that MUST run per-buffer (e.g., `otter.activate()`) | `on_load("plugin-name", fn)` — defers `fn` until after clone + load |
+| `init` override that **returns** a computed value               | `package.loaded["mod"]` guard — fall through to default when absent |
+| Inside `config`/`opts` callbacks                                | Plain `require()` — runs after plugin loads                         |
+| `<Cmd>PluginCmd<CR>` in keys                                    | No guard needed — error suppressed by `lazy_ondemand.lua`           |
+| Colorscheme triggers                                            | No guard needed — installed synchronously for live preview          |
+
+### Examples
 
 ```lua
-local lazy_require = require("lib.lazy_ondemand").lazy_require
+local ondemand = require("lib.lazy_ondemand")
 
--- In init, keys, or top-level functions that may run before the plugin loads:
-lazy_require("oil").open(path) -- no-op if oil is installing
-lazy_require("toggleterm.terminal") -- returns proxy, .get_all() etc. are safe
+-- Fire-and-forget (no-op if not loaded):
+ondemand.lazy_require("oil").open(path)
+
+-- Must-run side effect (retries after clone finishes):
+ondemand.on_load("otter.nvim", function()
+  require("otter").activate()
+end)
 ```
 
-**When `lazy_require` is NOT enough** — use `package.loaded` guards instead:
+See `ts-context-commentstring.lua`, `snacks.lua`, and `docs.lua` (otter
+integration) for real examples.
 
-- `init` overrides that **return** the result of `require("<plugin>").compute()`
-  — the proxy would be returned as the value. Guard with
-  `package.loaded["<module>"]` and fall through to default behavior.
-
-See `ts-context-commentstring.lua` and `snacks.lua` for examples.
-
-**Safe patterns** (no `lazy_require` needed):
-
-- `require("<plugin>")` inside `config` or `opts` — runs after plugin loads.
-- `require("lib.*")` — config-local modules, always available.
-- `<Cmd>PluginCmd<CR>` in keys — error suppressed by `lazy_ondemand.lua`.
-- Colorscheme triggers — installed synchronously so the picker's live preview
-  works. Theme plugins must declare a `themes` field listing their colorscheme
-  names (see `lua/plugins/themes/` for examples).
+Theme plugins must declare a `themes` field listing their colorscheme names (see
+`lua/plugins/themes/`).
 
 ## Theme guard globals
 
