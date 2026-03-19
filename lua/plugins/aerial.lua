@@ -9,6 +9,12 @@ return {
     layout = {
       default_direction = "right",
     },
+    lsp = {
+      -- otter-ls advertises documentSymbolProvider but fails the request
+      priority = {
+        ["otter-ls"] = -1,
+      },
+    },
     -- Sync folds with the symbol tree
     manage_folds = true,
     link_folds_to_tree = true,
