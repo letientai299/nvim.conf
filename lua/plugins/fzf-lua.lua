@@ -51,6 +51,27 @@ return {
       mode = "x",
       desc = "Grep selection",
     },
+    {
+      "<leader>fj",
+      function()
+        local root = vim.fs.root(0, ".git") or vim.uv.cwd()
+        local fzf_dirs = vim.fn.stdpath("config") .. "/scripts/fzf-dirs"
+        require("fzf-lua").fzf_exec(fzf_dirs, {
+          cwd = root,
+          prompt = "Dirs> ",
+          actions = {
+            ["default"] = function(selected)
+              if not selected or #selected == 0 then
+                return
+              end
+              local dir = root .. "/" .. selected[1]
+              require("lib.lazy_ondemand").lazy_require("oil").open(dir)
+            end,
+          },
+        })
+      end,
+      desc = "Dirs -> Oil",
+    },
   },
   config = function()
     -- snacks.image must be loaded before fzf-lua's builtin previewer checks
