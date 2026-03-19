@@ -75,6 +75,7 @@ local function retry_key(name, bufnr)
 end
 
 local fallback_registered = {}
+local enabled_servers = {} ---@type table<string, true>
 
 --- Enable an LSP config and attach it to the current buffer when needed.
 --- If the config declares `fallback_config`, a `<name>_fallback` variant is
@@ -89,11 +90,24 @@ function M.enable(name, bufnr)
     if cfg and cfg.fallback_config then
       fallback_registered[name] = true
       require("lib.fallback_config").register_fallback_lsp(name)
-      vim.lsp.enable(name .. "_fallback")
+      if not enabled_servers[name .. "_fallback"] then
+        enabled_servers[name .. "_fallback"] = true
+        pcall(vim.lsp.enable, name .. "_fallback")
+      end
     end
   end
 
-  vim.lsp.enable(name)
+  -- vim.lsp.enable registers a FileType autocmd then runs doautoall on ALL
+  -- buffers. doautoall crashes on otter companion buffers with E518. Guard:
+  -- 1. Only call once per server (autocmd + _enabled_configs persist).
+  -- 2. pcall the first call: the autocmd is registered before doautoall runs
+  --    in Neovim's code, so even if doautoall fails on otter buffers the
+  --    autocmd still works for future FileType events. We attach the current
+  --    buffer explicitly via attach_enabled_configs below.
+  if not enabled_servers[name] then
+    enabled_servers[name] = true
+    pcall(vim.lsp.enable, name)
+  end
 
   if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
     return

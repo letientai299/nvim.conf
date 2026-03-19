@@ -28,6 +28,16 @@ end
 ---@param bufnr integer|nil
 ---@param opts table
 function M.setup(key, bufnr, opts)
+  -- Otter companion buffers (e.g. file.md.otter.ts) get filetype set by otter,
+  -- which triggers ftplugin loading. Skip our setup — otter manages LSP for
+  -- these buffers internally, and vim.lsp.enable's doautoall chokes on them.
+  if bufnr then
+    local name = vim.api.nvim_buf_get_name(bufnr)
+    if name:find("%.otter%.") then
+      return
+    end
+  end
+
   if opts.once and not once_ran[key] then
     once_ran[key] = true
     opts.once()
