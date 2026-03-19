@@ -18,19 +18,21 @@ local function glob_to_path_regex(pat)
     .. "/"
 end
 
---- Shell snippet that queries git for ignored directories and emits -E flags
---- so the --no-ignore fd call skips heavy dirs it would otherwise traverse.
---- Uses git's own gitignore processing (handles nested .gitignore files,
---- global gitignore, etc.) instead of manual parsing.
---- @param skip string[] directory names to NOT exclude (our include_dirs)
-local function git_ignored_dirs_sh(skip)
+--- Shell snippet that reads .gitignore (cwd + git root) and emits -E flags
+--- for bare-name patterns, so the --no-ignore fd call skips heavy dirs
+--- (node_modules, dist, ios, etc.) it would otherwise traverse.
+--- @param skip string[] patterns to NOT exclude (our include_dirs)
+local function gitignore_excludes_sh(skip)
   local skip_grep = ""
   if #skip > 0 then
+    -- grep -vxF removes exact matches for our include_dirs
     skip_grep = " | grep -vxF " .. vim.fn.shellescape(table.concat(skip, "\n"))
   end
+  -- sed: skip comments/negations, strip trailing & leading /, drop globs and paths
   return "$("
-    .. "git ls-files --others --ignored --exclude-standard --directory 2>/dev/null"
-    .. " | grep '/$' | sed 's/\\/$//'"
+    .. "sed -n '/^[^#!]/{ s/\\/$//; s/^\\///; /[*?\\[]/d; /\\//d; p; }'"
+    .. ' .gitignore "$(git rev-parse --show-toplevel 2>/dev/null)/.gitignore"'
+    .. " 2>/dev/null | sort -u"
     .. skip_grep
     .. " | sed 's/.*/-E &/' | tr '\\n' ' '"
     .. ")"
@@ -83,7 +85,7 @@ local function files_cmd()
     table.insert(
       parts,
       "fd --hidden --no-ignore -E .git "
-        .. git_ignored_dirs_sh(concrete_dirs)
+        .. gitignore_excludes_sh(concrete_dirs)
         .. " --type f --full-path "
         .. vim.fn.shellescape(regex)
         .. " 2>/dev/null"
