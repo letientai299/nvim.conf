@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# fd-based file finder that respects .gitignore but includes specific ignored
+# paths. Used by both shell fzf (ctrl-t) and nvim fzf-lua (<leader>ff).
+# Keep in sync: dotfiles/bin/fzf-files <-> nvim.conf/scripts/fzf-files
+#
+# Strategy: avoid whole-tree --no-ignore scans. A naive approach (one fd call
+# with --no-ignore + regex filter + re-applied .gitignore excludes) traverses
+# every file the gitignore would skip — including nested node_modules/ trees
+# with tens of thousands of entries, since it only reads the root .gitignore
+# and misses nested ones. Instead we run 3 non-overlapping searches:
+#
+#   1. fd (gitignore-aware) for normal files.
+#   2. fd --no-ignore --search-path into concrete include_dirs only.
+#   3. Bash glob + git check-ignore for include_files at repo root.
+#
+# No dedup needed: (1) skips ignored dirs, (2) only searches ignored dirs,
+# and (3) only emits files that are actually gitignored (via git check-ignore).
+#
+# Intentionally omits include_dir_globs (**/local) from the nvim config.
+# Glob dir search requires a whole-tree --no-ignore traversal which costs ~1s
+# in monorepos with nested node_modules. Not worth it for ctrl-t.
+#
+# Portability:
+#   - fd: Debian/Ubuntu ship it as "fdfind", auto-detected below.
+#   - bash 4+: uses arrays (not macOS default bash 3.2, but any
+#     mise/homebrew bash works).
+set -euo pipefail
+
+# --- Configuration (keep in sync with fzf-lua.lua) --------------------------
+include_dirs=(.ai.dump .dump)           # gitignored dirs to include
+include_files=(.envrc .exrc .nvim.lua .env .env.*) # gitignored files (root only)
+
+# --- Detect fd (Debian/Ubuntu install it as fdfind) --------------------------
+if command -v fd >/dev/null 2>&1; then
+  FD=fd
+elif command -v fdfind >/dev/null 2>&1; then
+  FD=fdfind
+else
+  echo "fzf-files: fd not found (install fd-find)" >&2
+  exit 1
+fi
+
+# --- 1. Base: gitignore-aware ------------------------------------------------
+"$FD" --hidden --type f -E .git &
+
+# --- 2. Ignored dirs + include_files (single background job) -----------------
+{
+  # Concrete ignored dirs: search directly (small, no whole-tree scan)
+  search_paths=()
+  for d in "${include_dirs[@]}"; do
+    [[ -d "$d" ]] && search_paths+=(--search-path "$d")
+  done
+  (( ${#search_paths[@]} )) && "$FD" --no-ignore --hidden --type f -E .git "${search_paths[@]}"
+
+  # Include files at repo root — only emit those actually gitignored to avoid
+  # duplicates with the base fd (which already finds non-ignored files).
+  shopt -s nullglob
+  for pattern in "${include_files[@]}"; do
+    for f in ./$pattern; do
+      [[ -f "$f" ]] && printf '%s\n' "${f#./}"
+    done
+  done | git check-ignore --stdin 2>/dev/null
+} 2>/dev/null &
+
+wait

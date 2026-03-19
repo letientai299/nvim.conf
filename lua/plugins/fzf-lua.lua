@@ -1,100 +1,3 @@
--- Gitignored dirs to include in the file picker (searched recursively).
--- Supports fd glob syntax: ".ai.dump" (literal), "**/local" (any depth).
-local include_dirs = { ".ai.dump", ".dump", "**/local" }
-
--- Gitignored files to include in the file picker (matched at any depth).
--- Supports glob wildcard: ".env" (literal), ".env.*" (wildcard).
-local include_files = { ".envrc", ".exrc", ".nvim.lua", ".env", ".env.*" }
-
-local function has_glob(s)
-  return s:find("[*?%[]") ~= nil
-end
-
---- Convert an fd glob pattern to a full-path regex.
---- e.g. "**/local" -> "/local/"
-local function glob_to_path_regex(pat)
-  return "/"
-    .. pat:gsub("%*%*/", ""):gsub("%.", "\\."):gsub("%*", "[^/]*")
-    .. "/"
-end
-
---- Shell snippet that reads .gitignore (cwd + git root) and emits -E flags
---- for bare-name patterns, so the --no-ignore fd call skips heavy dirs
---- (node_modules, dist, ios, etc.) it would otherwise traverse.
---- @param skip string[] patterns to NOT exclude (our include_dirs)
-local function gitignore_excludes_sh(skip)
-  local skip_grep = ""
-  if #skip > 0 then
-    -- grep -vxF removes exact matches for our include_dirs
-    skip_grep = " | grep -vxF " .. vim.fn.shellescape(table.concat(skip, "\n"))
-  end
-  -- sed: skip comments/negations, strip trailing & leading /, drop globs and paths
-  return "$("
-    .. "sed -n '/^[^#!]/{ s/\\/$//; s/^\\///; /[*?\\[]/d; /\\//d; p; }'"
-    .. ' .gitignore "$(git rev-parse --show-toplevel 2>/dev/null)/.gitignore"'
-    .. " 2>/dev/null | sort -u"
-    .. skip_grep
-    .. " | sed 's/.*/-E &/' | tr '\\n' ' '"
-    .. ")"
-end
-
---- Build an fd command that respects .gitignore but also finds the exceptions.
---- Three parallel fd calls:
----  1. Base (gitignore-aware) for normal files.
----  2. Direct search inside concrete include_dirs (fast: dirs are small).
----  3. --no-ignore scan for glob dirs + include_files, with -E flags derived
----     from .gitignore to avoid traversing heavy ignored dirs.
-local function files_cmd()
-  local parts = { "fd --hidden --type f -E .git" }
-
-  -- Split include_dirs into concrete paths vs glob patterns.
-  local concrete_dirs = {}
-  local glob_alts = {}
-  for _, d in ipairs(include_dirs) do
-    if has_glob(d) then
-      table.insert(glob_alts, glob_to_path_regex(d))
-    else
-      table.insert(concrete_dirs, d)
-    end
-  end
-
-  -- Search concrete gitignored dirs directly (avoids whole-tree traversal).
-  if #concrete_dirs > 0 then
-    local paths = vim.tbl_map(function(d)
-      return "--search-path " .. vim.fn.shellescape(d)
-    end, concrete_dirs)
-    table.insert(
-      parts,
-      "fd --no-ignore --hidden --type f -E .git "
-        .. table.concat(paths, " ")
-        .. " 2>/dev/null"
-    )
-  end
-
-  -- Glob dirs and include_files need a whole-tree --no-ignore scan.
-  local alts = vim.list_extend({}, glob_alts)
-  if #include_files > 0 then
-    local file_alts = vim.tbl_map(function(f)
-      return f:sub(2):gsub("%.", "\\."):gsub("%*", ".*")
-    end, include_files)
-    table.insert(alts, "/\\.(" .. table.concat(file_alts, "|") .. ")$")
-  end
-
-  if #alts > 0 then
-    local regex = table.concat(alts, "|")
-    table.insert(
-      parts,
-      "fd --hidden --no-ignore -E .git "
-        .. gitignore_excludes_sh(concrete_dirs)
-        .. " --type f --full-path "
-        .. vim.fn.shellescape(regex)
-        .. " 2>/dev/null"
-    )
-  end
-
-  return "{ " .. table.concat(parts, " & ") .. "; wait; } | sort -u"
-end
-
 return {
   "ibhagwan/fzf-lua",
   dependencies = { "nvim-tree/nvim-web-devicons" },
@@ -156,8 +59,11 @@ return {
     if not package.loaded["snacks"] then
       require("lazy").load({ plugins = { "snacks.nvim" } })
     end
+    -- File listing uses scripts/fzf-files (also in dotfiles/bin for shell
+    -- ctrl-t). Config (include_dirs, include_files) lives in that script.
+    local fzf_files = vim.fn.stdpath("config") .. "/scripts/fzf-files"
     require("fzf-lua").setup({
-      files = { cmd = files_cmd() },
+      files = { cmd = fzf_files },
       previewers = {
         builtin = {
           snacks_image = { enabled = true },
