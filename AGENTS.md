@@ -31,14 +31,14 @@ automatically replay. Use `on_load` to defer work until the plugin is ready.
 
 ### Choosing the right pattern
 
-| Situation                                                       | Pattern                                                             |
-| --------------------------------------------------------------- | ------------------------------------------------------------------- |
-| Fire-and-forget call (no return value needed)                   | `lazy_require("mod").method()` — no-op proxy absorbs the call       |
-| Side effect that MUST run per-buffer (e.g., `otter.activate()`) | `on_load("plugin-name", fn)` — defers `fn` until after clone + load |
-| `init` override that **returns** a computed value               | `package.loaded["mod"]` guard — fall through to default when absent |
-| Inside `config`/`opts` callbacks                                | Plain `require()` — runs after plugin loads                         |
-| `<Cmd>PluginCmd<CR>` in keys                                    | No guard needed — error suppressed by `lazy_ondemand.lua`           |
-| Colorscheme triggers                                            | No guard needed — installed synchronously for live preview          |
+| Situation                                         | Pattern                                                             |
+| ------------------------------------------------- | ------------------------------------------------------------------- |
+| Fire-and-forget call (no return value needed)     | `lazy_require("mod").method()` — no-op proxy absorbs the call       |
+| Side effect that MUST run per-buffer              | `on_load("plugin-name", fn)` — defers `fn` until after clone + load |
+| `init` override that **returns** a computed value | `package.loaded["mod"]` guard — fall through to default when absent |
+| Inside `config`/`opts` callbacks                  | Plain `require()` — runs after plugin loads                         |
+| `<Cmd>PluginCmd<CR>` in keys                      | No guard needed — error suppressed by `lazy_ondemand.lua`           |
+| Colorscheme triggers                              | No guard needed — installed synchronously for live preview          |
 
 ### Examples
 
@@ -49,13 +49,12 @@ local ondemand = require("lib.lazy_ondemand")
 ondemand.lazy_require("oil").open(path)
 
 -- Must-run side effect (retries after clone finishes):
-ondemand.on_load("otter.nvim", function()
-  require("otter").activate()
+ondemand.on_load("snacks.nvim", function()
+  require("snacks").setup()
 end)
 ```
 
-See `ts-context-commentstring.lua`, `snacks.lua`, and `docs.lua` (otter
-integration) for real examples.
+See `ts-context-commentstring.lua` and `snacks.lua` for real examples.
 
 Theme plugins must declare a `themes` field listing their colorscheme names (see
 `lua/plugins/themes/`).

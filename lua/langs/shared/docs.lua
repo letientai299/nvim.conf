@@ -1,17 +1,7 @@
 local M = {}
 
 local fc = require("lib.fallback_config")
-local ondemand = require("lib.lazy_ondemand")
 local rumdl = require("lib.rumdl")
-
-local function activate_otter(buf)
-  if not vim.api.nvim_buf_is_valid(buf) then
-    return
-  end
-  vim.api.nvim_buf_call(buf, function()
-    require("otter").activate()
-  end)
-end
 
 function M.markdown(bufnr)
   require("langs.shared.entry").setup("markdown", bufnr, {
@@ -21,15 +11,6 @@ function M.markdown(bufnr)
       rumdl.tool(),
     },
     lsp = { "marksman", "rumdl" },
-    each = function(buf)
-      if package.loaded["otter"] then
-        activate_otter(buf)
-      else
-        ondemand.on_load("otter.nvim", function()
-          activate_otter(buf)
-        end)
-      end
-    end,
     formatter_fts = { "markdown", "markdown.mdx" },
     formatter_defs = {
       rumdl_fix = {

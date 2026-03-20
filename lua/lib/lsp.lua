@@ -97,16 +97,9 @@ function M.enable(name, bufnr)
     end
   end
 
-  -- vim.lsp.enable registers a FileType autocmd then runs doautoall on ALL
-  -- buffers. doautoall crashes on otter companion buffers with E518. Guard:
-  -- 1. Only call once per server (autocmd + _enabled_configs persist).
-  -- 2. pcall the first call: the autocmd is registered before doautoall runs
-  --    in Neovim's code, so even if doautoall fails on otter buffers the
-  --    autocmd still works for future FileType events. We attach the current
-  --    buffer explicitly via attach_enabled_configs below.
   if not enabled_servers[name] then
     enabled_servers[name] = true
-    pcall(vim.lsp.enable, name)
+    vim.lsp.enable(name)
   end
 
   if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
