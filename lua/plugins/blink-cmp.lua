@@ -37,6 +37,19 @@ return {
         lua = { inherit_defaults = true, "lazydev" },
       },
       providers = {
+        lsp = {
+          score_offset = 200,
+        },
+        buffer = {
+          score_offset = 150,
+          opts = {
+            get_bufnrs = function()
+              return vim.tbl_filter(function(bufnr)
+                return vim.bo[bufnr].buftype == ""
+              end, vim.api.nvim_list_bufs())
+            end,
+          },
+        },
         path = {
           score_offset = 100,
           opts = {
