@@ -3,22 +3,15 @@
 # paths. Used by both shell fzf (ctrl-t) and nvim fzf-lua (<leader>ff).
 # Keep in sync: dotfiles/bin/fzf-files <-> nvim.conf/scripts/fzf-files
 #
-# Strategy: avoid whole-tree --no-ignore scans. A naive approach (one fd call
-# with --no-ignore + regex filter + re-applied .gitignore excludes) traverses
-# every file the gitignore would skip — including nested node_modules/ trees
-# with tens of thousands of entries, since it only reads the root .gitignore
-# and misses nested ones. Instead we run 3 non-overlapping searches:
+# Strategy: three parallel jobs, no dedup needed.
 #
 #   1. fd (gitignore-aware) for normal files.
-#   2. fd --no-ignore --search-path into concrete include_dirs only.
+#   2. fd --no-ignore --full-path regex for include_dirs and include_dir_globs
+#      at any depth (single tree walk with skip_dirs blacklist).
 #   3. Bash glob + git check-ignore for include_files at repo root.
 #
-# No dedup needed: (1) skips ignored dirs, (2) only searches ignored dirs,
-# and (3) only emits files that are actually gitignored (via git check-ignore).
-#
-# Intentionally omits include_dir_globs (**/local) from the nvim config.
-# Glob dir search requires a whole-tree --no-ignore traversal which costs ~1s
-# in monorepos with nested node_modules. Not worth it for ctrl-t.
+# (1) skips ignored dirs, (2) only matches paths under an include pattern,
+# and (3) only emits files that are actually gitignored — so no dedup needed.
 #
 # Portability:
 #   - fd: Debian/Ubuntu ship it as "fdfind", auto-detected below.
@@ -30,8 +23,16 @@ set -euo pipefail
 _cfg="${DOTFILES:-}/config/fzf-includes.sh"
 [[ -f "$_cfg" ]] && source "$_cfg" || {
   include_dirs=(.ai.dump .dump)
+  include_dir_globs=(local)
   include_files=(.envrc .exrc .nvim.lua .env .env.*)
 }
+
+# Heavy dirs to skip during --no-ignore whole-tree scans (step 2).
+skip_dirs=(
+  node_modules vendor dist build target out bin obj Pods
+  .git .svn .hg .tox .venv .env .cache .idea .vscode .DS_Store
+  .wxt .playwright-mcp .chrome-profile
+)
 
 # --- Detect fd (Debian/Ubuntu install it as fdfind) --------------------------
 if command -v fd >/dev/null 2>&1; then
@@ -46,17 +47,31 @@ fi
 # --- 1. Base: gitignore-aware ------------------------------------------------
 "$FD" --hidden --type f -E .git &
 
-# --- 2. Ignored dirs + include_files (single background job) -----------------
+# --- 2. Ignored include dirs at any depth: single regex scan -----------------
+# Builds a regex like /(\.ai\.dump|\.dump|local)/ matching any path component.
+# Single tree walk; skip_dirs prunes the bulk of ignored content.
 {
-  # Concrete ignored dirs: search directly (small, no whole-tree scan)
-  search_paths=()
+  parts=()
   for d in "${include_dirs[@]}"; do
-    [[ -d "$d" ]] && search_paths+=(--search-path "$d")
+    parts+=("$(printf '%s' "$d" | sed 's/[.[\*^$()+?{|\\]/\\&/g')")
   done
-  (( ${#search_paths[@]} )) && "$FD" --no-ignore --hidden --type f -E .git "${search_paths[@]}"
+  for g in "${include_dir_globs[@]+"${include_dir_globs[@]}"}"; do
+    parts+=("$(printf '%s' "$g" | sed 's/[.[\*^$()+?{|\\]/\\&/g')")
+  done
 
-  # Include files at repo root — only emit those actually gitignored to avoid
-  # duplicates with the base fd (which already finds non-ignored files).
+  if ((${#parts[@]})); then
+    exclude_flags=()
+    for d in "${skip_dirs[@]}"; do
+      exclude_flags+=(-E "$d")
+    done
+    alternation="$(IFS='|'; echo "${parts[*]}")"
+    "$FD" --no-ignore --hidden --full-path --type f "${exclude_flags[@]}" "/($alternation)/"
+  fi
+} 2>/dev/null &
+
+# --- 3. Include files at repo root -------------------------------------------
+# Only emit those actually gitignored to avoid duplicates with the base fd.
+{
   shopt -s nullglob
   for pattern in "${include_files[@]}"; do
     for f in ./$pattern; do

@@ -4,10 +4,8 @@
 #
 # Strategy (mirrors fzf-files):
 #   1. fd (gitignore-aware) for normal directories.
-#   2. fd --no-ignore --search-path into concrete include_dirs only,
-#      plus emit the top-level dir names themselves (fd doesn't list roots).
-#   3. fd --no-ignore glob search for include_dir_globs (e.g. **/local).
-#      Cheap for dirs (few results), unlike files where this costs ~1s.
+#   2. fd --no-ignore --full-path regex for include_dirs and include_dir_globs
+#      at any depth (single tree walk with skip_dirs blacklist).
 set -euo pipefail
 
 # --- Configuration (shared with fzf-files, fzf-lua.lua) ---------------------
@@ -17,6 +15,13 @@ _cfg="${DOTFILES:-}/config/fzf-includes.sh"
   include_dir_globs=(local)
   include_files=(.envrc .exrc .nvim.lua .env .env.*)
 }
+
+# Heavy dirs to skip during --no-ignore whole-tree scans (step 2).
+skip_dirs=(
+  node_modules vendor dist build target out bin obj Pods
+  .git .svn .hg .tox .venv .env .cache .idea .vscode .DS_Store
+  .wxt .playwright-mcp .chrome-profile
+)
 
 # --- Detect fd (Debian/Ubuntu install it as fdfind) --------------------------
 if command -v fd >/dev/null 2>&1; then
@@ -31,25 +36,24 @@ fi
 # --- 1. Base: gitignore-aware ------------------------------------------------
 "$FD" --hidden --type d -E .git &
 
-# --- 2. Ignored dirs: search directly + emit roots --------------------------
+# --- 2. Ignored include dirs at any depth: single regex scan -----------------
 {
-  search_paths=()
+  parts=()
   for d in "${include_dirs[@]}"; do
-    if [[ -d "$d" ]]; then
-      # Emit the root dir itself (fd doesn't list search roots)
-      printf '%s\n' "$d"
-      search_paths+=(--search-path "$d")
-    fi
+    parts+=("$(printf '%s' "$d" | sed 's/[.[\*^$()+?{|\\]/\\&/g')")
   done
-  (( ${#search_paths[@]} )) && "$FD" --no-ignore --hidden --type d -E .git "${search_paths[@]}"
-} 2>/dev/null &
+  for g in "${include_dir_globs[@]+"${include_dir_globs[@]}"}"; do
+    parts+=("$(printf '%s' "$g" | sed 's/[.[\*^$()+?{|\\]/\\&/g')")
+  done
 
-# --- 3. Glob patterns for ignored dirs (e.g. **/local) ----------------------
-# Cheap for dirs — far fewer results than a file scan.
-{
-  for glob in "${include_dir_globs[@]+"${include_dir_globs[@]}"}"; do
-    "$FD" --no-ignore --hidden --type d -E .git --glob "$glob"
-  done
+  if ((${#parts[@]})); then
+    exclude_flags=()
+    for d in "${skip_dirs[@]}"; do
+      exclude_flags+=(-E "$d")
+    done
+    alternation="$(IFS='|'; echo "${parts[*]}")"
+    "$FD" --no-ignore --hidden --full-path --type d "${exclude_flags[@]}" "/($alternation)(\/|$)"
+  fi
 } 2>/dev/null &
 
 wait
