@@ -62,16 +62,22 @@ function M.setup(key, bufnr, opts)
   end
 
   local function setup_buffer()
+    if opts.each then
+      opts.each(bufnr)
+    end
+
+    -- Firenvim only needs syntax highlighting and formatters (registered in
+    -- init_language); skip LSP and tool-installer to avoid orphan servers.
+    if vim.g.started_by_firenvim then
+      return
+    end
+
     local lsps = listify(resolve(opts.lsps or opts.lsp))
     local tools = resolve(opts.tools)
     local lsp = require("lib.lsp")
 
     for _, name in ipairs(lsps) do
       lsp.enable(name)
-    end
-
-    if opts.each then
-      opts.each(bufnr)
     end
 
     if tools then
