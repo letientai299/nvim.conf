@@ -67,7 +67,7 @@ function M.setup(key, bufnr, opts)
     local lsp = require("lib.lsp")
 
     for _, name in ipairs(lsps) do
-      lsp.enable_until_ready(name, bufnr)
+      lsp.enable(name)
     end
 
     if opts.each then
@@ -76,13 +76,8 @@ function M.setup(key, bufnr, opts)
 
     if tools then
       require("tool-installer").ensure(tools, function()
-        if not vim.api.nvim_buf_is_valid(bufnr) then
-          return
-        end
-        -- Retry after tool installs; the first enable may have run before the
-        -- server binary existed on PATH.
-        for _, name in ipairs(lsps) do
-          lsp.enable_until_ready(name, bufnr)
+        if vim.api.nvim_buf_is_valid(bufnr) then
+          lsp.reattach(bufnr)
         end
       end)
     end

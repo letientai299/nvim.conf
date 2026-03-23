@@ -1,9 +1,6 @@
 local M = {}
 
 local defaults_applied = false
-local retry_tokens = {} ---@type table<string, table>
-local RETRY_DELAY_MS = 350
-local RETRY_TIMEOUT_MS = 15000
 
 local default_capabilities = {
   textDocument = {
@@ -52,37 +49,14 @@ local function apply_defaults()
   vim.lsp.config("*", { capabilities = default_capabilities })
 end
 
-local function attach_enabled_configs(bufnr)
-  pcall(vim.api.nvim_exec_autocmds, "FileType", {
-    group = "nvim.lsp.enable",
-    buffer = bufnr,
-    modeline = false,
-  })
-end
-
----@param name string
----@param bufnr integer
----@return boolean
-local function has_client(name, bufnr)
-  return #vim.lsp.get_clients({ bufnr = bufnr, name = name }) > 0
-end
-
----@param name string
----@param bufnr integer
----@return string
-local function retry_key(name, bufnr)
-  return name .. ":" .. bufnr
-end
-
 local fallback_registered = {}
 local enabled_servers = {} ---@type table<string, true>
 
---- Enable an LSP config and attach it to the current buffer when needed.
+--- Enable an LSP config globally via `vim.lsp.enable()`.
 --- If the config declares `fallback_config`, a `<name>_fallback` variant is
 --- registered on first call and enabled alongside the base config.
 --- @param name string
---- @param bufnr integer|nil
-function M.enable(name, bufnr)
+function M.enable(name)
   apply_defaults()
 
   if not fallback_registered[name] then
@@ -101,76 +75,17 @@ function M.enable(name, bufnr)
     enabled_servers[name] = true
     vim.lsp.enable(name)
   end
-
-  if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
-    return
-  end
-
-  if vim.v.vim_did_enter == 1 then
-    vim.schedule(function()
-      if vim.api.nvim_buf_is_valid(bufnr) then
-        attach_enabled_configs(bufnr)
-      end
-    end)
-    return
-  end
-
-  vim.api.nvim_create_autocmd("VimEnter", {
-    once = true,
-    callback = function()
-      if vim.api.nvim_buf_is_valid(bufnr) then
-        attach_enabled_configs(bufnr)
-      end
-    end,
-  })
 end
 
---- Ensure an LSP client is eventually attached to `bufnr`.
---- Re-runs enable + FileType-group attach until a client appears or timeout.
----@param name string
----@param bufnr integer|nil
----@param opts? {delay_ms?: integer, timeout_ms?: integer}
-function M.enable_until_ready(name, bufnr, opts)
-  M.enable(name, bufnr)
-
-  if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
-    return
-  end
-
-  if has_client(name, bufnr) then
-    retry_tokens[retry_key(name, bufnr)] = nil
-    return
-  end
-
-  local delay_ms = (opts and opts.delay_ms) or RETRY_DELAY_MS
-  local timeout_ms = (opts and opts.timeout_ms) or RETRY_TIMEOUT_MS
-  local started = vim.uv.now()
-  local key = retry_key(name, bufnr)
-  local token = {}
-  retry_tokens[key] = token
-
-  local function step()
-    if retry_tokens[key] ~= token then
-      return
-    end
-    if not vim.api.nvim_buf_is_valid(bufnr) then
-      retry_tokens[key] = nil
-      return
-    end
-    if has_client(name, bufnr) then
-      retry_tokens[key] = nil
-      return
-    end
-    if vim.uv.now() - started >= timeout_ms then
-      retry_tokens[key] = nil
-      return
-    end
-
-    M.enable(name, bufnr)
-    vim.defer_fn(step, delay_ms)
-  end
-
-  vim.defer_fn(step, delay_ms)
+--- Re-fire the `nvim.lsp.enable` FileType autocmd for a single buffer.
+--- Used by tool-installer after a server binary becomes available.
+---@param bufnr integer
+function M.reattach(bufnr)
+  pcall(vim.api.nvim_exec_autocmds, "FileType", {
+    group = "nvim.lsp.enable",
+    buffer = bufnr,
+    modeline = false,
+  })
 end
 
 function M.ensure_defaults()
