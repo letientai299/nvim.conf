@@ -132,7 +132,7 @@ function M.register_default_languages()
     vim.treesitter.language.register("bash", { "sh" })
     vim.treesitter.language.register("json", { "jsonc" })
     vim.treesitter.language.register("c_sharp", { "cs" })
-    vim.treesitter.language.register("markdown", { "mdx" })
+    vim.treesitter.language.register("markdown", { "mdx", "md" })
   end
 
   maybe_register_custom_parsers()
