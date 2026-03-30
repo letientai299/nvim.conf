@@ -54,6 +54,15 @@ return {
       end,
     })
 
+    -- Cmd-v paste (macOS) — firenvim doesn't handle <D-v> natively.
+    vim.keymap.set({ "i", "c" }, "<D-v>", function()
+      local reg = vim.fn.getreg("+")
+      if reg ~= "" then
+        vim.api.nvim_paste(reg, true, -1)
+      end
+    end)
+    vim.keymap.set("n", "<D-v>", '"+p')
+
     font:map_pick()
     font:map_zoom()
   end,
