@@ -201,4 +201,4 @@ end, { desc = "Diagnostic quickfix" })
 map("n", "gd", lsp_buf("definition"), { desc = "Go to definition" })
 map("n", "gD", lsp_buf("declaration"), { desc = "Go to declaration" })
 map("n", "gi", lsp_buf("implementation"), { desc = "Go to implementation" })
-map("n", "gI", lsp_buf("type_definition"), { desc = "Go to type definition" })
+-- grt (type definition) and grx (code lens) are 0.12 defaults

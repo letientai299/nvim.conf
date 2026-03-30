@@ -140,6 +140,9 @@ vim.opt.completeopt:append("fuzzy")
 -- Rounded borders on every floating window globally (0.11+)
 vim.o.winborder = "rounded"
 
+-- Rounded border on the completion popup menu (0.12+)
+vim.o.pumborder = "rounded"
+
 -- Settings deferred until VeryLazy to avoid loading vim.diagnostic and
 -- treesitter fold code at startup. On :Reload (vim_did_enter == 1) VeryLazy
 -- has already fired, so apply immediately.

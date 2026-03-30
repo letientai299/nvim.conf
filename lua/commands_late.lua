@@ -196,6 +196,22 @@ vim.api.nvim_create_user_command("LocalTodo", function()
   vim.cmd.edit(repo .. "/.dump/todo.md")
 end, { desc = "Open per-repo todo file at .dump/todo.md" })
 
+-- Lazy-load built-in opt plugins on first command use.
+for _, spec in ipairs({
+  { cmd = "Undotree", pkg = "nvim.undotree" },
+  { cmd = "DiffTool", pkg = "nvim.difftool" },
+}) do
+  vim.api.nvim_create_user_command(spec.cmd, function(opts)
+    vim.api.nvim_del_user_command(spec.cmd)
+    vim.cmd.packadd(spec.pkg)
+    vim.cmd({
+      cmd = spec.cmd,
+      args = opts.args ~= "" and { opts.args } or {},
+      bang = opts.bang,
+    })
+  end, { nargs = "*", bang = true, desc = spec.pkg .. " (lazy)" })
+end
+
 vim.api.nvim_create_user_command("BufOnly", function()
   local cur = vim.api.nvim_get_current_buf()
   for _, buf in ipairs(vim.api.nvim_list_bufs()) do
