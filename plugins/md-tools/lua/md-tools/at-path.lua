@@ -5,7 +5,7 @@ local M = {}
 -- Matches a bare @path that looks like a file reference (must contain a slash).
 -- Allows backslash-escaped underscores (\_) that prettier inserts.
 -- Simple @username mentions are left alone.
-local AT_PATH = "@[%w_\\%.%-]+/[%w_\\%.%-/]+"
+local AT_PATH = "@[%w_\\%.%-]+/[%w_\\%.%-/$]+"
 
 --- Wrap bare @path references in backticks within the given line.
 --- Also un-escapes \_  back to _ inside the wrapped span.

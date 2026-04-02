@@ -274,5 +274,5 @@ vim.api.nvim_create_autocmd("BufEnter", {
 -- Abbreviations
 -- ---------------------------------------------------------------------------
 
-vim.cmd.iabbrev("ref refactor:")
+-- vim.cmd.iabbrev("ref refactor:")
 vim.cmd.iabbrev("ans **Answer**:")
