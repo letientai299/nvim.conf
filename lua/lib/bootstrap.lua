@@ -3,7 +3,6 @@
 --- Pre-installs a curated set of startup-essential plugins in --headless mode
 --- so the first interactive launch has a good UX:
 ---
----   nvim         → mini.starter (greeter)
 ---   nvim <dir>   → oil.nvim (file browser)
 ---   nvim <file>  → catppuccin (theme) + nvim-treesitter (highlighting)
 ---   any start    → mini.clue (key hints)
@@ -25,7 +24,6 @@ function M.run()
   require("lazy").load({
     plugins = {
       "mini.clue",
-      "mini.starter",
       "oil.nvim",
       "nvim-treesitter",
     },
