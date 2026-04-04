@@ -14,6 +14,25 @@ return {
       desc = "Diagnostics (buffer)",
     },
     {
+      "<leader>fp",
+      function()
+        require("fzf-lua").fzf_exec("zoxide query -l", {
+          prompt = "Projects> ",
+          actions = {
+            ["default"] = function(selected)
+              if not selected or #selected == 0 then
+                return
+              end
+              local dir = selected[1]
+              vim.cmd.cd(dir)
+              require("lib.lazy_ondemand").lazy_require("oil").open(dir)
+            end,
+          },
+        })
+      end,
+      desc = "Projects (zoxide)",
+    },
+    {
       "<leader>fD",
       "<Cmd>FzfLua diagnostics_workspace<CR>",
       desc = "Diagnostics (workspace)",
