@@ -154,7 +154,7 @@ local function apply_deferred_options()
   vim.opt.foldlevelstart = 99
 
   vim.diagnostic.config({
-    jump = { float = true },
+    jump = { on_jump = "float" },
     virtual_text = { spacing = 4, prefix = "●" },
     severity_sort = true,
   })
