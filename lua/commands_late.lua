@@ -269,10 +269,3 @@ vim.api.nvim_create_autocmd("BufEnter", {
     vim.bo.filetype = "confini"
   end,
 })
-
--- ---------------------------------------------------------------------------
--- Abbreviations
--- ---------------------------------------------------------------------------
-
--- vim.cmd.iabbrev("ref refactor:")
-vim.cmd.iabbrev("ans **Answer**:")
