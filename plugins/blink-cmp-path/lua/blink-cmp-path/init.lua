@@ -97,28 +97,6 @@ function source.new(opts)
     end)
   end, { desc = "Rebuild blink-cmp-path index" })
 
-  -- One-time fsmonitor recommendation
-  if not vim.g.blink_cmp_path_fsmonitor_checked then
-    vim.g.blink_cmp_path_fsmonitor_checked = true
-    vim.defer_fn(function()
-      local cwd = vim.uv.cwd()
-      if not cwd or not vim.uv.fs_stat(cwd .. "/.git") then
-        return
-      end
-      local result = vim
-        .system({ "git", "config", "core.fsmonitor" }, { text = true })
-        :wait()
-      if result.code ~= 0 or vim.trim(result.stdout or "") ~= "true" then
-        vim.notify(
-          "blink-cmp-path: consider enabling core.fsmonitor for faster git ls-files\n"
-            .. "  git config core.fsmonitor true\n"
-            .. "  git config core.untrackedCache true",
-          vim.log.levels.INFO
-        )
-      end
-    end, 2000)
-  end
-
   return self
 end
 
