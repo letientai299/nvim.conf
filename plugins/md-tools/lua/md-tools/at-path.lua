@@ -1,11 +1,12 @@
---- Auto-wrap bare @path/to/file references in backticks on save.
+--- Auto-wrap bare path/to/file and @path/to/file references in backticks on save.
 --- Runs after formatters (BufWritePost) to fix escaped underscores.
 local M = {}
 
--- Matches a bare @path that looks like a file reference (must contain a slash).
+-- Matches an optional @ followed by a path with at least one slash.
 -- Allows backslash-escaped underscores (\_) that prettier inserts.
--- Simple @username mentions are left alone.
-local AT_PATH = "@[%w_\\%.%-]+/[%w_\\%.%-/$]+"
+-- Simple @username mentions (no slash) are left alone.
+-- URL and markdown-link exclusion is done at match time.
+local PATH_PAT = "()(@?[%w_\\%.%-]+/[%w_\\%.%-/$]+)"
 
 --- Wrap bare @path references in backticks within the given line.
 --- Also un-escapes \_  back to _ inside the wrapped span.
@@ -38,8 +39,16 @@ function M.wrap_line(line)
 
   for i, part in ipairs(parts) do
     if not part.code then
-      local new, count = part.text:gsub(AT_PATH, function(m)
-        -- Un-escape \_ → _ inside the path, then wrap in backticks.
+      local new, count = part.text:gsub(PATH_PAT, function(mpos, m)
+        local before = part.text:sub(math.max(1, mpos - 3), mpos - 1)
+        -- Skip URLs: preceded by ://
+        if before:match("://$") then
+          return nil
+        end
+        -- Skip markdown link targets: preceded by ](
+        if before:match("%]%($") then
+          return nil
+        end
         return "`" .. m:gsub("\\_", "_") .. "`"
       end)
       parts[i].text = new
@@ -65,7 +74,7 @@ local function compute_wrapped(buf)
   for i, line in ipairs(lines) do
     if line:match("^%s*```") then
       in_fence = not in_fence
-    elseif not in_fence then
+    elseif not in_fence and not line:match("^%s*%[.-%]:%s") then
       local new, count = M.wrap_line(line)
       if count > 0 then
         lines[i] = new
