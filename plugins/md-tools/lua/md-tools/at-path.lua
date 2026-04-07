@@ -40,13 +40,13 @@ function M.wrap_line(line)
   for i, part in ipairs(parts) do
     if not part.code then
       local new, count = part.text:gsub(PATH_PAT, function(mpos, m)
-        local before = part.text:sub(math.max(1, mpos - 3), mpos - 1)
-        -- Skip URLs: preceded by ://
-        if before:match("://$") then
+        local before = part.text:sub(1, mpos - 1)
+        -- Skip URLs: :// appears earlier in the same non-whitespace run.
+        if before:match("://%S*$") then
           return nil
         end
         -- Skip markdown link targets: preceded by ](
-        if before:match("%]%($") then
+        if before:match("%]%(%s*$") then
           return nil
         end
         return "`" .. m:gsub("\\_", "_") .. "`"
