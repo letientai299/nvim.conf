@@ -49,6 +49,18 @@ function M.wrap_line(line)
         if before:match("%]%(%s*$") then
           return nil
         end
+        -- Skip host:port/path (e.g. localhost:8080/api).
+        if before:match(":%d*$") and m:match("^%d") then
+          return nil
+        end
+        -- Skip plain 2-segment paths (a/b) without @, dot-prefix, or extension.
+        -- These are typically prose like "this/that", not file paths.
+        if not m:match("^@") then
+          local seg1, seg2 = m:match("^([^/]+)/([^/]+)$")
+          if seg1 and not seg1:match("^%.") and not seg2:match("%.") then
+            return nil
+          end
+        end
         return "`" .. m:gsub("\\_", "_") .. "`"
       end)
       parts[i].text = new
@@ -102,12 +114,8 @@ function M.setup(buf)
       if not lines then
         return
       end
-      -- Apply + save without polluting undo history.
-      local ul = vim.bo[b].undolevels
-      vim.bo[b].undolevels = -1
       vim.api.nvim_buf_set_lines(b, 0, -1, false, lines)
       vim.cmd("noautocmd write")
-      vim.bo[b].undolevels = ul
     end,
   })
 end
