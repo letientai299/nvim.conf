@@ -138,7 +138,7 @@ function M.new(name)
   --- Bind `<Leader>fp` (or custom lhs) to the font picker.
   ---@param lhs? string  keymap lhs, defaults to `<Leader>fp`
   function ctx:map_pick(lhs)
-    vim.keymap.set("n", lhs or "<Leader>fp", function()
+    vim.keymap.set("n", lhs or "<Leader>fu", function()
       self:pick()
     end, { desc = "Pick font" })
   end
