@@ -48,6 +48,22 @@ vim.opt.spelllang = "en_us"
 
 local augroup = vim.api.nvim_create_augroup("UserOptions", { clear = true })
 
+-- Open external file types (PDF, docx, etc.) with the system application
+-- instead of loading them into a buffer. Covers :e, fzf-lua file picker, etc.
+local ext_open = require("lib.external_open")
+vim.api.nvim_create_autocmd("BufReadCmd", {
+  group = augroup,
+  pattern = ext_open.patterns(),
+  callback = function(args)
+    ext_open.open(args.match)
+    vim.schedule(function()
+      if vim.api.nvim_buf_is_valid(args.buf) then
+        vim.api.nvim_buf_delete(args.buf, { force = true })
+      end
+    end)
+  end,
+})
+
 -- Prefer treesitter highlighting for normal file buffers without waiting for
 -- the full nvim-treesitter plugin config to load.
 vim.api.nvim_create_autocmd({ "BufReadPre", "BufNewFile" }, {
