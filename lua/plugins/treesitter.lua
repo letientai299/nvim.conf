@@ -1,21 +1,24 @@
 return {
-  "nvim-treesitter/nvim-treesitter",
-  branch = "main",
+  "romus204/tree-sitter-manager.nvim",
   event = "VeryLazy",
   config = function()
     local lib_ts = require("lib.treesitter")
-    -- Explicitly pass install_dir so nvim-treesitter adds it to rtp.
-    -- lazy.nvim strips the default stdpath("data")/site from rtp, and
-    -- setup() re-adds it — but only to the rtp string. If the directory
-    -- doesn't exist on disk yet (fresh install, no parsers compiled),
-    -- the next lazy.nvim plugin load rebuilds rtp via
-    -- nvim_get_runtime_file("", true) which filters non-existent paths,
-    -- silently dropping site. Pre-create the directory so it survives.
-    local install_dir = vim.fs.joinpath(vim.fn.stdpath("data"), "site")
-    vim.fn.mkdir(install_dir, "p")
     lib_ts.ensure_runtime()
-    require("nvim-treesitter").setup({ install_dir = install_dir })
-    require("nvim-treesitter.parsers")
     lib_ts.register_default_languages()
+
+    require("tree-sitter-manager").setup({
+      auto_install = true,
+      -- We manage highlighting ourselves (destroy patch, syntax clear,
+      -- two-phase enable) via lib.treesitter — disable the plugin's built-in.
+      highlight = false,
+      languages = {
+        log = {
+          install_info = {
+            url = "https://github.com/Tudyx/tree-sitter-log",
+            revision = "62cfe307e942af3417171243b599cc7deac5eab9",
+          },
+        },
+      },
+    })
   end,
 }

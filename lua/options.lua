@@ -65,7 +65,7 @@ vim.api.nvim_create_autocmd("BufReadCmd", {
 })
 
 -- Prefer treesitter highlighting for normal file buffers without waiting for
--- the full nvim-treesitter plugin config to load.
+-- the full tree-sitter-manager plugin config to load.
 vim.api.nvim_create_autocmd({ "BufReadPre", "BufNewFile" }, {
   group = augroup,
   callback = function(args)

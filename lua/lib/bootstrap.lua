@@ -4,7 +4,7 @@
 --- so the first interactive launch has a good UX:
 ---
 ---   nvim <dir>   → oil.nvim (file browser)
----   nvim <file>  → catppuccin (theme) + nvim-treesitter (highlighting)
+---   nvim <file>  → catppuccin (theme) + tree-sitter-manager (highlighting)
 ---   any start    → mini.clue (key hints)
 ---
 --- Catppuccin is installed by init.lua's colorscheme block before this runs.
@@ -25,7 +25,7 @@ function M.run()
     plugins = {
       "mini.clue",
       "oil.nvim",
-      "nvim-treesitter",
+      "tree-sitter-manager.nvim",
     },
   })
 
