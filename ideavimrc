@@ -7,12 +7,8 @@ let mapleader=" "
 " Shared options (mirrors lua/options.lua)
 " ---------------------------------------------------------------------------
 
-set expandtab
-set tabstop=2 softtabstop=2 shiftwidth=2
 set ignorecase smartcase incsearch hlsearch
 set textwidth=0
-set spelllang=en_us
-set nospell
 set idearefactormode=keep
 set clipboard+=ideaput
 set VimEverywhere
@@ -50,13 +46,13 @@ set matchit
 set commentary
 set ideajoin
 set ideamarks
-set anyobject
+"set anyobject
 set exchange
-set dial
-set which-key
+"set dial
+"set which-key
 set NERDTree
 set highlightedyank
-set quickscope
+"set quickscope
 set mini-ai
 
 " ---------------------------------------------------------------------------
@@ -71,8 +67,8 @@ nnoremap <Leader>va :source ~/.ideavimrc<CR>
 nmap <A-p> :action PinActiveTabToggle<CR>
 
 " Dial increment/decrement
-nnoremap <C-a> :DialIncrement<CR>
-nnoremap <C-x> :DialDecrement<CR>
+"nnoremap <C-a> :DialIncrement<CR>
+"nnoremap <C-x> :DialDecrement<CR>
 
 " Unimpaired
 nnoremap [<space> O<Esc>j
