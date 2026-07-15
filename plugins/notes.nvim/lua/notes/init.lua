@@ -1,7 +1,7 @@
 local M = {}
 
---- Append a timestamped section to today's diary file.
---- Creates the file with a date header if it doesn't exist.
+--- Open today's diary file.
+--- Creates the file with a templated date header if it doesn't exist.
 function M.note_today()
   local note_dir = vim.env.NOTE
   if not note_dir or note_dir == "" then
@@ -12,7 +12,6 @@ function M.note_today()
   local date = os.date("%Y-%m-%d")
   local year = os.date("%Y")
   local day_name = os.date("%A")
-  local time = os.date("%H:%M")
 
   local dir = note_dir .. "/diary/" .. year
   vim.fn.mkdir(dir, "p")
@@ -22,17 +21,21 @@ function M.note_today()
 
   vim.cmd.edit(path)
 
+  -- Append `## <hh:mm>` at the bottom of the buffer, then park the cursor there.
+  vim.keymap.set("n", "<leader>vt", function()
+    vim.api.nvim_buf_set_lines(0, -1, -1, false, { "## " .. os.date("%H:%M"), "" })
+    vim.cmd("$")
+  end, { buffer = true, desc = "Notes: append time heading" })
+
   if not exists then
     vim.api.nvim_buf_set_lines(0, 0, -1, false, {
       "# " .. date .. " - " .. day_name,
       "",
-      "## " .. time,
+      "## Goals",
+      "",
+      "---",
       "",
     })
-  else
-    local last = vim.api.nvim_buf_line_count(0)
-    local append = { "", "## " .. time, "" }
-    vim.api.nvim_buf_set_lines(0, last, last, false, append)
   end
 
   -- Place cursor at end of buffer.
