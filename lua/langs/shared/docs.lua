@@ -26,6 +26,34 @@ function M.markdown(bufnr)
     },
     formatters = { "rumdl_fix", "prettier" },
   })
+
+  -- :Md2cb — convert the whole buffer (or the visual selection) to rich text
+  -- and put it on the clipboard via the `md2cb` CLI, for pasting into Teams,
+  -- Slack, docs, etc. https://github.com/letientai299/md2cb
+  vim.api.nvim_buf_create_user_command(bufnr, "Md2cb", function(opts)
+    local first, last = 0, -1
+    if opts.range > 0 then
+      first, last = opts.line1 - 1, opts.line2
+    end
+    local text =
+      table.concat(vim.api.nvim_buf_get_lines(bufnr, first, last, false), "\n")
+    vim.system({ "md2cb" }, { stdin = text }, function(result)
+      vim.schedule(function()
+        if result.code == 0 then
+          vim.notify(
+            "md2cb: rich text copied to clipboard",
+            vim.log.levels.INFO
+          )
+        else
+          local msg = result.stderr and result.stderr:gsub("%s+$", "") or ""
+          vim.notify("md2cb failed: " .. msg, vim.log.levels.ERROR)
+        end
+      end)
+    end)
+  end, {
+    range = true,
+    desc = "Convert markdown (buffer or selection) to rich text clipboard via md2cb",
+  })
 end
 
 function M.mdx(bufnr)
