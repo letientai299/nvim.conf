@@ -32,6 +32,17 @@ describe("wrap_line", function()
     })
   end)
 
+  describe("absolute paths (leading slash, always wrap)", function()
+    run_cases({
+      {
+        "/Users/me/dev/proj/.dump/todo.md",
+        "`/Users/me/dev/proj/.dump/todo.md`",
+      },
+      { "see /etc/hosts/file here", "see `/etc/hosts/file` here" },
+      { "at /var/log/app.log", "at `/var/log/app.log`" },
+    })
+  end)
+
   describe("URLs (never wrap)", function()
     run_cases({
       {

@@ -2,11 +2,12 @@
 --- Runs after formatters (BufWritePost) to fix escaped underscores.
 local M = {}
 
--- Matches an optional @ followed by a path with at least one slash.
+-- Matches an optional @ and optional leading / (absolute paths), followed by a
+-- path with at least one slash.
 -- Allows backslash-escaped underscores (\_) that prettier inserts.
 -- Simple @username mentions (no slash) are left alone.
 -- URL and markdown-link exclusion is done at match time.
-local PATH_PAT = "()(@?[%w_\\%.%-]+/[%w_\\%.%-/$]+)"
+local PATH_PAT = "()(@?/?[%w_\\%.%-]+/[%w_\\%.%-/$]+)"
 
 --- Wrap bare @path references in backticks within the given line.
 --- Also un-escapes \_  back to _ inside the wrapped span.
@@ -43,6 +44,12 @@ function M.wrap_line(line)
         local before = part.text:sub(1, mpos - 1)
         -- Skip URLs: :// appears earlier in the same non-whitespace run.
         if before:match("://%S*$") then
+          return nil
+        end
+        -- A leading / that follows ':' or '/' is part of a scheme (http://)
+        -- or a doubled slash, not the root of an absolute path.
+        local prev = before:sub(-1)
+        if m:match("^/") and (prev == ":" or prev == "/") then
           return nil
         end
         -- Skip markdown link targets: preceded by ](
