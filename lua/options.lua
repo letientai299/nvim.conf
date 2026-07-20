@@ -31,6 +31,11 @@ vim.opt.linebreak = true
 -- Persistent undo across sessions, stored in undodir
 vim.opt.undofile = true
 
+-- Remember oldfiles/marks for the last 1000 edited files (default 100).
+-- Replaces the '100 entry in the default shada string rather than appending
+-- a conflicting one.
+vim.opt.shada = "!,'1000,<50,s10,h"
+
 -- Always show the sign column to prevent layout jitter
 vim.opt.signcolumn = "yes:1"
 
