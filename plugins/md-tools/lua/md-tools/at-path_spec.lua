@@ -40,6 +40,29 @@ describe("wrap_line", function()
       },
       { "see /etc/hosts/file here", "see `/etc/hosts/file` here" },
       { "at /var/log/app.log", "at `/var/log/app.log`" },
+      { "run /usr/local/bin/nvim now", "run `/usr/local/bin/nvim` now" },
+    })
+  end)
+
+  describe("home paths (leading ~, always wrap)", function()
+    run_cases({
+      {
+        "~/.local/share/zsh/site-functions/",
+        "`~/.local/share/zsh/site-functions/`",
+        "tilde must be inside the backticks",
+      },
+      {
+        "see ~/.config/nvim/init.lua here",
+        "see `~/.config/nvim/init.lua` here",
+      },
+      { "cd ~/dev/proj/src now", "cd `~/dev/proj/src` now" },
+    })
+  end)
+
+  describe("trailing slash (directory paths, always wrap)", function()
+    run_cases({
+      { "in /etc/nginx/conf.d/ dir", "in `/etc/nginx/conf.d/` dir" },
+      { "under src/lib/utils/ here", "under `src/lib/utils/` here" },
     })
   end)
 
@@ -58,6 +81,21 @@ describe("wrap_line", function()
         "connect to host:8080/api/v1",
         "connect to host:8080/api/v1",
         "host:port URL",
+      },
+      {
+        "get ftp://host.com/pub/file.tar",
+        "get ftp://host.com/pub/file.tar",
+        "ftp scheme",
+      },
+      {
+        "open file:///Users/me/doc.txt",
+        "open file:///Users/me/doc.txt",
+        "file scheme with triple slash",
+      },
+      {
+        "clone ssh://git@host.com/org/repo.git",
+        "clone ssh://git@host.com/org/repo.git",
+        "ssh scheme",
       },
     })
   end)

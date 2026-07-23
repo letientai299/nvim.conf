@@ -2,12 +2,12 @@
 --- Runs after formatters (BufWritePost) to fix escaped underscores.
 local M = {}
 
--- Matches an optional @ and optional leading / (absolute paths), followed by a
--- path with at least one slash.
+-- Matches an optional @, optional leading ~ (home dir), and optional leading /
+-- (absolute paths), followed by a path with at least one slash.
 -- Allows backslash-escaped underscores (\_) that prettier inserts.
 -- Simple @username mentions (no slash) are left alone.
 -- URL and markdown-link exclusion is done at match time.
-local PATH_PAT = "()(@?/?[%w_\\%.%-]+/[%w_\\%.%-/$]+)"
+local PATH_PAT = "()(@?~?/?[%w_\\%.%-]+/[%w_\\%.%-/$]+)"
 
 --- Wrap bare @path references in backticks within the given line.
 --- Also un-escapes \_  back to _ inside the wrapped span.
