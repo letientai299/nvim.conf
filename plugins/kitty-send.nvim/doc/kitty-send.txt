@@ -1,0 +1,89 @@
+*kitty-send.txt*  Send buffer or selection to a sibling Kitty pane
+
+==============================================================================
+CONTENTS                                                *kitty-send-contents*
+
+    1. Introduction .......................... |kitty-send-intro|
+    2. Requirements .......................... |kitty-send-requirements|
+    3. Setup ................................. |kitty-send-setup|
+    4. Usage ................................. |kitty-send-usage|
+    5. API ................................... |kitty-send-api|
+
+==============================================================================
+1. INTRODUCTION                                            *kitty-send-intro*
+
+Sends the current buffer, or the active visual selection, to another Kitty
+window (pane) that shares the same Kitty tab as neovim. The text is delivered
+with a trailing newline so the final line is submitted in a shell or REPL.
+
+When the tab holds more than one other pane, the destination is chosen with
+kitty's native selection overlay (`kitty @ select-window`) — the same visual
+picker that draws a number/letter over each pane. Press the shown key to pick
+the target, or `Esc` to cancel. Set `picker = "select"` to use `vim.ui.select`
+instead. With a single sibling pane the text is sent straight away.
+
+==============================================================================
+2. REQUIREMENTS                                     *kitty-send-requirements*
+
+Kitty remote control must be enabled. In `kitty.conf`: >
+
+    allow_remote_control yes
+    listen_on unix:/tmp/mykitty-{kitty_pid}
+<
+The command relies on the `KITTY_LISTEN_ON` and `KITTY_WINDOW_ID` environment
+variables that Kitty exports into each window, and reports an error when they
+are unset (i.e. neovim is not running inside a Kitty window).
+
+==============================================================================
+3. SETUP                                                   *kitty-send-setup*
+
+Register the `:KittySend` command via a lazy.nvim spec: >lua
+
+    {
+      dir = "plugins/kitty-send.nvim",
+      cmd = "KittySend",
+      config = function()
+        vim.api.nvim_create_user_command("KittySend", function(opts)
+          require("kitty-send").send(opts)
+        end, { range = true, bang = true })
+      end,
+    }
+<
+To use `vim.ui.select` instead of kitty's native overlay, call `setup` in the
+same `config` function: >lua
+
+    require("kitty-send").setup({ picker = "select" })
+<
+==============================================================================
+4. USAGE                                                   *kitty-send-usage*
+
+                                                                  *:KittySend*
+:KittySend              Send the whole buffer to a sibling pane. In visual
+:'<,'>KittySend         mode, send the selection instead. When more than one
+                        sibling pane exists, kitty's native overlay appears to
+                        pick the target visually.
+
+                                                                 *:KittySend!*
+:KittySend!             Reuse the pane targeted by the previous send, skipping
+                        the prompt. Falls back to the prompt when the remembered
+                        pane is no longer a sibling.
+
+Default mappings (normal and visual mode):
+
+    <Leader>ks          :KittySend
+    <Leader>kS          :KittySend!
+
+==============================================================================
+5. API                                                       *kitty-send-api*
+
+kitty-send.setup({opts})                                 *kitty-send.setup()*
+    Optional configuration. {opts} fields:
+        picker  "kitty" (default) native `select-window` overlay, or
+                "select" `vim.ui.select` list.
+
+kitty-send.send({opts})                                   *kitty-send.send()*
+    Entry point for the command. {opts} is the user-command callback table;
+    the `range` field selects buffer vs. selection and `bang` reuses the last
+    target.
+
+vim:tw=78:ts=8:ft=help:norl:
