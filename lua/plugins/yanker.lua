@@ -13,6 +13,13 @@ return {
     { "<Leader>yP", yank("absolute"), desc = "Copy absolute path" },
     { "<Leader>yg", yank("git"), desc = "Copy path from git root" },
     {
+      "<Leader>yb",
+      function()
+        require("yanker").buffer()
+      end,
+      desc = "Copy whole buffer content",
+    },
+    {
       "<Leader>yd",
       function()
         require("yanker").diagnostic()

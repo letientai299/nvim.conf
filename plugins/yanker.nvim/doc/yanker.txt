@@ -33,6 +33,9 @@ oil.nvim keymaps and normal-buffer keymaps.
 `require("yanker").buf_path()`                          *yanker.buf_path()*
     Return the current buffer's absolute path, or nil for unnamed buffers.
 
+`require("yanker").buffer()`                              *yanker.buffer()*
+    Yank the whole current buffer's content to the clipboard.
+
 `require("yanker").diagnostic()`                      *yanker.diagnostic()*
     Yank diagnostics on the current line as `path:line: message [code]`
     formatted text to the clipboard.

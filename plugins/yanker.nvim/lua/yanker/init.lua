@@ -77,6 +77,16 @@ function M.buf_path()
   return name
 end
 
+--- Yank the whole current buffer's content.
+function M.buffer()
+  local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+  vim.fn.setreg("+", table.concat(lines, "\n"))
+  vim.notify(
+    string.format("Copied buffer (%d lines)", #lines),
+    vim.log.levels.INFO
+  )
+end
+
 --- Yank diagnostics on the current line with path:line format.
 function M.diagnostic()
   local path = M.buf_path()
