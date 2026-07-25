@@ -44,6 +44,11 @@ if vim.uv.fs_stat(_dir_config .. "/lua/local/init.lua") then
   require("local")
 end
 
+-- Pre-trust `.nvim.lua` under known roots before the built-in exrc reads them
+-- (exrc runs after init.lua), so copied worktree configs skip the `:trust`
+-- prompt. Runs after `local` so it can extend `trust_roots`.
+require("lib.exrc").autotrust()
+
 -- Disable netrw (oil.nvim replaces it)
 vim.g.loaded_netrw = 1
 vim.g.loaded_netrwPlugin = 1

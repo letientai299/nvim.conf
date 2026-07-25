@@ -38,6 +38,31 @@ built-in exrc loads a file first, `mark()` keeps the table in sync.
         .nvim.lua               -- calls source_parent(), gets monorepo + root
 ```
 
+## Auto-trust across worktrees
+
+Neovim's built-in exrc reads each `.nvim.lua` through [`vim.secure`][secure] and
+prompts `:trust` for untrusted files. The trust database keys entries by
+absolute path, so a `wt`-created worktree — a copy of the same `.nvim.lua` at a
+new path — would re-prompt on first open.
+
+`autotrust()` in [`lua/lib/exrc.lua`][exrc] avoids this. Before the built-in
+exrc runs (called from [`init.lua`][init] after machine-local config loads), it
+walks up from the working directory and, for every `.nvim.lua` under a trusted
+root, records its current content hash in the trust database. The built-in exrc
+then finds a matching hash and loads without prompting.
+
+- It re-hashes each startup, so edits to a trusted `.nvim.lua` stay trusted and
+  files outside the roots still prompt.
+- `trust_roots` is empty by default, so nothing is auto-trusted until you opt
+  in. Populate it from machine-local config (`lua/local/init.lua`):
+
+  ```lua
+  vim.list_extend(require("lib.exrc").trust_roots, {
+    vim.fn.expand("~/dev/mine"),
+    vim.fn.expand("~/dev/nv"),
+  })
+  ```
+
 ## Keymaps
 
 | Key          | Action                                               |
@@ -67,5 +92,7 @@ Defined in [`lua/keymaps_late.lua`][keymaps-late].
 
 [exrc]: ../lua/lib/exrc.lua
 [fzf-lua]: ../lua/plugins/fzf-lua.lua
+[init]: ../init.lua
 [keymaps-late]: ../lua/keymaps_late.lua
 [options]: ../lua/options.lua
+[secure]: https://neovim.io/doc/user/lua.html#vim.secure
