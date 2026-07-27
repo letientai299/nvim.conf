@@ -87,18 +87,29 @@ local function sibling_panes(listen_on, self_id)
   return {}
 end
 
---- Deliver text to a pane, followed by a trailing newline so the final line is
---- submitted (e.g. executed in a shell or REPL).
+--- Deliver text to a pane as a bracketed paste, then a carriage return so the
+--- final line is submitted (e.g. executed in a shell or REPL).
+---
+--- Bracketed paste is what makes multi-line text survive a target running tmux.
+--- Sent raw, the whole payload arrives as one fast burst; tmux forwards it as
+--- individual keystrokes, so the embedded newlines act as Enter and the lines
+--- collapse — you see only a blank line land. Wrapping the payload in bracketed
+--- paste escapes makes tmux (and the inner shell) treat it as a single paste.
+--- `--bracketed-paste=auto` only wraps when the target program has bracketed
+--- paste mode on (a shell/REPL prompt), so raw programs are unaffected.
+---
+--- The carriage return that submits the command MUST be sent as a separate,
+--- unwrapped keystroke: inside the paste it would be inserted as a literal
+--- newline (a multi-line command buffer) instead of executing.
 --- @param listen_on string
 --- @param id number
 --- @param text string
 --- @return boolean ok
 --- @return string? err
 local function send_text(listen_on, id, text)
-  if text:sub(-1) ~= "\n" then
-    text = text .. "\n"
-  end
-  local res = vim
+  text = text:gsub("[\r\n]+$", "")
+  local match = "id:" .. id
+  local paste = vim
     .system({
       "kitty",
       "@",
@@ -106,13 +117,31 @@ local function send_text(listen_on, id, text)
       listen_on,
       "send-text",
       "--match",
-      "id:" .. id,
+      match,
+      "--bracketed-paste",
+      "auto",
       "--stdin",
     }, { stdin = text, text = true })
     :wait()
-  if res.code ~= 0 then
+  if paste.code ~= 0 then
     return false,
-      (res.stderr ~= "" and res.stderr or "kitty @ send-text failed")
+      (paste.stderr ~= "" and paste.stderr or "kitty @ send-text failed")
+  end
+  local enter = vim
+    .system({
+      "kitty",
+      "@",
+      "--to",
+      listen_on,
+      "send-text",
+      "--match",
+      match,
+      "\r",
+    }, { text = true })
+    :wait()
+  if enter.code ~= 0 then
+    return false,
+      (enter.stderr ~= "" and enter.stderr or "kitty @ send-text failed")
   end
   return true
 end
