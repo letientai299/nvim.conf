@@ -150,4 +150,25 @@ describe("wrap_line", function()
       })
     end)
   end)
+
+  describe("trailing sentence punctuation", function()
+    run_cases({
+      {
+        "consider UX/DX. Next",
+        "consider UX/DX. Next",
+        "trailing dot must not fake an extension",
+      },
+      { "either yes/no.", "either yes/no.", "plain 2-segment with period" },
+      {
+        "edit dir/file.lua.",
+        "edit `dir/file.lua`.",
+        "real path keeps period outside backticks",
+      },
+      {
+        "see path/to/file.",
+        "see `path/to/file`.",
+        "3-segment path keeps period outside",
+      },
+    })
+  end)
 end)

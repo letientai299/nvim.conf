@@ -42,6 +42,16 @@ function M.wrap_line(line)
     if not part.code then
       local new, count = part.text:gsub(PATH_PAT, function(mpos, m)
         local before = part.text:sub(1, mpos - 1)
+        -- Trailing dots are sentence punctuation, not a file extension. Strip
+        -- them so "UX/DX." is not mistaken for a 2-segment path with an
+        -- extension, and a real path keeps the period outside its backticks
+        -- ("src/x.rs." -> "`src/x.rs`.").
+        local trailing = m:match("%.+$") or ""
+        local core = trailing == "" and m or m:sub(1, #m - #trailing)
+        -- A bare dot run with no real path left (e.g. "..") is not a path.
+        if not core:find("/") then
+          return nil
+        end
         -- Skip URLs: :// appears earlier in the same non-whitespace run.
         if before:match("://%S*$") then
           return nil
@@ -49,7 +59,7 @@ function M.wrap_line(line)
         -- A leading / that follows ':' or '/' is part of a scheme (http://)
         -- or a doubled slash, not the root of an absolute path.
         local prev = before:sub(-1)
-        if m:match("^/") and (prev == ":" or prev == "/") then
+        if core:match("^/") and (prev == ":" or prev == "/") then
           return nil
         end
         -- Skip markdown link targets: preceded by ](
@@ -57,18 +67,18 @@ function M.wrap_line(line)
           return nil
         end
         -- Skip host:port/path (e.g. localhost:8080/api).
-        if before:match(":%d*$") and m:match("^%d") then
+        if before:match(":%d*$") and core:match("^%d") then
           return nil
         end
         -- Skip plain 2-segment paths (a/b) without @, dot-prefix, or extension.
         -- These are typically prose like "this/that", not file paths.
-        if not m:match("^@") then
-          local seg1, seg2 = m:match("^([^/]+)/([^/]+)$")
+        if not core:match("^@") then
+          local seg1, seg2 = core:match("^([^/]+)/([^/]+)$")
           if seg1 and not seg1:match("^%.") and not seg2:match("%.") then
             return nil
           end
         end
-        return "`" .. m:gsub("\\_", "_") .. "`"
+        return "`" .. core:gsub("\\_", "_") .. "`" .. trailing
       end)
       parts[i].text = new
       n = n + count
