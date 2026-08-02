@@ -47,6 +47,10 @@ local function apply_defaults()
 
   defaults_applied = true
   vim.lsp.config("*", { capabilities = default_capabilities })
+
+  -- Render Doxygen commands (\brief, \sa, ::sym) in clangd hover/signature docs
+  -- as markdown. Gated to C-family buffers inside install().
+  require("lib.doxygen").install()
 end
 
 local fallback_registered = {}
