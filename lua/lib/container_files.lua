@@ -1,17 +1,27 @@
--- View files that live inside a container, read-only, on demand.
+-- View files that live inside a container, on demand, with working LSP.
 --
 -- With a containerized LSP (see lsp/clangd.lua + a project `.nvim/clangd`), the
 -- server returns definition/reference locations as *container* absolute paths
 -- (e.g. /usr/local/cuda/include/...). Those don't exist on the host, so a plain
 -- go-to-definition into a system header fails. This registers a BufReadCmd for
 -- the given prefixes that streams the file out of the container with
--- `docker exec <container> cat <path>` into a scratch, read-only buffer -- the
--- LSP jump's line/col still lands correctly.
+-- `docker exec <container> cat <path>` into a read-only buffer.
+--
+-- The same clangd that answered the jump already parsed this header as part of
+-- the project translation unit and resolves system paths natively (they're
+-- identical host<->container; --path-mappings only rewrites the project). So we
+-- adopt that originating client into the fetched buffer -- hover / definition /
+-- references work inside the header, and jumping onward re-triggers the fetch
+-- (chained navigation). A stray client that auto-attaches with the wrong root
+-- is detached.
 --
 -- Generic mechanism: the container name and prefixes come from the project (its
 -- trusted `.nvim.lua`), so nothing container-specific lives in shared config.
 
 local M = {}
+
+--- buf -> set of client ids we intentionally adopted (allowed by the guard).
+M._adopted = {} ---@type table<integer, table<integer, true>>
 
 --- True if `path` is `p` or sits beneath it, allowing a versioned suffix on the
 --- last segment: prefix `/usr/local/cuda` matches both `/usr/local/cuda/...`
@@ -34,6 +44,61 @@ local function under_prefix(path, prefixes)
     end
   end
   return false
+end
+
+--- @param c table clangd/LSP client from vim.lsp.get_clients()
+--- @param ft string
+--- @return boolean
+local function client_serves(c, ft)
+  local fts = c.config and c.config.filetypes
+  if not fts then
+    return true -- can't tell from the client; don't over-filter
+  end
+  return vim.tbl_contains(fts, ft)
+end
+
+--- Find the client that most likely produced this jump and already has the file
+--- in its index: the one attached to the buffer we jumped from (current, or the
+--- alternate once the window has switched), else any active server for this
+--- filetype that has a real root.
+--- @param ft string
+--- @return table? client from vim.lsp.get_clients(), or nil
+local function pick_origin_client(ft)
+  local function from_buf(b)
+    if b and b > 0 and vim.api.nvim_buf_is_valid(b) then
+      for _, c in ipairs(vim.lsp.get_clients({ bufnr = b })) do
+        if client_serves(c, ft) then
+          return c
+        end
+      end
+    end
+  end
+
+  local c = from_buf(vim.api.nvim_get_current_buf()) or from_buf(vim.fn.bufnr("#"))
+  if c then
+    return c
+  end
+  for _, cand in ipairs(vim.lsp.get_clients()) do
+    if client_serves(cand, ft) and cand.config and cand.config.root_dir then
+      return cand
+    end
+  end
+end
+
+--- Attach the originating client to a fetched buffer so LSP works inside it.
+--- @param buf integer
+--- @param ft string
+local function adopt_lsp(buf, ft)
+  local origin = pick_origin_client(ft)
+  if not origin then
+    return -- no server to reuse; buffer stays a read-only view
+  end
+  if not vim.tbl_isempty(vim.lsp.get_clients({ bufnr = buf, id = origin.id })) then
+    return -- already attached (e.g. buffer re-read)
+  end
+  M._adopted[buf] = M._adopted[buf] or {}
+  M._adopted[buf][origin.id] = true
+  vim.lsp.buf_attach_client(buf, origin.id) -- sends didOpen to that client
 end
 
 --- Populate `buf` (named `path`) with the file's contents from `container`.
@@ -78,7 +143,8 @@ function M.load(docker, container, buf, path)
 
   local ft = vim.filetype.match({ filename = path, buf = buf })
   if ft then
-    vim.bo[buf].filetype = ft
+    vim.bo[buf].filetype = ft -- may spawn a stray auto-attach; the guard reaps it
+    adopt_lsp(buf, ft)
   end
 end
 
@@ -105,18 +171,30 @@ function M.setup(opts)
     end,
   })
 
-  -- The fetched buffers carry container paths, so any LSP that auto-attaches
-  -- (host clangd, rooted nowhere) would fail against the non-existent host
-  -- file. Detach it -- these buffers are for reading, not indexing.
+  -- Keep the adopted (originating) client; detach anything else that
+  -- auto-attaches to a fetched buffer -- e.g. a host clangd rooted nowhere that
+  -- would fail against the non-existent host file.
   vim.api.nvim_create_autocmd("LspAttach", {
     group = group,
     callback = function(args)
-      local name = vim.api.nvim_buf_get_name(args.buf)
-      if under_prefix(name, prefixes) and not vim.uv.fs_stat(name) then
-        vim.schedule(function()
-          pcall(vim.lsp.buf_detach_client, args.buf, args.data.client_id)
-        end)
+      local buf, id = args.buf, args.data.client_id
+      local name = vim.api.nvim_buf_get_name(buf)
+      if not (under_prefix(name, prefixes) and not vim.uv.fs_stat(name)) then
+        return
       end
+      if M._adopted[buf] and M._adopted[buf][id] then
+        return -- intentionally reused
+      end
+      vim.schedule(function()
+        pcall(vim.lsp.buf_detach_client, buf, id)
+      end)
+    end,
+  })
+
+  vim.api.nvim_create_autocmd("BufWipeout", {
+    group = group,
+    callback = function(args)
+      M._adopted[args.buf] = nil
     end,
   })
 end
