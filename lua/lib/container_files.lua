@@ -13,13 +13,24 @@
 
 local M = {}
 
+--- True if `path` is `p` or sits beneath it, allowing a versioned suffix on the
+--- last segment: prefix `/usr/local/cuda` matches both `/usr/local/cuda/...`
+--- and the symlink-resolved `/usr/local/cuda-13.3/...` clangd actually emits,
+--- but not `/usr/local/cudafoo`.
 --- @param path string
 --- @param prefixes string[]
 --- @return boolean
 local function under_prefix(path, prefixes)
   for _, p in ipairs(prefixes) do
-    if path == p or vim.startswith(path, p:gsub("/*$", "") .. "/") then
+    p = p:gsub("/*$", "")
+    if path == p then
       return true
+    end
+    if vim.startswith(path, p) then
+      local nxt = path:sub(#p + 1, #p + 1)
+      if nxt == "/" or nxt == "-" then
+        return true
+      end
     end
   end
   return false
@@ -53,13 +64,17 @@ function M.load(docker, container, buf, path)
     end
   end
 
+  -- Set these before writing: the buffer carries a real (phantom) filename, so
+  -- nvim would otherwise try to create a swapfile and set_lines trips E325.
+  -- buftype=nowrite keeps the name but forbids writing back.
+  vim.bo[buf].swapfile = false
+  vim.bo[buf].buftype = "nowrite"
+
   vim.bo[buf].modifiable = true
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
   vim.bo[buf].modifiable = false
   vim.bo[buf].modified = false
   vim.bo[buf].readonly = true
-  vim.bo[buf].swapfile = false
-  vim.bo[buf].buftype = "nowrite" -- keep the name, forbid writing to a phantom path
 
   local ft = vim.filetype.match({ filename = path, buf = buf })
   if ft then
@@ -74,9 +89,12 @@ function M.setup(opts)
   local docker = opts.docker or "docker"
   local group = vim.api.nvim_create_augroup(opts.augroup or "container_files", { clear = true })
 
+  -- Trailing `*` (not `/*`) so a versioned dir like /usr/local/cuda-13.3/... is
+  -- caught too; autocmd `*` spans `/`. under_prefix() keeps this from matching
+  -- an unrelated sibling like /usr/local/cudafoo.
   local patterns = {}
   for _, p in ipairs(prefixes) do
-    patterns[#patterns + 1] = p:gsub("/*$", "") .. "/*"
+    patterns[#patterns + 1] = p:gsub("/*$", "") .. "*"
   end
 
   vim.api.nvim_create_autocmd("BufReadCmd", {
