@@ -40,6 +40,9 @@ vim.opt.rtp:prepend(_dir_config)
 require("options")
 require("keymaps")
 require("commands")
+
+-- Sync the system clipboard over SSH via OSC 52 (no-op on local sessions).
+require("lib.clipboard").setup()
 if vim.uv.fs_stat(_dir_config .. "/lua/local/init.lua") then
   require("local")
 end
