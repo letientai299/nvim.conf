@@ -103,6 +103,13 @@ return {
     -- ctrl-t). Config (include_dirs, include_files) lives in that script.
     local fzf_files = vim.fn.stdpath("config") .. "/scripts/fzf-files"
     require("fzf-lua").setup({
+      winopts = {
+        preview = {
+          -- Always stack; "flex" would flip to side-by-side on wide windows.
+          layout = "vertical",
+          vertical = "up:50%",
+        },
+      },
       files = { cmd = fzf_files },
       previewers = {
         builtin = {
