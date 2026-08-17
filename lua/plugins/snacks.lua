@@ -134,7 +134,20 @@ return {
           })
         end,
       },
-      gitbrowse = { enabled = true },
+      gitbrowse = {
+        enabled = true,
+        url_patterns = {
+          -- Defaults only key on gitlab.com, so self-hosted instances fall
+          -- through to the bare repo URL. Match any host with "gitlab" in it
+          -- (gitlab-master.nvidia.com, gitlab.example.org, ...).
+          ["gitlab"] = {
+            branch = "/-/tree/{branch}",
+            file = "/-/blob/{branch}/{file}#L{line_start}-{line_end}",
+            permalink = "/-/blob/{commit}/{file}#L{line_start}-{line_end}",
+            commit = "/-/commit/{commit}",
+          },
+        },
+      },
       input = { enabled = true },
       scratch = {
         enabled = true,
