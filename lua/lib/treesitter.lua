@@ -5,6 +5,7 @@ local default_languages_registered = false
 local known_rtp_entries = {} ---@type table<string, boolean>
 local highlighter_destroy_patched = false
 local bufenter_autocmd_registered = false
+local get_node_text_patched = false
 
 --- Monkey-patch TSHighlighter:destroy to avoid a hang during :bdelete.
 ---
@@ -46,6 +47,42 @@ local function patch_highlighter_destroy()
   end
 
   highlighter_destroy_patched = true
+end
+
+--- Monkey-patch vim.treesitter.get_node_text to tolerate stale node ranges.
+---
+--- Query predicates (#match?, #any-of?, #contains?, ...) resolve node text
+--- against the *current* buffer while iterating the *last parsed* tree. When
+--- the buffer shrinks between that parse and the highlighter's on_line
+--- callback (rapid edits like `dvip`, undo, a formatter rewriting the buffer),
+--- a node range can point past the buffer end and nvim_buf_get_text raises
+--- "Index out of bounds", aborting the decoration provider with a
+--- press-ENTER prompt.
+---
+--- Fix: return "" for that one lookup. The predicate simply fails to match and
+--- the region is highlighted correctly on the next parse. Other errors are
+--- re-raised unchanged.
+--- Upstream bug (open as of 0.12.4):
+--- https://github.com/neovim/neovim/issues/38303
+local function patch_get_node_text()
+  if get_node_text_patched then
+    return
+  end
+  get_node_text_patched = true
+
+  local orig = vim.treesitter.get_node_text
+
+  ---@diagnostic disable-next-line: duplicate-set-field
+  function vim.treesitter.get_node_text(node, source, opts)
+    local ok, text = pcall(orig, node, source, opts)
+    if ok then
+      return text
+    end
+    if type(text) == "string" and text:find("Index out of bounds", 1, true) then
+      return ""
+    end
+    error(text, 0)
+  end
 end
 
 local function ensure_rtp_entry(path)
@@ -124,6 +161,7 @@ function M.enable_highlight(bufnr, filetype)
   M.ensure_runtime()
   M.register_default_languages()
   patch_highlighter_destroy()
+  patch_get_node_text()
 
   local active = vim.treesitter.highlighter.active[bufnr]
   if active then
