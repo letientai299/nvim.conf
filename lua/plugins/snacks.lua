@@ -152,9 +152,7 @@ return {
       scratch = {
         enabled = true,
         ft = "markdown",
-        -- The "scratch" style defaults to a fixed 100x30 float; 0 means full
-        -- width/height in snacks.win.
-        win = { width = 0, height = 0 },
+        win = { position = "top", height = 0.3 },
       },
       image = { enabled = true },
       zen = {
