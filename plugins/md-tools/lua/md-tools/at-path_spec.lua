@@ -107,6 +107,33 @@ describe("wrap_line", function()
     })
   end)
 
+  describe("quoted strings (never wrap)", function()
+    run_cases({
+      {
+        '<a href="../../ref/architecture.md">architecture</a>',
+        '<a href="../../ref/architecture.md">architecture</a>',
+      },
+      {
+        "<a href='../ref/architecture.md'>architecture</a>",
+        "<a href='../ref/architecture.md'>architecture</a>",
+      },
+      {
+        'const path = "src/lib/utils.lua"',
+        'const path = "src/lib/utils.lua"',
+      },
+      {
+        "don't change src/lib/utils.lua",
+        "don't change `src/lib/utils.lua`",
+        "apostrophes are not opening quotes",
+      },
+      {
+        'an unmatched " before src/lib/utils.lua',
+        'an unmatched " before `src/lib/utils.lua`',
+        "unmatched quotes are prose",
+      },
+    })
+  end)
+
   describe("already in backticks (never wrap)", function()
     run_cases({
       { "use `path/to/file` here", "use `path/to/file` here" },

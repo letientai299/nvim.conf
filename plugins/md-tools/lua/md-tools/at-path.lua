@@ -9,6 +9,46 @@ local M = {}
 -- URL and markdown-link exclusion is done at match time.
 local PATH_PAT = "()(@?~?/?[%w_\\%.%-]+/[%w_\\%.%-/$]+)"
 
+local function is_quoted(text, pos)
+  local quote
+  local escaped = false
+
+  for i = 1, pos - 1 do
+    local char = text:sub(i, i)
+    if escaped then
+      escaped = false
+    elseif char == "\\" then
+      escaped = true
+    elseif quote then
+      if char == quote then
+        quote = nil
+      end
+    elseif char == '"' then
+      quote = char
+    elseif char == "'" and not text:sub(i - 1, i - 1):match("[%w_]") then
+      quote = char
+    end
+  end
+
+  if not quote then
+    return false
+  end
+
+  escaped = false
+  for i = pos, #text do
+    local char = text:sub(i, i)
+    if escaped then
+      escaped = false
+    elseif char == "\\" then
+      escaped = true
+    elseif char == quote then
+      return true
+    end
+  end
+
+  return false
+end
+
 --- Wrap bare @path references in backticks within the given line.
 --- Also un-escapes \_  back to _ inside the wrapped span.
 --- Skips paths already inside inline code spans.
@@ -42,6 +82,9 @@ function M.wrap_line(line)
     if not part.code then
       local new, count = part.text:gsub(PATH_PAT, function(mpos, m)
         local before = part.text:sub(1, mpos - 1)
+        if is_quoted(part.text, mpos) then
+          return nil
+        end
         -- Trailing dots are sentence punctuation, not a file extension. Strip
         -- them so "UX/DX." is not mistaken for a 2-segment path with an
         -- extension, and a real path keeps the period outside its backticks
