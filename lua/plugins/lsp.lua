@@ -25,7 +25,11 @@ vim.api.nvim_create_user_command("LspInfo", function()
     local status = c.initialized and "ready" or "initializing"
     table.insert(lines, string.format("%s (id=%d, %s)", c.name, c.id, status))
     table.insert(lines, "  root: " .. (c.root_dir or "none"))
-    table.insert(lines, "  cmd:  " .. table.concat(c.config.cmd or {}, " "))
+    local cmd = c.config.cmd
+    local cmd_text = type(cmd) == "table" and table.concat(cmd, " ")
+      or type(cmd) == "function" and "<function>"
+      or tostring(cmd or "")
+    table.insert(lines, "  cmd:  " .. cmd_text)
     table.insert(
       lines,
       "  ft:   " .. table.concat(c.config.filetypes or {}, ", ")
