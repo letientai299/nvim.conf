@@ -27,8 +27,5 @@ files are seeded with a date header and note template. Each file is named
     date header and note template if it doesn't exist. Places the cursor at
     the end of the buffer.
 
-    Buffer-local mappings (set on the opened diary buffer):
-        <leader>vt    Append `## <hh:mm>` time heading at the bottom.
-
 ==============================================================================
 vim:tw=78:ts=8:ft=help:norl:
