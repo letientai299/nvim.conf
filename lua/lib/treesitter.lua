@@ -185,10 +185,17 @@ function M.enable_highlight(bufnr, filetype)
     end)
     vim.b[bufnr].current_syntax = nil
   end
-  if type(lang) == "string" and lang ~= "" then
-    ok = pcall(vim.treesitter.start, bufnr, lang)
-  else
-    ok = pcall(vim.treesitter.start, bufnr)
+  local function start(start_lang)
+    if type(start_lang) == "string" and start_lang ~= "" then
+      return pcall(vim.treesitter.start, bufnr, start_lang)
+    end
+    return pcall(vim.treesitter.start, bufnr)
+  end
+  ok = start(lang)
+  -- cuda/highlights.scm inherits cpp; mismatch with the installed cuda parser
+  -- raises "Invalid node type" and would otherwise leave .cu files unhighlighted.
+  if not ok and lang == "cuda" then
+    ok = start("cpp")
   end
 
   vim.b[bufnr].ts_highlight = ok

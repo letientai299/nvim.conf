@@ -18,6 +18,14 @@ return {
             revision = "62cfe307e942af3417171243b599cc7deac5eab9",
           },
         },
+        -- Plugin pin is v0.21.1 (48b066f), which lacks C++20 module nodes that
+        -- current cpp highlight queries require. cuda queries inherit those.
+        cuda = {
+          install_info = {
+            url = "https://github.com/tree-sitter-grammars/tree-sitter-cuda",
+            revision = "1ebcedde2e36c4e7fecf79b3119ffeddf5e7a683",
+          },
+        },
       },
     })
   end,
