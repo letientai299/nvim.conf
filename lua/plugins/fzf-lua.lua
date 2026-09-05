@@ -102,7 +102,8 @@ return {
     -- File listing uses scripts/fzf-files (also in dotfiles/bin for shell
     -- ctrl-t). Config (include_dirs, include_files) lives in that script.
     local fzf_files = vim.fn.stdpath("config") .. "/scripts/fzf-files"
-    require("fzf-lua").setup({
+    local fzf = require("fzf-lua")
+    fzf.setup({
       winopts = {
         preview = {
           -- Always stack; "flex" would flip to side-by-side on wide windows.
@@ -117,6 +118,9 @@ return {
         },
       },
     })
-    require("fzf-lua").register_ui_select()
+    fzf.register_extension("Snippets", function()
+      vim.cmd.FzfSnippets()
+    end)
+    fzf.register_ui_select()
   end,
 }
