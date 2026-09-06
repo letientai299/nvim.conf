@@ -127,10 +127,24 @@ local function blend(rgb, other, alpha)
   return out
 end
 
+--- Themes that leave Normal transparent give us nothing to blend against, so
+--- fall back to whatever group the theme does shade whole lines with.
+local function base_bg()
+  for _, name in ipairs({ "Normal", "CursorLine", "Visual" }) do
+    local bg = api.nvim_get_hl(0, { name = name, link = false }).bg
+    if bg then
+      return bg
+    end
+  end
+  return nil
+end
+
 local function define_hl()
-  local bg = api.nvim_get_hl(0, { name = "Normal", link = false }).bg
+  local bg = base_bg()
   if not bg then
-    api.nvim_set_hl(0, HL, { link = "CursorLine" })
+    api.nvim_set_hl(0, HL, {
+      bg = vim.o.background == "light" and 0xdcdcdc or 0x303030,
+    })
     return
   end
 
