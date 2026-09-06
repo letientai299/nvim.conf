@@ -12,6 +12,7 @@ local function apply(buf)
   require("md-tools.markers").setup(buf)
   require("md-tools.gx").setup_keymaps()
   require("md-tools.at-path").setup(buf)
+  require("md-tools.fence-lines").setup(buf)
 end
 
 function M.setup()
