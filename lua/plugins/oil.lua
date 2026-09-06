@@ -26,6 +26,7 @@ local oil_filetype_hl_by_ext = {
   bash = "OilFileSh",
   cjs = "OilFileJs",
   css = "OilFileCss",
+  env = "OilFileSh",
   go = "OilFileGo",
   htm = "OilFileHtml",
   html = "OilFileHtml",
@@ -51,6 +52,7 @@ local oil_filetype_hl_by_ext = {
 }
 
 local oil_filetype_hl_by_name = {
+  [".env"] = "OilFileSh",
   [".bashrc"] = "OilFileSh",
   [".bash_profile"] = "OilFileSh",
   [".profile"] = "OilFileSh",

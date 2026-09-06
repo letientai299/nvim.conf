@@ -117,7 +117,7 @@ function M.register_default_languages()
     "tsx",
     { "typescriptreact", "javascriptreact" }
   )
-  vim.treesitter.language.register("bash", { "sh" })
+  vim.treesitter.language.register("bash", { "sh", "env" })
   vim.treesitter.language.register("json", { "jsonc" })
   vim.treesitter.language.register("c_sharp", { "cs" })
   vim.treesitter.language.register("markdown", { "mdx", "md" })
