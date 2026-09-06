@@ -8,10 +8,14 @@
 -- Root pinning: the wrapper is resolved from `config.root_dir`, so the project
 -- must place a root marker (e.g. `.clangd`) beside `.nvim/` when a `.git` lives
 -- in a parent dir, otherwise the LSP root climbs past the wrapper.
+-- No --header-insertion here: iwyu is already clangd's default, and passing it
+-- explicitly lets the flag provider (combined last) override a project
+-- `.clangd` Completion.HeaderInsertion. CUDA projects need that override --
+-- IWYU offers clang's __clang_cuda_builtin_vars.h for blockIdx, which nvcc
+-- does not ship. https://clangd.llvm.org/config#headerinsertion
 local clangd_args = {
   "--background-index",
   "--clang-tidy",
-  "--header-insertion=iwyu",
   "--completion-style=detailed",
 }
 
