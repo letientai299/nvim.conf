@@ -2,10 +2,9 @@
 --- (pane) that shares the same Kitty tab as neovim.
 ---
 --- Uses kitty's remote control: `kitty @ ls` to discover sibling panes and
---- `kitty @ send-text` to deliver the text. When more than one target pane is
---- visible, the destination is chosen with kitty's native selection overlay
---- (`kitty @ select-window`, which draws a number over each pane) or, when
---- `picker = "select"`, with `vim.ui.select`.
+--- `kitty @ send-text` to deliver the text. Without explicit pane numbers, the
+--- destination is chosen with kitty's native selection overlay (`kitty @
+--- select-window`) or, when `picker = "select"`, with `vim.ui.select`.
 ---
 --- Requires `allow_remote_control` and `listen_on` in kitty.conf. The command
 --- reports an error when KITTY_LISTEN_ON or KITTY_WINDOW_ID is unset.
@@ -14,6 +13,7 @@ local M = {}
 
 -- Remembered destination pane id, reused by `:KittySend!`.
 local last_target = nil
+local overlay_numbers = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0 }
 
 --- @class kitty-send.Config
 --- @field picker "kitty"|"select"  Target picker when >1 sibling pane exists.
@@ -30,6 +30,7 @@ end
 
 --- @class kitty-send.Pane
 --- @field id number      Kitty window (pane) id.
+--- @field number? number Kitty overlay number.
 --- @field title string   Window title, shown in the picker.
 
 --- Resolve kitty's remote-control socket and neovim's own window id.
@@ -45,7 +46,7 @@ local function kitty_env()
   return listen_on, self_id
 end
 
---- List sibling panes: every window in neovim's tab except neovim itself.
+--- List sibling panes in picker order.
 --- @param listen_on string
 --- @param self_id number
 --- @return kitty-send.Pane[]? panes
@@ -73,10 +74,30 @@ local function sibling_panes(listen_on, self_id)
         end
       end
       if in_this_tab then
-        local panes = {}
+        local by_id = {}
         for _, w in ipairs(tab.windows or {}) do
-          if w.id ~= self_id then
-            panes[#panes + 1] = { id = w.id, title = w.title or "" }
+          by_id[w.id] = w
+        end
+
+        -- Picker order comes from pane groups.
+        local groups = tab.groups
+        if not groups or #groups == 0 then
+          groups = {}
+          for _, w in ipairs(tab.windows or {}) do
+            groups[#groups + 1] = { windows = { w.id } }
+          end
+        end
+
+        local panes = {}
+        for index, group in ipairs(groups) do
+          local ids = group.windows or {}
+          local w = by_id[ids[#ids]]
+          if w and w.id ~= self_id then
+            panes[#panes + 1] = {
+              id = w.id,
+              number = overlay_numbers[index],
+              title = w.title or "",
+            }
           end
         end
         return panes
@@ -173,6 +194,48 @@ local function payload(opts)
   return table.concat(lines, "\n")
 end
 
+--- Resolve command arguments to sibling panes.
+--- @param args string[]
+--- @param panes kitty-send.Pane[]
+--- @return kitty-send.Pane[]? targets
+--- @return string? err
+local function resolve_targets(args, panes)
+  if #args == 0 then
+    return nil
+  end
+
+  if #args == 1 and (args[1] == "all" or args[1] == "*") then
+    return panes
+  end
+
+  local by_number = {}
+  for _, pane in ipairs(panes) do
+    if pane.number ~= nil then
+      by_number[pane.number] = pane
+    end
+  end
+
+  local targets = {}
+  local seen = {}
+  for _, arg in ipairs(args) do
+    if not arg:match("^%d+$") then
+      return nil, "target must be an overlay number, 'all', or '*'"
+    end
+
+    local number = tonumber(arg)
+    local pane = by_number[number]
+    if not pane then
+      return nil, ("overlay number %d is not a sibling"):format(number)
+    end
+    if not seen[number] then
+      targets[#targets + 1] = pane
+      seen[number] = true
+    end
+  end
+
+  return targets
+end
+
 --- Pick a target pane visually using kitty's native overlay
 --- (`kitty @ select-window`), which draws a number/letter over each pane in
 --- the tab and blocks until the user presses a key. `--exclude-active` drops
@@ -217,7 +280,7 @@ local function deliver(listen_on, pane, text)
   last_target = pane.id
   vim.notify(
     ("KittySend: sent to pane %d%s"):format(
-      pane.id,
+      pane.number or pane.id,
       pane.title ~= "" and (" (" .. pane.title .. ")") or ""
     ),
     vim.log.levels.INFO
@@ -247,6 +310,18 @@ function M.send(opts)
   end
 
   local text = payload(opts)
+
+  local targets, target_err = resolve_targets(opts.fargs or {}, panes)
+  if target_err then
+    vim.notify("KittySend: " .. target_err, vim.log.levels.ERROR)
+    return
+  end
+  if targets then
+    for _, pane in ipairs(targets) do
+      deliver(listen_on, pane, text)
+    end
+    return
+  end
 
   -- Bang reuses the last target if it is still a valid sibling.
   if opts.bang and last_target then
@@ -291,7 +366,7 @@ function M.send(opts)
   vim.ui.select(panes, {
     prompt = "Send to Kitty pane:",
     format_item = function(p)
-      local label = ("pane %d"):format(p.id)
+      local label = ("pane %d"):format(p.number or p.id)
       if p.title ~= "" then
         label = label .. "  " .. p.title
       end

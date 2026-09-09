@@ -16,10 +16,10 @@ Sends the current buffer, or the active visual selection, to another Kitty
 window (pane) that shares the same Kitty tab as neovim. The text is delivered
 with a trailing newline so the final line is submitted in a shell or REPL.
 
-When the tab holds more than one other pane, the destination is chosen with
-kitty's native selection overlay (`kitty @ select-window`) — the same visual
-picker that draws a number/letter over each pane. Press the shown key to pick
-the target, or `Esc` to cancel. Set `picker = "select"` to use `vim.ui.select`
+Without destination arguments, a tab with multiple sibling panes uses kitty's
+native selection overlay (`kitty @ select-window`) — the same visual picker
+that draws a number/letter over each pane. Press the shown key to pick the
+target, or `Esc` to cancel. Set `picker = "select"` to use `vim.ui.select`
 instead. With a single sibling pane the text is sent straight away.
 
 ==============================================================================
@@ -45,7 +45,7 @@ Register the `:KittySend` command via a lazy.nvim spec: >lua
       config = function()
         vim.api.nvim_create_user_command("KittySend", function(opts)
           require("kitty-send").send(opts)
-        end, { range = true, bang = true })
+        end, { range = true, bang = true, nargs = "*" })
       end,
     }
 <
@@ -62,6 +62,13 @@ same `config` function: >lua
 :'<,'>KittySend         mode, send the selection instead. When more than one
                         sibling pane exists, kitty's native overlay appears to
                         pick the target visually.
+:KittySend 2            Send directly to pane 2 without showing the picker.
+:KittySend 2 4 5        Send directly to panes 2, 4, and 5.
+:KittySend all          Send to every sibling pane.
+:KittySend *            Same as `:KittySend all`.
+
+Numeric arguments match kitty's default numeric overlay labels. Labels follow
+kitty's pane-group order, including neovim's excluded position.
 
                                                                  *:KittySend!*
 :KittySend!             Reuse the pane targeted by the previous send, skipping
@@ -83,7 +90,7 @@ kitty-send.setup({opts})                                 *kitty-send.setup()*
 
 kitty-send.send({opts})                                   *kitty-send.send()*
     Entry point for the command. {opts} is the user-command callback table;
-    the `range` field selects buffer vs. selection and `bang` reuses the last
-    target.
+    the `range` field selects buffer vs. selection, `bang` reuses the last
+    target, and `fargs` accepts overlay numbers or `all` or `*`.
 
 vim:tw=78:ts=8:ft=help:norl:

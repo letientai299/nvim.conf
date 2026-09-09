@@ -21,6 +21,7 @@ return {
     end, {
       range = true,
       bang = true,
+      nargs = "*",
       desc = "Send buffer or visual selection to a visible Kitty pane",
     })
   end,
