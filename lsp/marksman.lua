@@ -1,5 +1,5 @@
 -- Marksman skips gitignored directories when indexing, so links between
--- files in e.g. .ai.dump/ produce "Link to non-existent document" even
+-- files in e.g. .ai/ produce "Link to non-existent document" even
 -- when the target file exists on disk. Verify before forwarding.
 -- https://github.com/artempyanykh/marksman/blob/main/docs/features.md
 

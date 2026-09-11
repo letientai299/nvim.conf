@@ -74,7 +74,7 @@ return {
           module = "blink-cmp-path",
           score_offset = 90,
           opts = {
-            always_index = { ".ai.dump/**" },
+            always_index = { ".ai/**" },
           },
         },
       },

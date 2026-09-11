@@ -10,16 +10,16 @@
 # errors.
 #
 # Output:
-#   .ai.dump/e2e/screenshots/<distro>-<test>.png
-#   .ai.dump/e2e/evidence/<distro>-<test>.{txt,messages,notifications}
-#   .ai.dump/e2e/results.txt
+#   .ai/e2e/screenshots/<distro>-<test>.png
+#   .ai/e2e/evidence/<distro>-<test>.{txt,messages,notifications}
+#   .ai/e2e/results.txt
 #
 # Requirements: tmux, docker, asciinema, agg (with nerd fonts)
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-OUTPUT_DIR="$PROJECT_DIR/.ai.dump/e2e"
+OUTPUT_DIR="$PROJECT_DIR/.ai/e2e"
 SCREENSHOT_DIR="$OUTPUT_DIR/screenshots"
 EVIDENCE_DIR="$OUTPUT_DIR/evidence"
 RESULTS_FILE="$OUTPUT_DIR/results.txt"

@@ -1,4 +1,4 @@
-.ai.dump/
+.ai/
 lua/local.lua
 lua/local/
 .local-plugin-names

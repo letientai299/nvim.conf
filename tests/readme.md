@@ -91,7 +91,7 @@ done.
 ./tests/e2e.sh ubuntu fedora     # subset
 ```
 
-Results go to `.ai.dump/e2e/results.txt`. Screenshots and evidence (`:messages`,
+Results go to `.ai/e2e/results.txt`. Screenshots and evidence (`:messages`,
 `:Notifications`) are saved alongside. The script also checks for nvim errors —
 a test that passes verification but has errors in `:messages` is marked WARN.
 
@@ -106,7 +106,7 @@ a test that passes verification but has errors in `:messages` is marked WARN.
 NERD_FONT_DIR=~/.fonts ./tests/capture.sh alpine starter
 ```
 
-Output: `.ai.dump/e2e/screenshots/<distro>-<test>.png`
+Output: `.ai/e2e/screenshots/<distro>-<test>.png`
 
 The [catppuccin mocha][cat] theme is baked into agg's `--theme` flag so the
 terminal background matches nvim's colorscheme.

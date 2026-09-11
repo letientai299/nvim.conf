@@ -49,7 +49,7 @@ Options passed via `opts` in the provider table:
     gitignored directories that should still complete. >lua
 
         opts = {
-          always_index = { ".ai.dump/**" },
+          always_index = { ".ai/**" },
         },
 <
 

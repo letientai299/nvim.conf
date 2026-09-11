@@ -6,7 +6,7 @@
 # Runs the test container in tmux, waits for nvim to load, settles for plugins,
 # then captures the tmux pane as a PNG via asciinema + agg.
 #
-# Output: .ai.dump/e2e/screenshots/<distro>-<test>.png
+# Output: .ai/e2e/screenshots/<distro>-<test>.png
 #
 # Requirements: tmux, docker, asciinema, agg (with nerd fonts), run.sh
 #
@@ -28,7 +28,7 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-OUTPUT_DIR="$PROJECT_DIR/.ai.dump/e2e/screenshots"
+OUTPUT_DIR="$PROJECT_DIR/.ai/e2e/screenshots"
 SESSION="ai-e2e-capture-${DISTRO}-${TEST}-$$"
 TIMEOUT=300
 POLL=2
