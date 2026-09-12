@@ -37,6 +37,7 @@ return {
       paths = { vim.fn.stdpath("config") .. "/lua/snippets" },
     })
     require("luasnip").filetype_extend("mdx", { "markdown" })
+    require("luasnip").filetype_extend("quarto", { "markdown" })
 
     vim.api.nvim_create_user_command("FzfSnippets", function()
       local luasnip = require("luasnip")

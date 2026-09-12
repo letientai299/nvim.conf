@@ -255,7 +255,7 @@ vim.api.nvim_create_autocmd("ColorScheme", {
 -- Markdown: enable proper comment leaders for lists and quotes.
 vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
   group = augroup,
-  pattern = "*.md",
+  pattern = { "*.md", "*.qmd" },
   callback = function()
     vim.opt_local.comments = "fb:>,fb:*,fb:+,fb:-"
   end,

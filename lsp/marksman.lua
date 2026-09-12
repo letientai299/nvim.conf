@@ -18,7 +18,7 @@ end
 
 return {
   cmd = { "marksman" },
-  filetypes = { "markdown", "markdown.mdx" },
+  filetypes = { "markdown", "markdown.mdx", "quarto" },
   root_markers = { ".marksman.toml", ".git" },
   handlers = {
     ["textDocument/publishDiagnostics"] = function(err, result, ctx)

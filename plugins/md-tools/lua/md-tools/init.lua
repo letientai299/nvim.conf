@@ -18,7 +18,7 @@ end
 function M.setup()
   vim.api.nvim_create_autocmd("FileType", {
     group = vim.api.nvim_create_augroup("md-tools", { clear = true }),
-    pattern = { "markdown", "mdx" },
+    pattern = { "markdown", "mdx", "quarto" },
     callback = function(ev)
       apply(ev.buf)
     end,
@@ -28,7 +28,7 @@ function M.setup()
   for _, buf in ipairs(vim.api.nvim_list_bufs()) do
     if vim.api.nvim_buf_is_loaded(buf) then
       local ft = vim.bo[buf].filetype
-      if ft == "markdown" or ft == "mdx" then
+      if ft == "markdown" or ft == "mdx" or ft == "quarto" then
         vim.api.nvim_buf_call(buf, function()
           apply(buf)
         end)

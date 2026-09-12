@@ -39,6 +39,7 @@ local runtime_map = {
 --- Tools not declared in any lang module but needed for a complete setup.
 local extras = {
   "rust",
+  "aqua:Kampfkarren/selene",
   "fzf",
   "fd",
   "ripgrep",

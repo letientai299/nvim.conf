@@ -120,7 +120,7 @@ function M.register_default_languages()
   vim.treesitter.language.register("bash", { "sh", "env" })
   vim.treesitter.language.register("json", { "jsonc" })
   vim.treesitter.language.register("c_sharp", { "cs" })
-  vim.treesitter.language.register("markdown", { "mdx", "md" })
+  vim.treesitter.language.register("markdown", { "mdx", "md", "quarto" })
 end
 
 --- Retry highlighting for buffers where tree-sitter-manager auto-installed a

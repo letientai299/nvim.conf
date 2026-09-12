@@ -11,7 +11,7 @@ function M.markdown(bufnr)
       rumdl.tool(),
     },
     lsp = { "marksman", "rumdl" },
-    formatter_fts = { "markdown", "markdown.mdx" },
+    formatter_fts = { "markdown", "markdown.mdx", "quarto" },
     formatter_defs = {
       rumdl_fix = {
         command = "rumdl",

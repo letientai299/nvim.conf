@@ -23,9 +23,10 @@ local function is_quoted(text, pos)
       if char == quote then
         quote = nil
       end
-    elseif char == '"' then
-      quote = char
-    elseif char == "'" and not text:sub(i - 1, i - 1):match("[%w_]") then
+    elseif
+      char == '"'
+      or (char == "'" and not text:sub(i - 1, i - 1):match("[%w_]"))
+    then
       quote = char
     end
   end
