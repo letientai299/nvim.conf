@@ -75,10 +75,19 @@ map("c", "<C-n>", "<Down>")
 -- ---------------------------------------------------------------------------
 
 --- Create the file under cursor if it doesn't exist, then open it.
+--- Relative paths resolve against the current buffer's directory.
 local function create_file()
   local path = vim.fn.expand("<cfile>")
   if path == "" then
     return
+  end
+  path = vim.fs.normalize(path)
+  if not vim.startswith(path, "/") then
+    local buf = vim.api.nvim_buf_get_name(0)
+    local base = buf ~= "" and vim.fs.dirname(buf) or vim.uv.cwd()
+    if base then
+      path = vim.fs.normalize(base .. "/" .. path)
+    end
   end
   if not vim.uv.fs_stat(path) then
     local dir = vim.fn.fnamemodify(path, ":h")
