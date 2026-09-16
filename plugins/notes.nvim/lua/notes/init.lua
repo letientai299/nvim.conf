@@ -32,9 +32,6 @@ function M.note_today()
     vim.api.nvim_buf_set_lines(0, 0, -1, false, {
       "# " .. date .. " - " .. day_name,
       "",
-      "## Goals",
-      "",
-      "---",
       "",
     })
   end
