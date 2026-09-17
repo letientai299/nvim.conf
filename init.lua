@@ -3,6 +3,7 @@ vim.loader.enable()
 -- No plugins use remote providers — disable to skip interpreter lookup.
 vim.g.loaded_node_provider = 0
 vim.g.loaded_perl_provider = 0
+vim.g.loaded_python3_provider = 0
 vim.g.loaded_ruby_provider = 0
 
 -- Defer ShaDa reading — marks, registers, command history aren't needed for

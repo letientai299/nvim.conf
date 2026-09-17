@@ -13,6 +13,7 @@ return {
         functions = { "bold" },
         types = { "bold" },
       },
+      auto_integrations = false,
       default_integrations = true,
       integrations = {
         alpha = true,
