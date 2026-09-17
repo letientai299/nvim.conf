@@ -165,6 +165,22 @@ return {
       end,
     }
 
+    -- Preserve Blink's snippet behavior, then accept one Minuet line.
+    opts.keymap["<Tab>"] = {
+      "snippet_forward",
+      function()
+        if not package.loaded["minuet"] then
+          return
+        end
+        local virtualtext = require("minuet.virtualtext")
+        if virtualtext.action.is_visible() then
+          virtualtext.action.accept_line()
+          return true
+        end
+      end,
+      "fallback",
+    }
+
     require("blink.cmp").setup(opts)
   end,
 }
