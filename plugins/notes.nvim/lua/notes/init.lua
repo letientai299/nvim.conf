@@ -20,8 +20,7 @@ function M.note_today()
     return
   end
 
-  local date = os.date("%Y-%m-%d")
-  local day_name = os.date("%A")
+  local date = os.date("%Y-%m-%d.%a")
 
   local path = dir .. "/" .. date .. ".md"
   local exists = vim.uv.fs_stat(path) ~= nil
@@ -30,7 +29,7 @@ function M.note_today()
 
   if not exists then
     vim.api.nvim_buf_set_lines(0, 0, -1, false, {
-      "# " .. date .. " - " .. day_name,
+      "# " .. date,
       "",
       "",
     })
