@@ -94,18 +94,19 @@ function M.new(name)
   end
 
   --- Bind zoom in/out keymaps that multiply/divide `vim.g[ctx._scale_var]`.
-  ---@param opts? { factor?: number, zoom_in?: string, zoom_out?: string }
+  ---@param opts? { factor?: number, zoom_in?: string, zoom_out?: string, modes?: string|string[] }
   function ctx:map_scale_zoom(opts)
     opts = opts or {}
     local factor = opts.factor or 1.1
     local key_in = opts.zoom_in or "<D-=>"
     local key_out = opts.zoom_out or "<D-->"
+    local modes = opts.modes or "n"
     local var = self._scale_var
 
-    vim.keymap.set("n", key_in, function()
+    vim.keymap.set(modes, key_in, function()
       vim.g[var] = vim.g[var] * factor
     end, { desc = "Zoom in (scale)" })
-    vim.keymap.set("n", key_out, function()
+    vim.keymap.set(modes, key_out, function()
       vim.g[var] = vim.g[var] / factor
     end, { desc = "Zoom out (scale)" })
   end

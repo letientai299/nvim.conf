@@ -80,6 +80,7 @@ ctx:map_scale_zoom({opts?})                         *store-guifont-map_scale_zoo
                 - factor    (number?) Zoom multiplier. Defaults to 1.1.
                 - zoom_in   (string?) Keymap for zoom in. Defaults to `<D-=>`.
                 - zoom_out  (string?) Keymap for zoom out. Defaults to `<D-->`.
+                - modes     (string|string[]?) Keymap modes. Defaults to `n`.
 
 ==============================================================================
 3. PICKER                                           *store-guifont-picker*
