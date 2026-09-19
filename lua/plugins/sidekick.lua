@@ -16,17 +16,93 @@ local function cli(fn, opts)
   end
 end
 
--- stylua: ignore
+local function git_root(path)
+  local marker = vim.fs.find(".git", { path = path, upward = true })[1]
+  local root = marker and vim.fs.dirname(marker) or path
+  return vim.uv.fs_realpath(root) or vim.fs.normalize(root)
+end
+
+local function scoped(fn, opts)
+  return function()
+    local ok, state = pcall(require, "sidekick.cli.state")
+    if not ok then
+      lazy_require("sidekick.cli")[fn](opts)
+      return
+    end
+
+    local root = git_root(vim.fn.getcwd(0))
+    local is = state.is
+
+    -- Keep launch entries; filter foreign sessions.
+    state.is = function(item, filter)
+      return is(item, filter)
+        and (not item.session or git_root(item.session.cwd) == root)
+    end
+
+    local called, err = pcall(require("sidekick.cli")[fn], opts)
+    state.is = is
+    if not called then
+      error(err)
+    end
+  end
+end
+
 local keys = {
-  { "<Leader>aa", cli("toggle", { focus = true }),                    mode = { "n", "x" }, desc = "Toggle CLI" },
-  { "<Leader>ac", cli("toggle", { name = "claude", focus = true }),                        desc = "Toggle Claude" },
-  { "<Leader>as", cli("select", { focus = true }),                                         desc = "Select CLI" },
-  { "<Leader>ap", cli("prompt"),                                      mode = { "n", "x" }, desc = "Pick prompt" },
-  { "<Leader>at", cli("send", { msg = "{this}" }),                    mode = { "n", "x" }, desc = "Send this" },
-  { "<Leader>af", cli("send", { msg = "{file}" }),                                         desc = "Send file" },
-  { "<Leader>ad", cli("send", { prompt = "diagnostics" }),                                 desc = "Send diagnostics" },
-  { "<Leader>ax", cli("close"),                                                            desc = "Close CLI" },
-  { "<C-.>",      cli("focus"),                mode = { "n", "x", "i", "t" }, desc = "Focus/blur CLI" },
+  {
+    "<Leader>aa",
+    scoped("toggle", { filter = { installed = true }, focus = true }),
+    mode = { "n", "x" },
+    desc = "Toggle CLI",
+  },
+  {
+    "<Leader>ac",
+    scoped("toggle", { name = "codex", focus = true }),
+    desc = "Toggle Codex",
+  },
+  {
+    "<Leader>as",
+    scoped("select", { filter = { installed = true }, focus = true }),
+    desc = "Select CLI",
+  },
+  {
+    "<Leader>ap",
+    cli("prompt"),
+    mode = { "n", "x" },
+    desc = "Pick prompt",
+  },
+  {
+    "<Leader>at",
+    cli("send", { msg = "{this}" }),
+    mode = { "n", "x" },
+    desc = "Send this",
+  },
+  {
+    "<Leader>af",
+    cli("send", { msg = "{file}" }),
+    desc = "Send file",
+  },
+  {
+    "<Leader>av",
+    cli("send", { msg = "{selection}" }),
+    mode = "x",
+    desc = "Send selection",
+  },
+  {
+    "<Leader>ad",
+    cli("close"),
+    desc = "Detach CLI",
+  },
+  {
+    "<Leader>ax",
+    cli("close"),
+    desc = "Close CLI",
+  },
+  {
+    "<C-.>",
+    cli("focus"),
+    mode = { "n", "x", "i", "t" },
+    desc = "Focus/blur CLI",
+  },
 }
 
 return {
@@ -48,7 +124,7 @@ return {
       mux = { enabled = true, backend = "tmux", dump = 10000 },
       picker = "fzf-lua",
       win = {
-        layout = "right",
+        layout = "bottom",
         split = { width = 90 },
         keys = {
           -- <C-q> is the toggleterm prefix (see toggleterm.lua); leave it
