@@ -54,7 +54,7 @@ ondemand.on_load("snacks.nvim", function()
 end)
 ```
 
-See `ts-context-commentstring.lua` and `snacks.lua` for real examples.
+See `snacks.lua` for a deferred setup example.
 
 Theme plugins must declare a `themes` field listing their colorscheme names (see
 `lua/plugins/themes/`).

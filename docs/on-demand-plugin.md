@@ -44,7 +44,7 @@ flowchart TD
 - `lazy_require` returns a no-op proxy. Use it only where a silent no-op is an
   acceptable fallback.
 - If the caller needs a real return value, guard with `package.loaded[...]`
-  instead. See `lua/plugins/ts-context-commentstring.lua`.
+  instead.
 - Colorschemes are a special case. They install synchronously so `:colorscheme`
   can apply immediately.
 - Direct dependencies may block briefly after the main clone. That gives plugin

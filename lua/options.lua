@@ -10,8 +10,7 @@ vim.opt.tabstop = 2
 vim.opt.softtabstop = 2
 vim.opt.shiftwidth = 2
 
--- stable UI, no layout shifts
-vim.opt.laststatus = 2
+-- Always show the tabline
 vim.opt.showtabline = 2
 
 -- Line numbers: absolute + relative for easy jump-counting
@@ -24,8 +23,7 @@ vim.opt.cursorline = true
 -- Column ruler at textwidth (editorconfig/prettier can override per-buffer)
 vim.opt.colorcolumn = "+0"
 
--- Soft-wrap long lines at window edge (avoids horizontal scroll from ghost text)
-vim.opt.wrap = true
+-- Wrap at word boundaries
 vim.opt.linebreak = true
 
 -- Persistent undo across sessions, stored in undodir
@@ -120,8 +118,7 @@ vim.opt.timeoutlen = 300
 -- Hide concealed text in normal and command-line mode
 vim.opt.concealcursor = "nc"
 
--- Show invisible characters
-vim.opt.list = false
+-- Configure invisible character markers
 vim.opt.listchars = {
   tab = "» ",
   lead = "·",
@@ -146,7 +143,7 @@ vim.opt.fillchars:append({ eob = " " })
 
 -- Auto-insert comment leader when pressing Enter in insert mode;
 -- hard-wrap text while typing at textwidth boundary.
-vim.opt.formatoptions:append("rtc")
+vim.opt.formatoptions:append("r")
 vim.opt.textwidth = 80
 
 -- Scroll by screen line, not by text line (smooth half-line scrolling)
