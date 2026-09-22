@@ -90,7 +90,7 @@ local DISK_CACHE_PATH = vim.fn.stdpath("cache") .. "/prettier-pw.json"
 --- @field pw number|false
 --- @field mtime number config file mtime (seconds)
 
---- Session cache keyed by git root + ext.
+--- Cache by filename for Prettier overrides.
 --- Values: number (printWidth), false (no printWidth), or "pending" (in-flight).
 --- @type table<string, number|false|"pending">
 local _cache = {}
@@ -224,8 +224,7 @@ function M.resolve_print_width(bufnr)
   end
 
   local root = vim.fs.root(file, ".git") or vim.fn.fnamemodify(file, ":h") --[[@as string]]
-  local ext = vim.fn.fnamemodify(file, ":e")
-  local key = root .. "::" .. ext
+  local key = file
 
   -- L1: session memory cache (instant, no I/O)
   local cached = _cache[key]
