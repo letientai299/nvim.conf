@@ -4,21 +4,14 @@ local slow_linters = {
   golangcilint = true,
 }
 
--- Cache executable lookups so each linter is checked at most once per session.
-local available_cache = {}
 local function is_available(name)
-  if available_cache[name] ~= nil then
-    return available_cache[name]
-  end
   local lint = require("lint")
   local linter = lint.linters[name]
   local cmd = linter and linter.cmd
   if type(cmd) == "function" then
     cmd = cmd()
   end
-  local ok = cmd ~= nil and vim.fn.executable(cmd) == 1
-  available_cache[name] = ok
-  return ok
+  return cmd ~= nil and vim.fn.executable(cmd) == 1
 end
 
 --- Filter a list of linter names to only those with an installed binary.
