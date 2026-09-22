@@ -74,8 +74,15 @@ return {
         end
 
         -- Stage / reset
-        bmap({ "n", "v" }, "<Leader>gs", gs.stage_hunk, "Stage hunk")
-        bmap({ "n", "v" }, "<Leader>gr", gs.reset_hunk, "Reset hunk")
+        for _, action in ipairs({
+          { "<Leader>gs", gs.stage_hunk, "Stage hunk" },
+          { "<Leader>gr", gs.reset_hunk, "Reset hunk" },
+        }) do
+          bmap("n", action[1], action[2], action[3])
+          bmap("x", action[1], function()
+            action[2]({ vim.fn.line("."), vim.fn.line("v") })
+          end, action[3])
+        end
         bmap("n", "<Leader>gS", gs.stage_buffer, "Stage buffer")
         bmap("n", "<Leader>gR", gs.reset_buffer, "Reset buffer")
 
