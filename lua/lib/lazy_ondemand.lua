@@ -82,6 +82,9 @@ function M.enable()
   --- Returns false when the clone left no valid git commit; lazy.nvim's
   --- lockfile update path expects one and would crash with "commit is nil".
   local function finalize_install(plugin)
+    if vim.uv.fs_stat(plugin.dir .. ".cloning") then
+      return false
+    end
     local info = Git.info(plugin.dir)
     if not info or not info.commit then
       return false
@@ -96,9 +99,10 @@ function M.enable()
   --- `config` safe to `require()` dependency modules immediately.
   local function ensure_deps_installed(plugin)
     if not plugin.dependencies then
-      return
+      return true
     end
     local to_clone = {}
+    local refreshed = false
     for _, dep_name in ipairs(plugin.dependencies) do
       local dep = Config.plugins[dep_name]
       if not dep or dep._.installed then
@@ -106,13 +110,17 @@ function M.enable()
       end
       if vim.uv.fs_stat(dep.dir) and finalize_install(dep) then
         pending[dep.name] = nil
+        refreshed = true
       else
         to_clone[#to_clone + 1] = dep.name
       end
       ::continue::
     end
     if #to_clone == 0 then
-      return
+      if refreshed then
+        Cache.reset()
+      end
+      return true
     end
     vim.notify(
       "Installing " .. table.concat(to_clone, ", ") .. "...",
@@ -134,15 +142,19 @@ function M.enable()
         end, 200)
       end
     end
+    local installed = true
     for _, name in ipairs(to_clone) do
       local dep = Config.plugins[name]
       if dep and vim.uv.fs_stat(dep.dir) and finalize_install(dep) then
         pending[name] = nil
         vim.notify(name .. " installed.", vim.log.levels.INFO)
       else
+        installed = false
         vim.notify("Failed to install dep " .. name, vim.log.levels.ERROR)
       end
     end
+    Cache.reset()
+    return installed
   end
 
   --- Check whether `plugin` is ready to load after an install event.
@@ -230,8 +242,9 @@ function M.enable()
         vim.notify(entry.name .. " installed.", vim.log.levels.INFO, {
           id = "lazy_ondemand_" .. entry.name,
         })
-        ensure_deps_installed(entry.plugin)
-        if not entry.plugin._.loaded then
+        if
+          ensure_deps_installed(entry.plugin) and not entry.plugin._.loaded
+        then
           -- Flush module cache so require() re-scans after clone.
           -- Must happen here (not in finalize_install) because _load
           -- adds the plugin to rtp first — flushing too early lets
@@ -290,6 +303,9 @@ function M.enable()
   -- stash the trigger context. The plugin will be loaded for real when
   -- the LazyInstall handler picks it up after the clone finishes.
   Loader._load = function(plugin, reason, opts)
+    if plugin._.cond == false and not (opts and opts.force) then
+      return
+    end
     if not plugin._.installed then
       if pending[plugin.name] then
         return
@@ -305,7 +321,9 @@ function M.enable()
       })
       return
     end
-    return orig_load(plugin, reason, opts)
+    if ensure_deps_installed(plugin) and not plugin._.loaded then
+      return orig_load(plugin, reason, opts)
+    end
   end
 end
 
