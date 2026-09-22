@@ -1,8 +1,9 @@
 -- Terminal management via toggleterm.nvim.
 -- Prefix: <C-q>. Double-tap to toggle, <C-hjklf> to move, 1-9 to switch.
 
-local lazy_require = require("lib.lazy_ondemand").lazy_require
+local ondemand = require("lib.lazy_ondemand")
 local M = {}
+local last_id = 1
 
 -- Persistent layout state (survives toggle cycles).
 M.direction = "horizontal"
@@ -29,10 +30,10 @@ end
 
 --- Toggle the current terminal, applying any pending wincmd.
 function M.toggle()
-  local Terminal = lazy_require("toggleterm.terminal").Terminal
-  local terms = lazy_require("toggleterm.terminal").get_all()
+  local Terminal = require("toggleterm.terminal").Terminal
+  local terms = require("toggleterm.terminal").get_all()
 
-  -- Find the currently visible terminal, or fall back to term 1.
+  -- Restore the last terminal when hidden.
   local term
   for _, t in ipairs(terms) do
     if t:is_open() then
@@ -41,8 +42,10 @@ function M.toggle()
     end
   end
   if not term then
-    term = Terminal:new({ id = 1, direction = M.direction })
+    term = Terminal:new({ id = last_id, direction = M.direction })
   end
+
+  last_id = term.id
 
   -- If open, close. If closed, open with current layout.
   if term:is_open() then
@@ -68,9 +71,10 @@ function M.move(key)
   M.wincmd = layout[2]
 
   -- Close any visible terminal, then reopen in the new layout.
-  local terms = lazy_require("toggleterm.terminal").get_all()
+  local terms = require("toggleterm.terminal").get_all()
   for _, t in ipairs(terms) do
     if t:is_open() then
+      last_id = t.id
       t:close()
       break
     end
@@ -82,13 +86,13 @@ end
 
 --- Switch to terminal N (1-9). No-op if it doesn't exist.
 function M.switch(n)
-  local term = lazy_require("toggleterm.terminal").get(n)
+  local term = require("toggleterm.terminal").get(n)
   if not term then
     return
   end
 
   -- Close any currently visible terminal first.
-  local terms = lazy_require("toggleterm.terminal").get_all()
+  local terms = require("toggleterm.terminal").get_all()
   for _, t in ipairs(terms) do
     if t:is_open() then
       t:close()
@@ -96,6 +100,7 @@ function M.switch(n)
     end
   end
 
+  last_id = term.id
   term:open(size(M.direction), M.direction)
   if M.wincmd then
     vim.cmd("wincmd " .. M.wincmd)
@@ -104,7 +109,7 @@ end
 
 --- Create a new terminal with the next available ID.
 function M.create()
-  local terms = lazy_require("toggleterm.terminal").get_all()
+  local terms = require("toggleterm.terminal").get_all()
   local max_id = 0
   for _, t in ipairs(terms) do
     if t.id > max_id then
@@ -112,7 +117,7 @@ function M.create()
     end
   end
 
-  local Terminal = lazy_require("toggleterm.terminal").Terminal
+  local Terminal = require("toggleterm.terminal").Terminal
   local term = Terminal:new({ id = max_id + 1, direction = M.direction })
 
   -- Close any visible terminal first.
@@ -123,6 +128,7 @@ function M.create()
     end
   end
 
+  last_id = term.id
   term:open(size(M.direction), M.direction)
   if M.wincmd then
     vim.cmd("wincmd " .. M.wincmd)
@@ -131,7 +137,7 @@ end
 
 --- Close terminal with confirmation if child processes are running.
 function M.close()
-  local terms = lazy_require("toggleterm.terminal").get_all()
+  local terms = require("toggleterm.terminal").get_all()
   local term
   for _, t in ipairs(terms) do
     if t:is_open() then
@@ -208,6 +214,13 @@ for i = 1, 9 do
     mode = { "n", "t" },
     desc = "Terminal " .. i,
   })
+end
+
+for _, key in ipairs(keys) do
+  local action = key[2]
+  key[2] = function()
+    ondemand.on_load("toggleterm.nvim", action)
+  end
 end
 
 return {
