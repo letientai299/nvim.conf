@@ -179,12 +179,6 @@ function M.enable_highlight(bufnr, filetype)
   local lang = ft ~= "" and vim.treesitter.language.get_lang(ft) or nil
 
   local ok
-  if vim.b[bufnr].current_syntax then
-    api.nvim_buf_call(bufnr, function()
-      vim.cmd.syntax("clear")
-    end)
-    vim.b[bufnr].current_syntax = nil
-  end
   local function start(start_lang)
     if type(start_lang) == "string" and start_lang ~= "" then
       return pcall(vim.treesitter.start, bufnr, start_lang)
@@ -196,6 +190,13 @@ function M.enable_highlight(bufnr, filetype)
   -- raises "Invalid node type" and would otherwise leave .cu files unhighlighted.
   if not ok and lang == "cuda" then
     ok = start("cpp")
+  end
+
+  if ok and vim.b[bufnr].current_syntax then
+    api.nvim_buf_call(bufnr, function()
+      vim.cmd.syntax("clear")
+    end)
+    vim.b[bufnr].current_syntax = nil
   end
 
   vim.b[bufnr].ts_highlight = ok
