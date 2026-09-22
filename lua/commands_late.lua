@@ -6,7 +6,18 @@
 -- ---------------------------------------------------------------------------
 
 vim.api.nvim_create_user_command("SudoWrite", function()
-  vim.cmd("w !sudo tee % > /dev/null")
+  local file = vim.api.nvim_buf_get_name(0)
+  if file == "" then
+    vim.notify("SudoWrite requires a filename", vim.log.levels.ERROR)
+    return
+  end
+  vim.cmd(
+    "write !sudo tee -- " .. vim.fn.shellescape(file, true) .. " > /dev/null"
+  )
+  if vim.v.shell_error ~= 0 then
+    vim.notify("SudoWrite failed; buffer preserved", vim.log.levels.ERROR)
+    return
+  end
   vim.cmd.edit({ bang = true })
 end, { desc = "Write file with sudo" })
 
