@@ -6,14 +6,22 @@ local M = {}
 ---@return any result of executing the file
 function M.load(path)
   local luac = path .. "c"
-  local chunk, err = loadfile(luac)
-  if chunk then
-    return chunk()
+  local source = vim.uv.fs_stat(path)
+  local cached = vim.uv.fs_stat(luac)
+  if source and cached then
+    local fresh = cached.mtime.sec > source.mtime.sec
+      or (
+        cached.mtime.sec == source.mtime.sec
+        and cached.mtime.nsec >= source.mtime.nsec
+      )
+    if fresh then
+      local chunk = loadfile(luac)
+      if chunk then
+        return chunk()
+      end
+    end
   end
-  -- Stale/corrupt .luac — remove so it doesn't block future loads
-  if err then
-    os.remove(luac)
-  end
+  os.remove(luac)
   local result = dofile(path)
   -- Lazily compile .luac for next startup
   M.compile(path)
