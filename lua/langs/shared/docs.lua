@@ -28,7 +28,9 @@ local function setup_marimo(bufnr)
   local ondemand = require("lib.lazy_ondemand")
   ondemand.on_load("otter.nvim", function()
     if is_marimo(bufnr) then
-      require("otter").activate({ "python" }, true, true)
+      vim.api.nvim_buf_call(bufnr, function()
+        require("otter").activate({ "python" }, true, true)
+      end)
     end
   end)
   require("lazy").load({ plugins = { "otter.nvim" } })
@@ -57,6 +59,10 @@ function M.markdown(bufnr)
     },
     formatters = { "rumdl_fix", "prettier" },
   })
+
+  if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
+    return
+  end
 
   setup_marimo(bufnr)
 
