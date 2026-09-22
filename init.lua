@@ -10,7 +10,9 @@ vim.g.loaded_ruby_provider = 0
 -- first paint. Restore after VeryLazy. Skip deferral for bare `nvim` so
 -- v:oldfiles is available immediately.
 local _reading_stdin = vim.tbl_contains(vim.v.argv, "-")
-local _defer_shada = vim.fn.argc(-1) > 0 or _reading_stdin
+local _shadafile = vim.o.shadafile
+local _defer_shada = _shadafile ~= "NONE"
+  and (vim.fn.argc(-1) > 0 or _reading_stdin)
 if _defer_shada then
   vim.o.shadafile = "NONE"
 end
@@ -236,8 +238,8 @@ if _defer_shada then
     pattern = "VeryLazy",
     once = true,
     callback = function()
-      vim.o.shadafile = ""
-      pcall(vim.cmd.rshada, { bang = true })
+      vim.o.shadafile = _shadafile
+      pcall(vim.cmd.rshada, {})
     end,
   })
 end
