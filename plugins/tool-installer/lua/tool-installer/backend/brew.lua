@@ -12,10 +12,10 @@ function M.available()
 end
 
 ---@param spec string
----@param _ string? unused, brew doesn't support arbitrary versions
+---@param opts tool-installer.InstallOpts version is ignored
 ---@param callback fun(ok: boolean, err?: string)
-function M.install(spec, _, callback)
-  run({ "brew", "install", spec }, callback)
+function M.install(spec, opts, callback)
+  run({ "brew", opts.force and "reinstall" or "install", spec }, callback)
 end
 
 return M

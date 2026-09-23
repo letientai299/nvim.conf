@@ -93,9 +93,11 @@ Example: >lua
 ==============================================================================
 4. API                                            *tool-installer-api*
 
-tool-installer.ensure({tools}, {on_complete?})    *tool-installer.ensure()*
+tool-installer.ensure({tools}, {on_complete?}, {opts?})
+                                                  *tool-installer.ensure()*
     Ensure all tools are available. Missing tools are installed
-    asynchronously. Dependencies from the catalog are resolved and
+    asynchronously. With `opts.force`, every tool is reinstalled and its
+    cache entry reset, which recovers from an interrupted install. Dependencies from the catalog are resolved and
     installed first (wave 1), then dependents (wave 2).
 
     If a dependency fails, its dependents are skipped.
@@ -106,6 +108,7 @@ tool-installer.ensure({tools}, {on_complete?})    *tool-installer.ensure()*
     Parameters: ~
       {tools}        (Tool[])  List of tool specs.
       {on_complete}  (fun()?)  Called when all installs settle.
+      {opts}         (table?)  `{ force?: boolean }`
 
     Example: >lua
 
@@ -126,18 +129,19 @@ tool-installer.get_config()                       *tool-installer.get_config()*
 5. BACKENDS                                       *tool-installer-backends*
 
 mise ~
-    Installs via `mise use -g {spec}`. Supports `version` field
+    Installs via `mise use -g {spec}`; force adds `--force`. Supports `version` field
     (`mise use -g {spec}@{version}`). Handles grouped specs: multiple
     tools sharing the same mise spec (e.g. `npm:vscode-langservers-extracted`
     providing `vscode-css-language-server`, `vscode-html-language-server`,
     etc.) are installed with a single `mise use` invocation.
 
 brew ~
-    Installs via `brew install {spec}`. Version field is ignored —
+    Installs via `brew install {spec}`, or `brew reinstall` when forced. Version field is ignored —
     brew doesn't support arbitrary version pinning.
 
 script ~
-    Runs `{script_dir}/{spec}` as an executable. Requires `script_dir`
+    Runs `{script_dir}/{spec}` as an executable. Force sets
+    `TOOL_INSTALLER_FORCE=1` in the script environment. Requires `script_dir`
     to be set in |tool-installer.setup()|. The backend reports unavailable
     when `script_dir` is empty or doesn't exist.
 

@@ -2,6 +2,7 @@ local M = {
   formatters = {},
   formatters_by_ft = {},
   linters_by_ft = {},
+  tools_by_ft = {}, ---@type table<string, tool-installer.Tool[]>
 }
 
 local function listify(value)
@@ -56,6 +57,24 @@ function M.add_linter(fts, names)
       rawset(lint.linters_by_ft, ft, M.linters_by_ft[ft])
     end
   end
+end
+
+---@param ft string
+---@param tools tool-installer.Tool[]
+function M.add_tools(ft, tools)
+  M.tools_by_ft[ft] = tools
+end
+
+--- All registered tools, deduplicated by bin.
+---@return table<string, tool-installer.Tool>
+function M.tools_by_bin()
+  local out = {}
+  for _, tools in pairs(M.tools_by_ft) do
+    for _, t in ipairs(tools) do
+      out[t.bin] = t
+    end
+  end
+  return out
 end
 
 function M.add_formatter(name, config)

@@ -14,9 +14,9 @@ function M.set_script_dir(dir)
 end
 
 ---@param spec string
----@param _ string? unused, scripts don't support versions
+---@param opts tool-installer.InstallOpts force sets TOOL_INSTALLER_FORCE=1
 ---@param callback fun(ok: boolean, err?: string)
-function M.install(spec, _, callback)
+function M.install(spec, opts, callback)
   local path = _script_dir .. "/" .. spec
   if vim.fn.filereadable(path) ~= 1 then
     callback(false, "script not found: " .. path)
@@ -36,6 +36,7 @@ function M.install(spec, _, callback)
     path,
   }, {
     text = true,
+    env = opts.force and { TOOL_INSTALLER_FORCE = "1" } or nil,
     stdout = function(_, data)
       append_stream(data, vim.log.levels.INFO)
     end,

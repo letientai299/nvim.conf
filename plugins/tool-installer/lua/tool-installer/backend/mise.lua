@@ -30,12 +30,16 @@ local function drain()
 end
 
 ---@param spec string
----@param version? string
+---@param opts tool-installer.InstallOpts
 ---@param callback fun(ok: boolean, err?: string)
-function M.install(spec, version, callback)
-  local target = version and (spec .. "@" .. version) or spec
+function M.install(spec, opts, callback)
+  local target = opts.version and (spec .. "@" .. opts.version) or spec
+  local cmd = { "mise", "use", "-g", target }
+  if opts.force then
+    table.insert(cmd, 3, "--force")
+  end
   _queue[#_queue + 1] = {
-    cmd = { "mise", "use", "-g", target },
+    cmd = cmd,
     opts = {
       env = {
         MISE_EXPERIMENTAL = "1",

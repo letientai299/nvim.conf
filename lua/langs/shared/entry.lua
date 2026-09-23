@@ -81,6 +81,7 @@ function M.setup(key, bufnr, opts)
     end
 
     if tools then
+      require("lib.lang_registry").add_tools(vim.bo[bufnr].filetype, tools)
       require("tool-installer").ensure(tools, function()
         if vim.api.nvim_buf_is_valid(bufnr) then
           lsp.reattach(bufnr)

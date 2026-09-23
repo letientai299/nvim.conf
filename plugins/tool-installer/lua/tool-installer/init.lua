@@ -12,6 +12,13 @@
 ---@field script_dir string
 ---@field cache_ttl integer
 
+---@class tool-installer.InstallOpts
+---@field version? string
+---@field force? boolean       -- reinstall even when the bin exists
+
+---@class tool-installer.EnsureOpts
+---@field force? boolean       -- bypass cache and reinstall every tool
+
 local M = {}
 local log = require("tool-installer.log")
 
@@ -94,8 +101,9 @@ end
 --- Install a list of tools (already resolved and ordered).
 --- Groups tools by shared mise spec to deduplicate installs.
 ---@param tools tool-installer.Tool[]
+---@param force boolean
 ---@param on_done fun()
-local function install_batch(tools, on_done)
+local function install_batch(tools, force, on_done)
   if #tools == 0 then
     on_done()
     return
@@ -184,7 +192,8 @@ local function install_batch(tools, on_done)
         .. ")"
     )
 
-    job.backend.install(job.spec, t.version, function(ok, err)
+    local install_opts = { version = t.version, force = force }
+    job.backend.install(job.spec, install_opts, function(ok, err)
       vim.schedule(function()
         rehash()
         local group = t.mise and mise_groups[t.mise] or { t }
@@ -229,12 +238,15 @@ local function install_batch(tools, on_done)
 end
 
 --- Ensure all listed tools are available; install missing ones.
+--- With `opts.force`, every tool is reinstalled regardless of cache state.
 ---@param tools tool-installer.Tool[]
 ---@param on_complete? fun()
-function M.ensure(tools, on_complete)
+---@param opts? tool-installer.EnsureOpts
+function M.ensure(tools, on_complete, opts)
   local cache = require("tool-installer.cache")
   local resolve = require("tool-installer.resolve")
   local catalog = _config.catalog
+  local force = opts and opts.force or false
   on_complete = on_complete or function() end
 
   -- Flatten dependencies from catalog
@@ -243,7 +255,10 @@ function M.ensure(tools, on_complete)
   -- Partition into installed / missing
   local missing = {}
   for _, t in ipairs(ordered) do
-    if not cache.is_available(t.bin, _config.cache_ttl) then
+    if force then
+      cache.set(t.bin, false)
+      missing[#missing + 1] = t
+    elseif not cache.is_available(t.bin, _config.cache_ttl) then
       missing[#missing + 1] = t
     end
   end
@@ -281,11 +296,11 @@ function M.ensure(tools, on_complete)
   end
 
   if #wave1 == 0 then
-    install_batch(wave2, on_complete)
+    install_batch(wave2, force, on_complete)
     return
   end
 
-  install_batch(wave1, function()
+  install_batch(wave1, force, function()
     -- Skip wave2 dependents whose dependencies failed to install
     local failed_bins = {}
     for _, t in ipairs(wave1) do
@@ -295,7 +310,7 @@ function M.ensure(tools, on_complete)
     end
 
     if vim.tbl_isempty(failed_bins) then
-      install_batch(wave2, on_complete)
+      install_batch(wave2, force, on_complete)
       return
     end
 
@@ -316,7 +331,7 @@ function M.ensure(tools, on_complete)
       end
     end
 
-    install_batch(viable, on_complete)
+    install_batch(viable, force, on_complete)
   end)
 end
 
