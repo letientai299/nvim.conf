@@ -46,4 +46,34 @@ vim.api.nvim_create_user_command("LspInfo", function()
   vim.notify(table.concat(lines, "\n"), vim.log.levels.INFO)
 end, { desc = "Show LSP clients attached to current buffer" })
 
+vim.api.nvim_create_user_command("LspRestart", function()
+  local clients = vim.lsp.get_clients()
+  if #clients == 0 then
+    vim.notify("No LSP clients running", vim.log.levels.WARN)
+    return
+  end
+
+  local names = {}
+  for _, c in ipairs(clients) do
+    table.insert(names, c.name)
+    c:stop(true)
+  end
+
+  -- Re-fire the nvim.lsp.enable FileType autocmd once every client exited
+  local tries = 0
+  local function reattach()
+    if next(vim.lsp.get_clients()) and tries < 50 then
+      tries = tries + 1
+      vim.defer_fn(reattach, 100)
+      return
+    end
+    vim.cmd.doautoall("nvim.lsp.enable FileType")
+    vim.notify(
+      "LSP restarted: " .. table.concat(names, ", "),
+      vim.log.levels.INFO
+    )
+  end
+  vim.defer_fn(reattach, 100)
+end, { desc = "Force restart all LSP clients" })
+
 return {}
