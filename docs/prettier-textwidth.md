@@ -48,9 +48,8 @@ receive the result.
 
 ### set_textwidth
 
-`vim.bo[buf].textwidth = tw` alone does not fire `OptionSet`. The helper also
-schedules a `setlocal textwidth=<tw>` command so listeners like
-[virtcolumn.nvim][virtcolumn] can react via `OptionSet` to update `colorcolumn`.
+The native `colorcolumn = "+0"` follows the buffer's `textwidth` directly.
+Applying the resolved width needs no scheduled `OptionSet` notification.
 
 ## Resolve flow
 
@@ -101,4 +100,3 @@ flowchart TD
 [on-demand-tool]: ./on-demand-tool.md
 [options]: ../lua/options.lua
 [prettier]: ../lua/lib/prettier.lua
-[virtcolumn]: https://github.com/lukas-reineke/virt-column.nvim

@@ -58,21 +58,10 @@ end
 -- ---------------------------------------------------------------------------
 
 --- Set textwidth on a buffer.
---- vim.bo doesn't fire OptionSet, so we also schedule a :setlocal to notify
---- listeners (e.g. virtcolumn.nvim) that need OptionSet to re-resolve
---- colorcolumn. The immediate vim.bo ensures textwidth takes effect without
---- waiting for the next event-loop tick.
 --- @param buf integer
 --- @param tw number
 local function set_textwidth(buf, tw)
   vim.bo[buf].textwidth = tw
-  vim.schedule(function()
-    if vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].textwidth == tw then
-      vim.api.nvim_buf_call(buf, function()
-        vim.cmd("setlocal textwidth=" .. tw)
-      end)
-    end
-  end)
 end
 
 --- Check whether `path` is inside a project that has a prettier config.
