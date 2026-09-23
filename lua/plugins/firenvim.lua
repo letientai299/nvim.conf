@@ -33,6 +33,26 @@ return {
       end
     end
 
+    local font_resize = 0
+    vim.api.nvim_create_autocmd("OptionSet", {
+      pattern = "guifont",
+      callback = function()
+        font_resize = font_resize + 1
+        local request = font_resize
+        vim.defer_fn(function()
+          if request ~= font_resize then
+            return
+          end
+          -- Resend geometry even when dimensions match.
+          if vim.o.columns == want.columns and vim.o.lines == want.lines then
+            vim.o.columns = want.columns + 1
+            vim.cmd.redraw()
+          end
+          restore_size()
+        end, 100)
+      end,
+    })
+
     -- Re-apply after VeryLazy so lualine doesn't override statusline/tabline.
     -- Delay lets firenvim's initial resize cascade settle (#800).
     vim.api.nvim_create_autocmd("User", {
@@ -65,5 +85,15 @@ return {
 
     font:map_pick()
     font:map_zoom()
+    -- Include macOS Option symbols and shifted variants.
+    for _, keys in ipairs({
+      { "<M-=>", "<M-->" },
+      { "<M-+>", "<M-_>" },
+      { "<M-S-+>", "<M-S-_>" },
+      { "<M-≠>", "<M-–>" },
+      { "<M-S-±>", "<M-S-—>" },
+    }) do
+      font:map_zoom({ zoom_in = keys[1], zoom_out = keys[2] })
+    end
   end,
 }
