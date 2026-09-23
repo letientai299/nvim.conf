@@ -107,6 +107,36 @@ map(
 map("n", "<Leader>w", "<Cmd>Dirsv<CR>", { desc = "Dirsv" })
 
 -- ---------------------------------------------------------------------------
+-- Git info/exclude
+-- ---------------------------------------------------------------------------
+
+--- info/exclude lives in the common dir, shared by all worktrees.
+local function git_exclude_path()
+  local buf = vim.api.nvim_buf_get_name(0)
+  local cwd = buf ~= "" and vim.fs.dirname(buf) or vim.uv.cwd()
+  local out = vim
+    .system(
+      { "git", "rev-parse", "--path-format=absolute", "--git-common-dir" },
+      { cwd = cwd, text = true }
+    )
+    :wait()
+  if out.code ~= 0 then
+    return nil
+  end
+  return vim.trim(out.stdout) .. "/info/exclude"
+end
+
+map("n", "<Leader>gi", function()
+  local path = git_exclude_path()
+  if not path then
+    vim.notify("Not a git repository", vim.log.levels.WARN)
+    return
+  end
+  vim.fn.mkdir(vim.fs.dirname(path), "p")
+  vim.cmd.edit(path)
+end, { desc = "Edit git info/exclude" })
+
+-- ---------------------------------------------------------------------------
 -- File navigation (prev/next in same directory)
 -- ---------------------------------------------------------------------------
 
