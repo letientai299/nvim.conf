@@ -84,14 +84,11 @@ function M.setup(buf)
   end
   attached[buf] = true
 
-  -- Incremental: only re-highlight changed lines.
+  -- Sync, not deferred: later events in a batch (e.g. format-on-save)
+  -- shift lines before a deferred callback runs, dropping highlights.
   vim.api.nvim_buf_attach(buf, false, {
     on_lines = function(_, b, _, first, _, last)
-      vim.schedule(function()
-        if vim.api.nvim_buf_is_valid(b) then
-          apply_highlights(b, first, last)
-        end
-      end)
+      apply_highlights(b, first, last)
     end,
     on_detach = function(_, b)
       attached[b] = nil
