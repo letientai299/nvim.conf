@@ -18,6 +18,9 @@
 --   <BS> — undo last modifier step
 return {
   "nvim-mini/mini.align",
-  keys = { { "ga", mode = { "n", "x" } }, { "gA", mode = { "n", "x" } } },
+  keys = {
+    { "ga", mode = { "n", "x" }, desc = "Align" },
+    { "gA", mode = { "n", "x" }, desc = "Align with preview" },
+  },
   opts = {},
 }
