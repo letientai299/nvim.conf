@@ -24,8 +24,54 @@ return {
       )
     end
 
+    local textobject_clues = {}
+    local textobjects = {
+      w = "Word",
+      W = "WORD",
+      s = "Sentence",
+      p = "Paragraph",
+      ["("] = "Parentheses, trimmed",
+      [")"] = "Parentheses",
+      ["["] = "Square brackets, trimmed",
+      ["]"] = "Square brackets",
+      ["{"] = "Braces, trimmed",
+      ["}"] = "Braces",
+      ["<"] = "Angle brackets, trimmed",
+      [">"] = "Angle brackets",
+      b = "Brackets",
+      ['"'] = "Double quotes",
+      ["'"] = "Single quotes",
+      ["`"] = "Backticks",
+      q = "Quotes",
+      ["?"] = "User prompt",
+      a = "Argument",
+      f = "Function call",
+      t = "Tag",
+      F = "Function definition",
+      c = "Class",
+      o = "Conditional or loop",
+      B = "Block",
+      l = "Line",
+      e = "Entire buffer",
+    }
+    for _, mode in ipairs({ "x", "o" }) do
+      for _, prefix in ipairs({ "i", "a" }) do
+        for key, desc in pairs(textobjects) do
+          table.insert(textobject_clues, {
+            mode = mode,
+            keys = prefix .. key,
+            desc = desc,
+          })
+        end
+      end
+    end
+
     miniclue.setup({
       triggers = {
+        { mode = "x", keys = "i" },
+        { mode = "x", keys = "a" },
+        { mode = "o", keys = "i" },
+        { mode = "o", keys = "a" },
         { mode = "n", keys = "<Leader>" },
         { mode = "x", keys = "<Leader>" },
         { mode = "n", keys = "[" },
@@ -69,6 +115,7 @@ return {
         miniclue.gen_clues.z(),
 
         ce_postkeys,
+        textobject_clues,
         { mode = "n", keys = "<Leader>a", desc = "+AI" },
         { mode = "x", keys = "<Leader>a", desc = "+AI" },
         { mode = "n", keys = "<Leader>y", desc = "+Copy" },
