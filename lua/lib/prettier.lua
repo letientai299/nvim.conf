@@ -75,92 +75,6 @@ local function set_textwidth(buf, tw)
   end)
 end
 
--- Node script: resolve prettier's own module path from the binary, then call
--- resolveConfig(). Handles all 13+ config formats and per-file overrides.
-local RESOLVE_SCRIPT = [[
-const p=require('path'),f=require('fs');
-const d=p.dirname(f.realpathSync(process.argv[1]));
-require(p.resolve(d,'..')).resolveConfig(p.resolve(process.argv[2]))
-  .then(c=>process.stdout.write(String((c&&c.printWidth)||'')));
-]]
-
-local DISK_CACHE_PATH = vim.fn.stdpath("cache") .. "/prettier-pw.json"
-
---- @class PrettierPwDiskEntry
---- @field pw number|false
---- @field mtime number config file mtime (seconds)
-
---- Cache by filename for Prettier overrides.
---- Values: number (printWidth), false (no printWidth), or "pending" (in-flight).
---- @type table<string, number|false|"pending">
-local _cache = {}
-local _disk_dirty = false
-
---- Buffers waiting for an in-flight resolve to complete, keyed by cache key.
---- @type table<string, integer[]>
-local _pending = {}
-
---- @type table<string, PrettierPwDiskEntry>?
-local _disk_cache
-
-local function load_disk_cache()
-  if _disk_cache then
-    return _disk_cache
-  end
-  local f = io.open(DISK_CACHE_PATH)
-  if f then
-    local ok, data = pcall(vim.json.decode, f:read("*a"))
-    f:close()
-    if ok and type(data) == "table" then
-      _disk_cache = data
-      return _disk_cache
-    end
-  end
-  _disk_cache = {}
-  return _disk_cache
-end
-
-local function flush_disk_cache()
-  if not _disk_dirty or not _disk_cache then
-    return
-  end
-  local f = io.open(DISK_CACHE_PATH, "w")
-  if f then
-    f:write(vim.json.encode(_disk_cache))
-    f:close()
-    _disk_dirty = false
-  end
-end
-
-vim.api.nvim_create_autocmd("VimLeavePre", {
-  group = vim.api.nvim_create_augroup("PrettierCache", { clear = true }),
-  callback = flush_disk_cache,
-})
-
---- Find the prettier config file nearest to `path`, searching upward to `root`.
---- @param path string file path to search from
---- @param root string git root (stop directory)
---- @return string? config_path, number? mtime
-local function find_config_file(path, root)
-  -- vim.fs.find stop is exclusive — use parent so root itself is searched
-  local stop = vim.fn.fnamemodify(root, ":h")
-  local found = vim.fs.find(M.fallback_spec.names, {
-    path = path,
-    upward = true,
-    stop = stop,
-    type = "file",
-    limit = 1,
-  })
-  if #found == 0 then
-    return nil, nil
-  end
-  local stat = vim.uv.fs_stat(found[1])
-  if not stat then
-    return nil, nil
-  end
-  return found[1], stat.mtime.sec
-end
-
 --- Check whether `path` is inside a project that has a prettier config.
 --- Extends has_project_config with a package.json "prettier" key check.
 --- @param path string
@@ -192,115 +106,202 @@ local function has_prettier_config(path)
   return ok and pkg and pkg.prettier ~= nil
 end
 
---- @return string? prettier binary path, re-checked each call (exepath is fast)
-local function get_prettier_bin()
-  local bin = vim.fn.exepath("prettier")
-  return bin ~= "" and bin or nil
-end
+-- Fresh batches also reload imported JavaScript modules.
+local RESOLVE_SCRIPT = [[
+const p = require('path'), f = require('fs');
+const d = p.dirname(f.realpathSync(process.argv[1]));
+const prettier = require(require.resolve('prettier', {paths: [d]}));
+const files = JSON.parse(f.readFileSync(0, 'utf8'));
+Promise.all(files.map(async file => {
+  try {
+    const config = await prettier.resolveConfig(file);
+    const width = config?.printWidth;
+    return [file, Number.isInteger(width) && width > 0 ? width : false];
+  } catch {
+    return [file, null];
+  }
+})).then(entries => process.stdout.write('\nNVIM_PRETTIER:' + JSON.stringify(Object.fromEntries(entries))));
+]]
 
---- Apply printWidth to a buffer and any buffers waiting on the same key.
---- @param key string cache key
---- @param pw number|false|nil
-local function apply_result(key, pw)
-  local bufs = _pending[key] or {}
-  _pending[key] = nil
-  if not pw or pw <= 0 then
+local cache = {}
+local pending = {}
+local inflight = {}
+local buffers = {}
+local generation = 0
+local scheduled = false
+local process
+local closing = false
+
+local function apply_width(buf, file, width)
+  if
+    not vim.api.nvim_buf_is_valid(buf)
+    or vim.api.nvim_buf_get_name(buf) ~= file
+  then
     return
   end
-  for _, buf in ipairs(bufs) do
-    if vim.api.nvim_buf_is_valid(buf) then
-      set_textwidth(buf, pw)
+  local state = buffers[buf]
+  if not state or state.file ~= file then
+    return
+  end
+  if width then
+    if state.applied == nil or vim.bo[buf].textwidth ~= state.applied then
+      state.original = vim.bo[buf].textwidth
+    end
+    state.applied = width
+    set_textwidth(buf, width)
+  elseif state.applied then
+    if vim.bo[buf].textwidth == state.applied then
+      set_textwidth(buf, state.original)
+    end
+    state.applied = nil
+  end
+end
+
+local run_batch
+local function schedule_batch()
+  if not scheduled then
+    scheduled = true
+    vim.defer_fn(run_batch, 50)
+  end
+end
+
+local function apply_batch(batch, result)
+  if result.code ~= 0 or result.signal ~= 0 then
+    return
+  end
+  local payload = (result.stdout or ""):match("\nNVIM_PRETTIER:(.*)$")
+  local decoded, widths = pcall(vim.json.decode, payload or "")
+  if not decoded or type(widths) ~= "table" then
+    return
+  end
+  for file, waiting in pairs(batch) do
+    local width = widths[file]
+    if
+      width == false
+      or (type(width) == "number" and width > 0 and width % 1 == 0)
+    then
+      cache[file] = width
+      for buf in pairs(waiting) do
+        apply_width(buf, file, width)
+      end
     end
   end
 end
 
---- Async resolve printWidth for a buffer and set textwidth.
---- No-op when prettier binary is missing or no config is found nearby.
---- @param bufnr integer
-function M.resolve_print_width(bufnr)
-  local file = vim.api.nvim_buf_get_name(bufnr)
+run_batch = function()
+  scheduled = false
+  if closing or process or not next(pending) then
+    return
+  end
+  local batch = pending
+  pending = {}
+  local prettier = vim.fn.exepath("prettier")
+  if prettier == "" or vim.fn.executable("node") ~= 1 then
+    return
+  end
+  local epoch = generation
+  inflight = batch
+  local ok, job = pcall(
+    vim.system,
+    { "node", "-e", RESOLVE_SCRIPT, prettier },
+    {
+      text = true,
+      stdin = vim.json.encode(vim.tbl_keys(batch)),
+      timeout = 5000,
+    },
+    vim.schedule_wrap(function(result)
+      if epoch ~= generation or closing then
+        return
+      end
+      process = nil
+      inflight = {}
+      if next(pending) then
+        schedule_batch()
+      end
+      apply_batch(batch, result)
+    end)
+  )
+  if ok then
+    process = job
+  else
+    inflight = {}
+  end
+end
+
+function M.resolve_print_width(buf)
+  if
+    closing
+    or not vim.api.nvim_buf_is_loaded(buf)
+    or vim.bo[buf].buftype ~= ""
+  then
+    return
+  end
+  local file = vim.api.nvim_buf_get_name(buf)
   if file == "" then
     return
   end
-
-  local root = vim.fs.root(file, ".git") or vim.fn.fnamemodify(file, ":h") --[[@as string]]
-  local key = file
-
-  -- L1: session memory cache (instant, no I/O)
-  local cached = _cache[key]
-  if cached == "pending" then
-    table.insert(_pending[key], bufnr)
+  if not buffers[buf] or buffers[buf].file ~= file then
+    buffers[buf] = { file = file }
+  end
+  if cache[file] ~= nil then
+    apply_width(buf, file, cache[file])
     return
   end
-  if cached ~= nil then
-    if cached and cached > 0 then
-      set_textwidth(bufnr, cached --[[@as number]])
-    end
-    return
-  end
-
-  -- L2: disk cache — valid if config file mtime unchanged
-  local disk = load_disk_cache()
-  local disk_entry = disk[key]
-  if disk_entry then
-    local _, mtime = find_config_file(file, root)
-    if mtime and mtime == disk_entry.mtime then
-      _cache[key] = disk_entry.pw
-      if disk_entry.pw and disk_entry.pw > 0 then
-        set_textwidth(bufnr, disk_entry.pw)
-      end
-      return
-    end
-  end
-
-  -- Heavier checks before spawning Node
   if not has_prettier_config(file) then
-    _cache[key] = false
+    cache[file] = false
+    apply_width(buf, file, false)
     return
   end
-
-  local prettier = get_prettier_bin()
-  if not prettier then
+  if inflight[file] then
+    inflight[file][buf] = true
     return
   end
-
-  -- Mark in-flight to deduplicate concurrent resolves for the same key
-  _cache[key] = "pending"
-  _pending[key] = { bufnr }
-
-  local _, config_mtime = find_config_file(file, root)
-
-  vim.system(
-    { "node", "-e", RESOLVE_SCRIPT, prettier, file },
-    { text = true },
-    function(result)
-      -- Guard against signal kills and non-zero exits
-      if result.code ~= 0 or (result.signal and result.signal ~= 0) then
-        _cache[key] = false
-        vim.schedule(function()
-          apply_result(key, false)
-        end)
-        return
-      end
-      local pw = tonumber(result.stdout)
-      -- Only cache negative result when stdout was actually empty (not garbage)
-      if not pw and result.stdout and result.stdout:match("%S") then
-        _cache[key] = false
-        vim.schedule(function()
-          apply_result(key, false)
-        end)
-        return
-      end
-      _cache[key] = pw or false
-      if config_mtime then
-        disk[key] = { pw = pw or false, mtime = config_mtime }
-        _disk_dirty = true
-      end
-      vim.schedule(function()
-        apply_result(key, pw)
-      end)
-    end
-  )
+  pending[file] = pending[file] or {}
+  pending[file][buf] = true
+  schedule_batch()
 end
+
+local function invalidate()
+  generation = generation + 1
+  cache = {}
+  pending = {}
+  inflight = {}
+  if process then
+    process:kill(15)
+    process = nil
+  end
+  for buf in pairs(buffers) do
+    if vim.api.nvim_buf_is_loaded(buf) then
+      M.resolve_print_width(buf)
+    else
+      buffers[buf] = nil
+    end
+  end
+end
+
+local group = vim.api.nvim_create_augroup("PrettierCache", { clear = true })
+vim.api.nvim_create_autocmd(
+  { "BufWritePost", "FileChangedShellPost", "FocusGained", "DirChanged" },
+  {
+    group = group,
+    callback = invalidate,
+  }
+)
+vim.api.nvim_create_autocmd("BufWipeout", {
+  group = group,
+  callback = function(ev)
+    buffers[ev.buf] = nil
+  end,
+})
+vim.api.nvim_create_autocmd("VimLeavePre", {
+  group = group,
+  callback = function()
+    closing = true
+    generation = generation + 1
+    if process then
+      process:kill(15)
+    end
+  end,
+})
 
 return M
