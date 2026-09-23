@@ -24,7 +24,6 @@ return {
       )
     end
 
-    local textobject_clues = {}
     local textobjects = {
       w = "Word",
       W = "WORD",
@@ -54,16 +53,23 @@ return {
       l = "Line",
       e = "Entire buffer",
     }
-    for _, mode in ipairs({ "x", "o" }) do
-      for _, prefix in ipairs({ "i", "a" }) do
-        for key, desc in pairs(textobjects) do
-          table.insert(textobject_clues, {
-            mode = mode,
-            keys = prefix .. key,
-            desc = desc,
-          })
+    local function textobject_clues()
+      local labels =
+        vim.tbl_extend("force", textobjects, vim.b.textobject_labels or {})
+      local clues = {}
+      for _, mode in ipairs({ "x", "o" }) do
+        for _, prefix in ipairs({ "i", "a" }) do
+          for key, desc in pairs(labels) do
+            if desc then
+              table.insert(
+                clues,
+                { mode = mode, keys = prefix .. key, desc = desc }
+              )
+            end
+          end
         end
       end
+      return clues
     end
 
     miniclue.setup({
