@@ -76,4 +76,48 @@ vim.api.nvim_create_user_command("LspRestart", function()
   vim.defer_fn(reattach, 100)
 end, { desc = "Force restart all LSP clients" })
 
+vim.api.nvim_create_user_command("LspLog", function()
+  vim.cmd.split(vim.lsp.log.get_filename())
+  vim.cmd.normal({ "G", bang = true })
+end, { desc = "Open LSP log file" })
+
+local toggles = {
+  inlay = {
+    get = function()
+      return vim.lsp.inlay_hint.is_enabled()
+    end,
+    set = function(on)
+      vim.lsp.inlay_hint.enable(on)
+    end,
+  },
+  diag = {
+    get = function()
+      return vim.diagnostic.is_enabled()
+    end,
+    set = function(on)
+      vim.diagnostic.enable(on)
+    end,
+  },
+}
+
+vim.api.nvim_create_user_command("LspToggle", function(opts)
+  local toggle = toggles[opts.args]
+  if not toggle then
+    vim.notify("LspToggle: unknown target " .. opts.args, vim.log.levels.ERROR)
+    return
+  end
+  local on = not toggle.get()
+  toggle.set(on)
+  vim.notify(
+    opts.args .. (on and " enabled" or " disabled"),
+    vim.log.levels.INFO
+  )
+end, {
+  nargs = 1,
+  complete = function()
+    return vim.tbl_keys(toggles)
+  end,
+  desc = "Toggle LSP feature: inlay | diag",
+})
+
 return {}
