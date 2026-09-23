@@ -39,6 +39,10 @@ local _dir_cache = vim.fn.stdpath("cache") --[[@as string]]
 -- Ensure config dir is on rtp (not always present with nvim -u)
 vim.opt.rtp:prepend(_dir_config)
 
+if vim.g.neovide or vim.g.started_by_firenvim then
+  require("lib.shell_env").load()
+end
+
 -- Options and keymaps first (leader must be set before lazy.nvim)
 require("options")
 require("keymaps")
