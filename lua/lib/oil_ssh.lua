@@ -83,10 +83,20 @@ function M.complete(lead, line, pos)
   return matches
 end
 
-function M.status()
-  local name = vim.api.nvim_buf_get_name(0)
+local function ssh_host(buf)
+  local name = vim.api.nvim_buf_get_name(buf)
   local host = name:match("^oil%-ssh://([^/]+)/")
-  return host and ("SSH " .. host):gsub("%%", "%%%%") or ""
+  return host and host:gsub("%%", "%%%%") or ""
+end
+
+function M.status()
+  local host = ssh_host(0)
+  return host ~= "" and ("[SSH " .. host .. "]") or ""
+end
+
+function M.buffer_label(name, context)
+  local host = ssh_host(context.bufnr):gsub("^.-@", "")
+  return host ~= "" and (name .. " @" .. host) or name
 end
 
 function M.directory()

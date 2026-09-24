@@ -52,6 +52,10 @@ return {
   end,
   opts = function()
     local ssh = require("lib.oil_ssh")
+    local ssh_status = {
+      ssh.status,
+      color = { fg = "#1a1b26", bg = "#e0af68", gui = "bold" },
+    }
     return {
       options = {
         globalstatus = true,
@@ -64,6 +68,7 @@ return {
             "buffers",
             show_filename_only = true,
             mode = 2,
+            fmt = ssh.buffer_label,
           },
         },
         lualine_z = { "tabs" },
@@ -78,6 +83,7 @@ return {
           },
         },
         lualine_b = {
+          ssh_status,
           "branch",
           {
             "diff",
@@ -94,11 +100,7 @@ return {
             end,
           },
         },
-        lualine_c = {
-          { ssh.status, color = { gui = "bold" } },
-          "aerial",
-          "searchcount",
-        },
+        lualine_c = { "aerial", "searchcount" },
         lualine_x = {
           { line_endings, color = { fg = "#e0af68" } },
           { lsp_active },
@@ -111,7 +113,7 @@ return {
         {
           filetypes = { "oil" },
           sections = {
-            lualine_a = { ssh.status },
+            lualine_a = { vim.deepcopy(ssh_status) },
             lualine_b = { ssh.directory },
           },
         },
