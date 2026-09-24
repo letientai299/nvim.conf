@@ -145,7 +145,7 @@ local function register_bufenter_retry()
       if vim.bo[ev.buf].buftype ~= "" then
         return
       end
-      M.enable_highlight(ev.buf)
+      M.request_highlight(ev.buf)
     end,
   })
 end
@@ -157,6 +157,11 @@ function M.enable_highlight(bufnr, filetype)
 
   if vim.bo[bufnr].buftype ~= "" then
     vim.b[bufnr].ts_highlight = false
+    return false
+  end
+
+  if vim.b[bufnr].ts_fast then
+    vim.b[bufnr].ts_highlight = "fast"
     return false
   end
 
@@ -234,8 +239,66 @@ function M.request_highlight(bufnr, filetype)
     return
   end
 
-  M.enable_highlight(bufnr, ft)
   register_bufenter_retry()
+  if vim.b[bufnr].ts_fast then
+    vim.b[bufnr].ts_highlight = "fast"
+    return
+  end
+
+  if (ft == "cpp" or ft == "cuda") and vim.b[bufnr].ts_highlight ~= true then
+    vim.bo[bufnr].syntax = ft
+    require("lib.idle").schedule("highlight:" .. bufnr, function()
+      if api.nvim_buf_is_valid(bufnr) and vim.bo[bufnr].filetype == ft then
+        M.enable_highlight(bufnr, ft)
+      end
+    end)
+    return
+  end
+
+  M.enable_highlight(bufnr, ft)
 end
+
+function M.set_fast(bufnr, enabled)
+  vim.b[bufnr].ts_fast = enabled
+  require("lib.idle").cancel("highlight:" .. bufnr)
+  if not enabled then
+    M.request_highlight(bufnr)
+    return
+  end
+
+  patch_highlighter_destroy()
+  vim.treesitter.stop(bufnr)
+  api.nvim_buf_call(bufnr, function()
+    vim.bo.syntax = ""
+    vim.cmd.syntax("clear")
+  end)
+  vim.b[bufnr].current_syntax = nil
+  vim.b[bufnr].ts_highlight = "fast"
+end
+
+api.nvim_create_autocmd("BufWipeout", {
+  callback = function(ev)
+    require("lib.idle").cancel("highlight:" .. ev.buf)
+  end,
+})
+
+api.nvim_create_user_command("TSFast", function(opts)
+  if opts.args ~= "" and opts.args ~= "on" and opts.args ~= "off" then
+    error("TSFast expects on or off")
+  end
+  local buf = api.nvim_get_current_buf()
+  local enabled = opts.args == "on"
+    or (opts.args == "" and not vim.b[buf].ts_fast)
+  M.set_fast(buf, enabled)
+  vim.notify(
+    enabled and "Fast highlighting enabled" or "Fast highlighting disabled"
+  )
+end, {
+  nargs = "?",
+  complete = function()
+    return { "on", "off" }
+  end,
+  desc = "Toggle fast highlighting",
+})
 
 return M

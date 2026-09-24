@@ -2,6 +2,28 @@ return {
   "saghen/blink.cmp",
   version = "1.*",
   event = "InsertEnter",
+  init = function()
+    vim.api.nvim_create_autocmd({ "UIEnter", "BufReadPost" }, {
+      callback = function()
+        require("lib.idle").schedule("completion", function()
+          if vim.bo.buftype ~= "" or vim.bo.filetype == "" then
+            return
+          end
+          local config = require("lazy.core.config")
+          for _, name in ipairs({
+            "blink.cmp",
+            "nvim-autopairs",
+            "minuet-ai.nvim",
+          }) do
+            local plugin = config.plugins[name]
+            if plugin and plugin._.installed and not plugin._.loaded then
+              require("lazy").load({ plugins = { name } })
+            end
+          end
+        end)
+      end,
+    })
+  end,
   -- build = "cargo build --release",
   dependencies = {
     "L3MON4D3/LuaSnip",
