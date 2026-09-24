@@ -8,12 +8,15 @@ return {
     },
   },
   on_init = function(client)
-    local ok, schemastore = pcall(require, "schemastore")
-    if ok then
-      client.settings.json.schemas = schemastore.json.schemas()
+    require("lib.lazy_ondemand").on_load("SchemaStore.nvim", function()
+      if client:is_stopped() then
+        return
+      end
+      client.settings.json.schemas = require("schemastore").json.schemas()
       client:notify("workspace/didChangeConfiguration", {
         settings = client.settings,
       })
-    end
+    end)
+    require("lazy").load({ plugins = { "SchemaStore.nvim" } })
   end,
 }
