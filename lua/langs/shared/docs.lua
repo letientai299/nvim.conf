@@ -57,7 +57,7 @@ function M.markdown(bufnr)
         stdin = false,
       },
     },
-    formatters = { "rumdl_fix", "prettier" },
+    formatters = { "prettier", "rumdl_fix" },
   })
 
   if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
