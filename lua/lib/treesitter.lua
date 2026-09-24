@@ -180,6 +180,13 @@ function M.enable_highlight(bufnr, filetype)
   end
   local lang = ft ~= "" and vim.treesitter.language.get_lang(ft) or nil
 
+  -- The Zsh parser can loop and grow memory on valid shell code.
+  if lang == "zsh" then
+    vim.b[bufnr].ts_highlight = "syntax"
+    vim.bo[bufnr].syntax = ft
+    return false
+  end
+
   local ok
   local function start(start_lang)
     if type(start_lang) == "string" and start_lang ~= "" then

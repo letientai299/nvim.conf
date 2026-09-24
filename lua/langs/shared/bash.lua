@@ -2,7 +2,7 @@ local M = {}
 
 function M.setup(bufnr)
   require("langs.shared.entry").setup("bash", bufnr, {
-    filetypes = { "bash", "sh", "zsh" },
+    filetypes = { "bash", "sh" },
     tools = {
       {
         bin = "bash-language-server",
