@@ -56,7 +56,11 @@ return {
             end)
           end,
         },
-        injected = { options = { ignore_errors = true } },
+        injected = {
+          options = { ignore_errors = true },
+          condition = require("lib.injected").condition,
+          format = require("lib.injected").format,
+        },
       },
       formatters_by_ft = {
         ["*"] = { "trim_whitespace", "trim_newlines", "injected" },
