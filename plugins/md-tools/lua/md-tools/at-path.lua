@@ -171,6 +171,10 @@ function M.setup(buf)
     buffer = buf,
     callback = function(ev)
       local b = ev.buf
+      -- Custom writers require their own autocommands.
+      if vim.bo[b].buftype ~= "" then
+        return
+      end
       local lines = compute_wrapped(b)
       if not lines then
         return

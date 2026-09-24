@@ -51,6 +51,7 @@ return {
     require("lualine").setup(opts)
   end,
   opts = function()
+    local ssh = require("lib.oil_ssh")
     return {
       options = {
         globalstatus = true,
@@ -93,7 +94,11 @@ return {
             end,
           },
         },
-        lualine_c = { "aerial", "searchcount" },
+        lualine_c = {
+          { ssh.status, color = { gui = "bold" } },
+          "aerial",
+          "searchcount",
+        },
         lualine_x = {
           { line_endings, color = { fg = "#e0af68" } },
           { lsp_active },
@@ -102,7 +107,19 @@ return {
         lualine_y = { "progress" },
         lualine_z = { "selectioncount", "location" },
       },
-      extensions = { "oil", "toggleterm", "quickfix", "fzf", "lazy" },
+      extensions = {
+        {
+          filetypes = { "oil" },
+          sections = {
+            lualine_a = { ssh.status },
+            lualine_b = { ssh.directory },
+          },
+        },
+        "toggleterm",
+        "quickfix",
+        "fzf",
+        "lazy",
+      },
     }
   end,
 }

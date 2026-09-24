@@ -276,6 +276,7 @@ return {
       return {
         columns = base_columns,
         win_options = {
+          colorcolumn = "0",
           signcolumn = "yes:2",
         },
         view_options = {
@@ -335,6 +336,16 @@ return {
       }
     end,
     init = function()
+      vim.api.nvim_create_user_command("Ssh", function(opts)
+        require("lib.oil_ssh").open(opts.fargs)
+      end, {
+        nargs = "+",
+        desc = "Browse SSH host with Oil",
+        complete = function(lead, line, pos)
+          return require("lib.oil_ssh").complete(lead, line, pos)
+        end,
+      })
+
       local group = vim.api.nvim_create_augroup("UserOilShim", { clear = true })
 
       vim.api.nvim_create_autocmd("BufEnter", {
