@@ -3,7 +3,7 @@ return {
   event = "BufWritePre",
   cmd = "ConformInfo",
   ---@module "conform"
-  ---@type conform.setupOpts
+  ---@return conform.setupOpts
   opts = function()
     return {
       formatters = {

@@ -31,6 +31,8 @@ local function patch_highlighter_destroy()
     TSHighlighter.active[self.bufnr] = nil
 
     if api.nvim_buf_is_loaded(self.bufnr) then
+      -- Replacement destroy must restore private state.
+      ---@diagnostic disable-next-line: invisible
       vim.bo[self.bufnr].spelloptions = self.orig_spelloptions
       vim.b[self.bufnr].ts_highlight = false -- not nil → syntaxset skips
       api.nvim_buf_clear_namespace(self.bufnr, ns, 0, -1)

@@ -7,10 +7,7 @@
     "globals": ["vim"]
   },
   "workspace": {
-    "library": [
-      "${3rd}/luv/library",
-      "$VIMRUNTIME/lua"
-    ],
+    "ignoreDir": [".ai", ".git"],
     "checkThirdParty": false
   }
 }

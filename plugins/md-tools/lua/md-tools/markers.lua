@@ -60,14 +60,11 @@ local function apply_highlights(buf, first, last)
         local rest = vim.trim(line:sub(e + 1))
         local hl = classify(marker, rest)
         local hl_end = marker.sub and #line or e
-        vim.api.nvim_buf_add_highlight(
-          buf,
-          ns,
-          hl,
-          first + i - 1,
-          s - 1,
-          hl_end
-        )
+        vim.api.nvim_buf_set_extmark(buf, ns, first + i - 1, s - 1, {
+          end_col = hl_end,
+          hl_group = hl,
+          priority = vim.hl.priorities.syntax,
+        })
         break -- one marker per line
       end
     end

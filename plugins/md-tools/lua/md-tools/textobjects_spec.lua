@@ -16,7 +16,7 @@ dofile("lua/plugins/mini-clue.lua").config()
 local function select_text(text, ai_type, key, row, col, count)
   vim.api.nvim_buf_set_lines(0, 0, -1, false, vim.split(text, "\n"))
   vim.api.nvim_win_set_cursor(0, { row or 1, col or 0 })
-  local value = MiniAi.find_textobject(ai_type, key, {
+  local value = require("mini.ai").find_textobject(ai_type, key, {
     search_method = "cover",
     n_times = count or 1,
   })
@@ -113,7 +113,7 @@ end
 
 local function labels()
   local result = {}
-  for _, clue in ipairs(MiniClue.config.clues) do
+  for _, clue in ipairs(require("mini.clue").config.clues) do
     if type(clue) == "function" then
       for _, entry in ipairs(clue()) do
         result[entry.keys] = entry.desc
@@ -141,6 +141,8 @@ for _, ft in ipairs({ "markdown", "mdx", "quarto" }) do
   assert(select_text("# Title", "i", "h", 1, 3) == "Title")
 end
 local get_parser = vim.treesitter.get_parser
+-- Exercise missing-parser behavior with a stub.
+---@diagnostic disable-next-line: duplicate-set-field
 vim.treesitter.get_parser = function()
   error("Missing parser")
 end

@@ -37,7 +37,7 @@ function M.scan_git(cwd, callback)
     end
   )
   return function()
-    job:kill()
+    job:kill("sigterm")
   end
 end
 
@@ -59,7 +59,7 @@ function M.scan_fd(cwd, callback)
     end
   )
   return function()
-    job:kill()
+    job:kill("sigterm")
   end
 end
 

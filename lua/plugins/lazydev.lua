@@ -5,10 +5,9 @@ return {
     return {
       library = {
         { path = "${3rd}/luv/library", words = { "vim%.uv" } },
+        { path = "${3rd}/busted/library", words = { "describe%s*%(" } },
+        { path = "${3rd}/luassert/library", words = { "assert%." } },
       },
-      enabled = function(root_dir)
-        return not vim.uv.fs_stat(root_dir .. "/.luarc.json")
-      end,
     }
   end,
 }

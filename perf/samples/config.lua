@@ -83,8 +83,18 @@ function M.setup(opts)
   local map = vim.keymap.set
   local default_keymaps = {
     ["<leader>e"] = { vim.diagnostic.open_float, "Show diagnostics" },
-    ["[d"] = { vim.diagnostic.goto_prev, "Previous diagnostic" },
-    ["]d"] = { vim.diagnostic.goto_next, "Next diagnostic" },
+    ["[d"] = {
+      function()
+        vim.diagnostic.jump({ count = -1, float = true })
+      end,
+      "Previous diagnostic",
+    },
+    ["]d"] = {
+      function()
+        vim.diagnostic.jump({ count = 1, float = true })
+      end,
+      "Next diagnostic",
+    },
     ["<leader>q"] = { vim.diagnostic.setloclist, "Diagnostics to loclist" },
   }
 

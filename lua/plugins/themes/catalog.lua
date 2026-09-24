@@ -59,7 +59,7 @@ local function cached_files_signature()
     return nil
   end
 
-  f:read("*l")
+  local _ = f:read("*l")
   local line = f:read("*l")
   f:close()
   if not line then

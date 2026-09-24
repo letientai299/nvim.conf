@@ -74,11 +74,13 @@ local config = {
 ---@param str string
 ---@return string
 local function url_encode(str)
-  return str
-    :gsub("([^%w%-%.%_%~ ])", function(c)
-      return ("%%%02X"):format(c:byte())
-    end)
-    :gsub(" ", "+")
+  return (
+    str
+      :gsub("([^%w%-%.%_%~ ])", function(c)
+        return ("%%%02X"):format(c:byte())
+      end)
+      :gsub(" ", "+")
+  )
 end
 
 ---@return string
@@ -136,7 +138,7 @@ end
 ---@param name string
 ---@return string
 local function derive_id(name)
-  return name:lower():gsub(" ", "-")
+  return (name:lower():gsub(" ", "-"))
 end
 
 ---@param engine WebGrepEngine
@@ -232,10 +234,8 @@ local function parse_cmd_args(fargs, range)
 end
 
 ---@param arg_lead string
----@param _cmd_line string
----@param _cursor_pos number
 ---@return string[]
-local function complete_engine(arg_lead, _cmd_line, _cursor_pos)
+local function complete_engine(arg_lead)
   if not arg_lead:match("^e") then
     return {}
   end
