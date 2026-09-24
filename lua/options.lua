@@ -1,6 +1,8 @@
 vim.g.mapleader = " "
 vim.g.maplocalleader = "\\"
 
+require("lib.filetypes").setup()
+
 -- Write a copy instead of rename, preserves file watchers and hard links
 vim.opt.backupcopy = "yes"
 
