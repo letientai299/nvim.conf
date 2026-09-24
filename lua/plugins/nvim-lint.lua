@@ -2,9 +2,13 @@
 -- Lang files should add entries here for linters that are too slow for real-time.
 local slow_linters = {
   golangcilint = true,
+  actionlint = true,
 }
 
 local function is_available(name)
+  if name == "actionlint" and not require("lib.github_actions").root(0) then
+    return false
+  end
   local lint = require("lint")
   local linter = lint.linters[name]
   local cmd = linter and linter.cmd
@@ -47,7 +51,10 @@ return {
         local names = lint.linters_by_ft[ft] or {}
         local avail = filter_available(names)
         if #avail > 0 then
-          lint.try_lint(avail)
+          local cwd = vim.tbl_contains(avail, "actionlint")
+              and require("lib.github_actions").root(0)
+            or nil
+          lint.try_lint(avail, { cwd = cwd })
         end
       end,
     })

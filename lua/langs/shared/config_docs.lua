@@ -11,16 +11,21 @@ function M.toml(bufnr)
 end
 
 function M.yaml(bufnr)
-  require("langs.shared.entry").setup("yaml", bufnr, {
-    tools = {
-      {
-        bin = "yaml-language-server",
-        mise = "npm:yaml-language-server",
-        dependencies = { "node" },
-      },
-      require("lib.prettier").tool(),
+  local tools = {
+    {
+      bin = "yaml-language-server",
+      mise = "npm:yaml-language-server",
+      dependencies = { "node" },
     },
+    require("lib.prettier").tool(),
+  }
+  if bufnr and require("lib.github_actions").root(bufnr) then
+    tools[#tools + 1] = { bin = "actionlint", mise = "actionlint" }
+  end
+  require("langs.shared.entry").setup("yaml", bufnr, {
+    tools = tools,
     lsp = "yamlls",
+    linters = { "actionlint" },
     formatter_fts = { "yaml", "yaml.docker-compose" },
     formatters = { "prettier" },
   })
