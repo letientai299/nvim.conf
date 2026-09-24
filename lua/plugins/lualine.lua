@@ -46,6 +46,10 @@ vim.api.nvim_create_autocmd({ "BufReadPost", "BufWritePost", "BufDelete" }, {
 return {
   "nvim-lualine/lualine.nvim",
   event = "VeryLazy",
+  config = function(_, opts)
+    require("lib.lualine_buffers").setup()
+    require("lualine").setup(opts)
+  end,
   opts = function()
     return {
       options = {
