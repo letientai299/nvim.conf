@@ -9,6 +9,7 @@ return {
   },
   config = function()
     require("luasnip.loaders.from_vscode").lazy_load({
+      paths = { require("lazy.core.config").plugins["friendly-snippets"].dir },
       include = {
         "go",
         "cs",

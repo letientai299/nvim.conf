@@ -56,7 +56,7 @@ return {
       ssh.status,
       color = { fg = "#1a1b26", bg = "#e0af68", gui = "bold" },
     }
-    return {
+    local opts = {
       options = {
         globalstatus = true,
         section_separators = "",
@@ -123,5 +123,14 @@ return {
         "lazy",
       },
     }
+    if require("lazy.core.config").plugins["minuet-ai.nvim"] then
+      table.insert(opts.sections.lualine_x, 1, {
+        require("lib.minuet_lualine"),
+        minuet_status = true,
+        display_name = "provider",
+        display_on_idle = false,
+      })
+    end
+    return opts
   end,
 }

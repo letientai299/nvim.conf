@@ -1,3 +1,20 @@
+local function installed(plugins, name, seen)
+  local plugin = plugins[name]
+  if not plugin or not plugin._.installed then
+    return false
+  end
+  if seen[name] then
+    return true
+  end
+  seen[name] = true
+  for _, dependency in ipairs(plugin.dependencies or {}) do
+    if not installed(plugins, dependency, seen) then
+      return false
+    end
+  end
+  return true
+end
+
 return {
   "saghen/blink.cmp",
   version = "1.*",
@@ -10,13 +27,21 @@ return {
             return
           end
           local config = require("lazy.core.config")
+          -- Minuet can also load Blink.
+          if not installed(config.plugins, "blink.cmp", {}) then
+            return
+          end
           for _, name in ipairs({
             "blink.cmp",
             "nvim-autopairs",
             "minuet-ai.nvim",
           }) do
             local plugin = config.plugins[name]
-            if plugin and plugin._.installed and not plugin._.loaded then
+            if
+              plugin
+              and not plugin._.loaded
+              and installed(config.plugins, name, {})
+            then
               require("lazy").load({ plugins = { name } })
             end
           end
