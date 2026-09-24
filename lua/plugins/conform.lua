@@ -22,6 +22,17 @@ return {
           end,
         },
         prettier = {
+          condition = function(_, ctx)
+            local ft = vim.bo[ctx.buf].filetype
+            if ft ~= "markdown" and ft ~= "markdown.mdx" and ft ~= "quarto" then
+              return true
+            end
+            local fc = require("lib.fallback_config")
+            return not fc.has_project_config(
+              require("lib.rumdl").fallback_spec,
+              ctx.dirname
+            )
+          end,
           prepend_args = function(_, ctx)
             local args = { "--ignore-unknown", "--ignore-path", "/dev/null" }
             local fc = require("lib.fallback_config")

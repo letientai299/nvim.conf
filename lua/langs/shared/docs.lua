@@ -50,6 +50,10 @@ function M.markdown(bufnr)
         command = "rumdl",
         args = function(_, ctx)
           local args = { "check", "--fix", "--fail-on", "never" }
+          if not fc.has_project_config(rumdl.fallback_spec, ctx.dirname) then
+            -- Prettier owns wrapping without project rules.
+            vim.list_extend(args, { "--unfixable", "MD013" })
+          end
           vim.list_extend(args, fc.flags(rumdl.fallback_spec, ctx.dirname))
           vim.list_extend(args, { "--", "$FILENAME" })
           return args
