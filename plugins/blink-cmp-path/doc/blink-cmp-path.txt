@@ -16,13 +16,14 @@ A custom |blink.cmp| source that completes file paths relative to the project
 root. Indexes files via `git ls-files` (with `fd` fallback) and serves
 pre-built |CompletionItem| objects scoped by directory prefix.
 
-The index updates incrementally on |BufWritePost| and |BufDelete|, and
-rebuilds fully on |FocusGained| and |DirChanged| (debounced to 5 seconds).
+The index updates incrementally on |BufWritePost| and file deletion.
+Directory changes rebuild immediately. Focus rebuilds have a 60-second cooldown.
 
 ==============================================================================
 2. REQUIREMENTS                                 *blink-cmp-path-requirements*
 
 - |blink.cmp| installed
+- Neovim with |vim.glob.to_lpeg()|
 - One of: `git` (preferred) or `fd` for file discovery
 
 ==============================================================================
@@ -41,6 +42,7 @@ Register the source in your blink.cmp provider config: >lua
       },
     }
 <
+
                                               *blink-cmp-path-config-options*
 Options passed via `opts` in the provider table:
 
@@ -52,6 +54,14 @@ Options passed via `opts` in the provider table:
           always_index = { ".ai/**" },
         },
 <
+
+  `exclude_dirs`  (string[], default {})
+    Directory basenames to skip when scanning `always_index` patterns.
+    Git/fd results remain unaffected. For example: >lua
+
+        exclude_dirs = { "uv-cache", "prek-cache", ".venv", "node_modules" },
+<
+    Extra scans do not follow directory symlinks. File symlinks remain indexed.
 
 ==============================================================================
 4. COMMANDS                                         *blink-cmp-path-commands*
@@ -72,7 +82,8 @@ The scanner picks a backend based on what's available:
 
 Both use null-separated output (`-z` / `--print0`) to handle spaces in
 filenames. If `always_index` patterns are set, their results are merged
-before deduplication.
+before deduplication. Extra scans use asynchronous directory reads with glob
+matching. Cancellation prevents obsolete scans from publishing results.
 
 Index ~
 
@@ -93,21 +104,15 @@ Incremental updates ~
 
 - |BufWritePost|: patches the index — inserts new files or removes deleted
   ones at the correct sorted position.
-- |BufDelete|: removes the file from the index.
-- |FocusGained|, |DirChanged|: full rebuild (debounced, 5-second minimum
-  interval between rebuilds).
+- |BufDelete|: removes the entry only if the file no longer exists.
+- |FocusGained|: rebuilds after 60 seconds, unless a build is running.
+- |DirChanged|: rebuilds immediately when the working directory changes.
 
 Resolve ~
 
 When a completion item is selected, the source reads the first 4096 bytes
 of the file, detects the filetype with |vim.filetype.match()|, and shows
 the first 10 lines as a fenced code block in the documentation popup.
-
-fsmonitor ~
-
-On first load, the source checks `git config core.fsmonitor`. If unset, it
-shows a one-time suggestion to enable it for faster `git ls-files` in large
-repos.
 
 ==============================================================================
 vim:tw=78:ts=8:ft=help:norl:

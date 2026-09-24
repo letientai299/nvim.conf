@@ -75,6 +75,15 @@ return {
           score_offset = 90,
           opts = {
             always_index = { ".ai/**" },
+            exclude_dirs = {
+              ".git",
+              ".venv",
+              "node_modules",
+              "__pycache__",
+              "uv-cache",
+              "prek-cache",
+              "cli-env",
+            },
           },
         },
       },

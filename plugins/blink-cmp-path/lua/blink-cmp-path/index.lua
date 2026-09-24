@@ -74,10 +74,11 @@ end
 ---@field set table<string, true>
 ---@field cwd string?
 ---@field always_index string[]
+---@field exclude_dirs string[]
 local Index = {}
 Index.__index = Index
 
----@param opts? { always_index?: string[] }
+---@param opts? { always_index?: string[], exclude_dirs?: string[] }
 ---@return blink-cmp-path.Index
 function Index.new(opts)
   return setmetatable({
@@ -85,6 +86,7 @@ function Index.new(opts)
     set = {},
     cwd = nil,
     always_index = (opts and opts.always_index) or {},
+    exclude_dirs = (opts and opts.exclude_dirs) or {},
   }, Index)
 end
 
@@ -93,7 +95,22 @@ end
 ---@return fun()? cancel
 function Index:build(callback)
   local cwd = vim.uv.cwd()
-  self.cwd = cwd
+  if self.cancel then
+    self.cancel()
+  end
+  if self.cwd ~= cwd then
+    self.cwd, self.items, self.set = cwd, {}, {}
+  end
+  local cancelled = false
+  local cancel_scan
+  self.pending = {}
+  local function cancel()
+    cancelled = true
+    if cancel_scan then
+      cancel_scan()
+    end
+  end
+  self.cancel = cancel
 
   local backend = scanner.detect_backend(cwd)
   local scan = backend == "git" and scanner.scan_git or scanner.scan_fd
@@ -102,44 +119,73 @@ function Index:build(callback)
   if backend == "walk" then
     self.items = {}
     self.set = {}
+    self.pending = nil
+    self.cancel = nil
     if callback then
       callback()
     end
     return
   end
 
-  return scan(cwd, function(paths)
+  cancel_scan = scan(cwd, function(paths)
+    if cancelled then
+      return
+    end
     local function finish(all_paths)
+      if cancelled then
+        return
+      end
       -- Sort first, then single-pass adjacent-dedup (avoids temp hash table)
       table.sort(all_paths)
 
-      local set = {}
-      local items = {}
+      local set, items = {}, {}
       local prev
-      for _, rel in ipairs(all_paths) do
-        if rel ~= prev then
-          prev = rel
-          set[rel] = true
-          items[#items + 1] = make_item(rel)
+      local position = 1
+      local function batch()
+        if cancelled then
+          return
+        end
+        local stop = math.min(position + 255, #all_paths)
+        for i = position, stop do
+          local rel = all_paths[i]
+          if rel ~= prev then
+            prev = rel
+            set[rel] = true
+            items[#items + 1] = make_item(rel)
+          end
+        end
+        position = stop + 1
+        if position <= #all_paths then
+          vim.defer_fn(batch, 0)
+          return
+        end
+        self.items, self.set = items, set
+        local pending = self.pending
+        self.pending = nil
+        self.cancel = nil
+        for file in pairs(pending) do
+          self:patch(file)
+        end
+        if callback then
+          callback()
         end
       end
-
-      self.items = items
-      self.set = set
-      if callback then
-        callback()
-      end
+      batch()
     end
 
     if #self.always_index > 0 then
-      scanner.scan_glob(cwd, self.always_index, function(extra)
+      cancel_scan = scanner.scan_glob(cwd, self.always_index, function(extra)
+        if cancelled then
+          return
+        end
         vim.list_extend(paths, extra)
         finish(paths)
-      end)
+      end, self.exclude_dirs)
     else
       finish(paths)
     end
   end)
+  return cancel
 end
 
 --- Strip cwd prefix from an absolute path, returning the relative path.
@@ -161,6 +207,9 @@ end
 --- Incremental patch on BufWritePost. Adds new files or removes deleted ones.
 ---@param file string  absolute path of the file
 function Index:patch(file)
+  if self.pending then
+    self.pending[file] = true
+  end
   local rel = to_rel(self, file)
   if not rel then
     return
@@ -181,6 +230,13 @@ end
 --- Remove a file from the index (BufDelete).
 ---@param file string  absolute path
 function Index:remove(file)
+  -- Closing a buffer does not delete files.
+  if vim.uv.fs_stat(file) then
+    return
+  end
+  if self.pending then
+    self.pending[file] = true
+  end
   local rel = to_rel(self, file)
   if not rel then
     return

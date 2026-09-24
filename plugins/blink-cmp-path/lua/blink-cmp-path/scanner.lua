@@ -63,42 +63,104 @@ function M.scan_fd(cwd, callback)
   end
 end
 
---- Scan always_index glob patterns asynchronously via coroutine.
---- Yields periodically to avoid blocking the event loop.
+--- Walk extra paths without blocking input.
 ---@param cwd string
 ---@param patterns string[]
 ---@param callback fun(paths: string[])
-function M.scan_glob(cwd, patterns, callback)
-  local co = coroutine.create(function()
-    local paths = {}
-    local prefix_len = #cwd + 2
-    for _, pattern in ipairs(patterns) do
-      local matches = vim.fn.globpath(cwd, pattern, false, true)
-      for j, abs in ipairs(matches) do
-        local stat = vim.uv.fs_stat(abs)
-        if stat and stat.type == "file" then
-          paths[#paths + 1] = abs:sub(prefix_len)
-        end
-        -- Yield every 50 files to let the event loop breathe
-        if j % 50 == 0 then
-          coroutine.yield()
-        end
-      end
-    end
-    return paths
-  end)
-
-  local function step()
-    local ok, result = coroutine.resume(co)
-    if not ok then
-      callback({})
-    elseif coroutine.status(co) == "dead" then
-      callback(result)
-    else
-      vim.schedule(step)
+---@param exclude_dirs? string[]
+---@return fun() cancel
+function M.scan_glob(cwd, patterns, callback, exclude_dirs)
+  local cancelled = false
+  local excluded = {}
+  for _, name in ipairs(exclude_dirs or {}) do
+    excluded[name] = true
+  end
+  local matchers, queue, seen, paths = {}, {}, {}, {}
+  for _, pattern in ipairs(patterns) do
+    matchers[#matchers + 1] = vim.glob.to_lpeg(pattern)
+    local wildcard = pattern:find("[*?%[{\\]")
+    local prefix = wildcard and pattern:sub(1, wildcard - 1) or pattern
+    local root = prefix:match("^(.*)/") or ""
+    if not seen[root] then
+      seen[root] = true
+      queue[#queue + 1] = root
     end
   end
-  vim.schedule(step)
+
+  local function add_file(rel)
+    for _, matcher in ipairs(matchers) do
+      if matcher:match(rel) then
+        paths[#paths + 1] = rel
+        return
+      end
+    end
+  end
+
+  local next_dir
+  local position = 0
+  next_dir = function()
+    if cancelled then
+      return
+    end
+    position = position + 1
+    local dir = queue[position]
+    if not dir then
+      callback(paths)
+      return
+    end
+    vim.uv.fs_scandir(cwd .. "/" .. dir, function(_, entries)
+      vim.schedule(function()
+        if cancelled then
+          return
+        end
+        if not entries then
+          next_dir()
+          return
+        end
+        local read_entries
+        read_entries = function()
+          if cancelled then
+            return
+          end
+          for _ = 1, 128 do
+            local name, kind = vim.uv.fs_scandir_next(entries)
+            if not name then
+              next_dir()
+              return
+            end
+            local rel = dir == "" and name or dir .. "/" .. name
+            if kind == "directory" then
+              if not excluded[name] and not seen[rel] then
+                seen[rel] = true
+                queue[#queue + 1] = rel
+              end
+            elseif kind == "file" then
+              add_file(rel)
+            elseif kind == "link" then
+              vim.uv.fs_stat(cwd .. "/" .. rel, function(_, stat)
+                vim.schedule(function()
+                  if cancelled then
+                    return
+                  end
+                  if stat and stat.type == "file" then
+                    add_file(rel)
+                  end
+                  read_entries()
+                end)
+              end)
+              return
+            end
+          end
+          vim.schedule(read_entries)
+        end
+        read_entries()
+      end)
+    end)
+  end
+  vim.schedule(next_dir)
+  return function()
+    cancelled = true
+  end
 end
 
 --- Detect which backend to use for the given directory.

@@ -7,7 +7,7 @@
 local Index = require("blink-cmp-path.index")
 
 local PREVIEW_LINES = 10
-local DEBOUNCE_NS = 5e9 -- 5 seconds in nanoseconds
+local REFRESH_NS = 60e9
 
 --- @module 'blink.cmp'
 --- @class blink.cmp.Source
@@ -43,7 +43,7 @@ end
 local EMPTY =
   { items = {}, is_incomplete_forward = false, is_incomplete_backward = false }
 
---- @param opts? { always_index?: string[] }
+--- @param opts? { always_index?: string[], exclude_dirs?: string[] }
 function source.new(opts)
   local self = setmetatable({}, { __index = source })
   self.index = Index.new(opts)
@@ -56,14 +56,23 @@ function source.new(opts)
   -- Autocommands
   local group = vim.api.nvim_create_augroup("blink-cmp-path", { clear = true })
 
-  vim.api.nvim_create_autocmd({ "FocusGained", "DirChanged" }, {
+  vim.api.nvim_create_autocmd("FocusGained", {
     group = group,
     callback = function()
       local now = vim.uv.hrtime()
-      if (now - self.last_build_time) < DEBOUNCE_NS then
+      if self.cancel_build or (now - self.last_build_time) < REFRESH_NS then
         return
       end
       self:_build()
+    end,
+  })
+
+  vim.api.nvim_create_autocmd("DirChanged", {
+    group = group,
+    callback = function()
+      if vim.uv.cwd() ~= self.index.cwd then
+        self:_build()
+      end
     end,
   })
 
