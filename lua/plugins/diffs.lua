@@ -9,7 +9,7 @@
 -- https://github.com/barrettruth/diffs.nvim
 -- https://github.com/NeogitOrg/neogit/discussions/1187
 return {
-  "letientai299/diffs.nvim",
+  "barrettruth/diffs.nvim",
   ft = { "git", "gitcommit" },
   init = function()
     vim.g.diffs = {
