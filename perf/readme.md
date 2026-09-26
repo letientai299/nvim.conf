@@ -98,7 +98,7 @@ Two modes, selected automatically:
   table with relative speeds.
 - **manual** — fallback when hyperfine isn't available. Runs each case N times
   (default 20, override via `$BENCH_RUNS`), parses `--startuptime` logs, reports
-  min/median/max.
+  `min/median/max`.
 
 Both modes include a `nvim -u NONE --headless` floor baseline. Normal cases run
 **without** `--headless` to match real startup (UIEnter fires, lazy.nvim loads).
@@ -157,7 +157,7 @@ lang-module setups (LSP servers, formatters, linters). Each is 50–200 lines.
 | `config.lua`            | lua        | lua         | lua-language-server, stylua                             |
 | `migrations.sql`        | sql        | sql         | sqls, sql-formatter                                     |
 | `csharp-app/Program.cs` | cs         | csharp      | roslyn.nvim, Roslyn LSP, csharpier                      |
-| `document.md`           | markdown   | —           | Treesitter only; fenced SQL/JSON/Mermaid/PromQL/GraphQL |
+| `document.md`           | markdown   | —           | Treesitter only; fenced `SQL/JSON/Mermaid/PromQL/GraphQL` |
 | `compose.yaml`          | yaml       | —           | Treesitter only; YAML-hosted bash, PromQL, and JSON5    |
 | `Dockerfile`            | dockerfile | docker      | dockerls, hadolint; Dockerfile-hosted bash and JSON5    |
 | `Example.java`          | java       | —           | Treesitter-focused sample; no Java LSP configured       |

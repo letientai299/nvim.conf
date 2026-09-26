@@ -1,5 +1,18 @@
 local M = {}
 
+-- Only filetypes with embedded code worth formatting (fenced blocks,
+-- script/style tags). Whitelisted rather than run via "*" so a parser
+-- hang on an unlisted filetype (e.g. zsh) can't freeze the editor.
+local ALLOWED_FILETYPES = {
+  markdown = true,
+  ["markdown.mdx"] = true,
+  mdx = true,
+  quarto = true,
+  html = true,
+  go = true,
+  rust = true,
+}
+
 local function format_blocks(self, ctx, lines, callback)
   local formatter = require("conform.formatters.injected")
   -- Formatter scratch files must not start LSPs.
@@ -13,8 +26,7 @@ local function format_blocks(self, ctx, lines, callback)
 end
 
 function M.condition(self, ctx)
-  -- Folded YAML scalars lose shell indentation.
-  if vim.bo[ctx.buf].filetype:match("^yaml") then
+  if not ALLOWED_FILETYPES[vim.bo[ctx.buf].filetype] then
     return false
   end
   return require("conform.formatters.injected").condition(self, ctx)
