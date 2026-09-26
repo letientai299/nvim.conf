@@ -45,7 +45,16 @@ else
 fi
 
 # --- 1. Base: gitignore-aware ------------------------------------------------
-"$FD" --hidden --type f -E .git &
+# fd doesn't follow git config `[include]`/`[includeIf]` chains, so a
+# core.excludesfile set that way (vs. a direct global key) is invisible to
+# it. Resolve it via `git config` (which does follow includes) and pass it
+# explicitly, or step 1 leaks ignored paths that step 2 also emits.
+excludes_file="$(git config --get core.excludesfile 2>/dev/null || true)"
+excludes_file="${excludes_file/#\~/$HOME}"
+ignore_file_args=()
+[[ -n "$excludes_file" && -f "$excludes_file" ]] && ignore_file_args=(--ignore-file "$excludes_file")
+
+"$FD" --hidden --type f -E .git "${ignore_file_args[@]}" &
 
 # --- 2. Ignored include dirs at any depth: single regex scan -----------------
 # Builds a regex like /(\.ai\.dump|\.dump|local)/ matching any path component.
