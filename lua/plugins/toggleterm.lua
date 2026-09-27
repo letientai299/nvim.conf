@@ -229,6 +229,7 @@ return {
   keys = keys,
   opts = function()
     return {
+      direction = "horizontal",
       size = function(term)
         return size(term.direction)
       end,
@@ -236,5 +237,9 @@ return {
       float_opts = { border = "rounded", title_pos = "center" },
       winbar = { enabled = true },
     }
+  end,
+  config = function(_, opts)
+    M.direction = opts.direction
+    require("toggleterm").setup(opts)
   end,
 }
