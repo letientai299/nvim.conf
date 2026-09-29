@@ -127,12 +127,7 @@ return {
         layout = "bottom",
         split = { width = 90 },
         keys = {
-          window = {
-            "<c-w>",
-            "<c-\\><c-n><c-w>",
-            mode = "t",
-            desc = "navigate windows",
-          },
+          window = {},
           -- <C-q> is the toggleterm prefix (see toggleterm.lua); leave it
           -- alone here. `q` still hides, and <C-\><C-n> still leaves insert.
           hide_ctrl_q = false,
