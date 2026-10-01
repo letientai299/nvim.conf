@@ -1,14 +1,16 @@
 local M = {}
 
+function M.is_bare()
+  return vim.fn.argc(-1) == 0
+    and not vim.tbl_contains(vim.v.argv, "-")
+    and #vim.api.nvim_list_uis() > 0
+end
+
 function M.setup()
   vim.api.nvim_create_autocmd("VimEnter", {
     once = true,
     callback = function()
-      if
-        vim.fn.argc(-1) > 0
-        or vim.tbl_contains(vim.v.argv, "-")
-        or #vim.api.nvim_list_uis() == 0
-      then
+      if not M.is_bare() then
         return
       end
 
@@ -24,24 +26,19 @@ function M.setup()
           and vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1] == ""
       end
 
-      vim.schedule(function()
-        if not untouched() then
-          return
-        end
-        require("lib.lazy_ondemand").on_load("snacks.nvim", function()
-          if untouched() then
-            require("snacks").scratch({ win = { position = "current" } })
-            if
-              vim.api.nvim_buf_is_valid(buf)
-              and #vim.fn.win_findbuf(buf) == 0
-              and not vim.bo[buf].modified
-            then
-              vim.api.nvim_buf_delete(buf, {})
-            end
+      require("lib.lazy_ondemand").on_load("snacks.nvim", function()
+        if untouched() then
+          require("snacks").scratch({ win = { position = "current" } })
+          if
+            vim.api.nvim_buf_is_valid(buf)
+            and #vim.fn.win_findbuf(buf) == 0
+            and not vim.bo[buf].modified
+          then
+            vim.api.nvim_buf_delete(buf, {})
           end
-        end)
-        require("lazy").load({ plugins = { "snacks.nvim" } })
+        end
       end)
+      require("lazy").load({ plugins = { "snacks.nvim" } })
     end,
   })
 end

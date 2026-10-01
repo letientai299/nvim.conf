@@ -3,11 +3,15 @@ vim.opt.rtp:prepend(vim.fn.getcwd())
 local scratch = require("lib.scratch")
 local original_uis = vim.api.nvim_list_uis
 local original_argc = vim.fn.argc
-local requested, opened, pending
+local requested, opened, pending, ready
 
 package.loaded["lib.lazy_ondemand"] = {
   on_load = function(_, fn)
-    pending = fn
+    if ready then
+      fn()
+    else
+      pending = fn
+    end
   end,
 }
 package.loaded["lazy"] = {
@@ -28,6 +32,7 @@ package.loaded["snacks"] = {
 
 for _, case in ipairs({
   { name = "bare", opens = true },
+  { name = "loaded", opens = true, loaded = true },
   { name = "file", argc = 1 },
   { name = "headless", headless = true },
   {
@@ -63,6 +68,7 @@ for _, case in ipairs({
 }) do
   vim.cmd("enew!")
   requested, opened, pending = false, false, nil
+  ready = case.loaded
   vim.fn.argc = function()
     return case.argc or 0
   end
@@ -73,6 +79,11 @@ for _, case in ipairs({
     case.prepare()
   end
   local startup_buf = vim.api.nvim_get_current_buf()
+  assert(
+    dofile("lua/plugins/snacks.lua").lazy
+      == (case.headless == true or (case.argc or 0) > 0),
+    case.name .. ": eager loading"
+  )
   scratch.setup()
   vim.api.nvim_exec_autocmds("VimEnter", {})
   vim.wait(20, function()

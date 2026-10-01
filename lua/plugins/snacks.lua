@@ -2,7 +2,7 @@ local lazy_require = require("lib.lazy_ondemand").lazy_require
 
 return {
   "folke/snacks.nvim",
-  lazy = true,
+  lazy = not require("lib.scratch").is_bare(),
   init = function()
     require("lib.scratch").setup()
     -- Queue notifications until snacks loads, then replay them.

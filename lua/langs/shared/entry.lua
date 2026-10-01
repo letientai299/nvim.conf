@@ -91,7 +91,7 @@ function M.setup(key, bufnr, opts)
   end
 
   if bufnr then
-    if vim.v.vim_did_enter == 0 then
+    if not vim.g.did_very_lazy then
       -- During startup, defer buffer-local work until VeryLazy so the cold path
       -- stays light. If the buffer vanishes before then, reopening it will
       -- retry through FileType.
