@@ -2,9 +2,8 @@ local lazy_require = require("lib.lazy_ondemand").lazy_require
 
 return {
   "folke/snacks.nvim",
-  lazy = not require("lib.scratch").is_bare(),
+  lazy = true,
   init = function()
-    require("lib.scratch").setup()
     -- Queue notifications until snacks loads, then replay them.
     -- With on-demand plugin install, snacks may not be available immediately
     -- after require("lazy").load() — it may be cloning async. In that case,
