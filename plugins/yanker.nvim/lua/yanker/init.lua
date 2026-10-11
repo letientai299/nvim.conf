@@ -54,18 +54,18 @@ function M.absolute(path)
   M.put(path)
 end
 
+--- Return `path` relative to git root (falls back to cwd-relative).
+function M.git_relpath(path)
+  local root = vim.fs.root(path, ".git")
+  return root and vim.fs.relpath(root, path) or vim.fn.fnamemodify(path, ":.")
+end
+
 --- Yank `path` relative to git root (falls back to cwd-relative).
 function M.git(path)
   if not path then
     return
   end
-  local root = vim.fs.root(0, ".git")
-  if root then
-    root = root:gsub("/?$", "/")
-    M.put(path:sub(#root + 1))
-  else
-    M.put(vim.fn.fnamemodify(path, ":."))
-  end
+  M.put(M.git_relpath(path))
 end
 
 --- Return the current buffer's absolute path, or nil for unnamed buffers.

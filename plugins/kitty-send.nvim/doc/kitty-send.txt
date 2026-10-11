@@ -34,6 +34,8 @@ The command relies on the `KITTY_LISTEN_ON` and `KITTY_WINDOW_ID` environment
 variables that Kitty exports into each window, and reports an error when they
 are unset (i.e. neovim is not running inside a Kitty window).
 
+|:KittySendThis| requires `yanker.nvim` for git-root-relative paths.
+
 ==============================================================================
 3. SETUP                                                   *kitty-send-setup*
 
@@ -75,10 +77,18 @@ kitty's pane-group order, including neovim's excluded position.
                         the prompt. Falls back to the prompt when the remembered
                         pane is no longer a sibling.
 
+                                                              *:KittySendThis*
+:KittySendThis          Paste the file path relative to the git root, plus one
+:'<,'>KittySendThis     space, then focus the pane. Does not press Enter. In
+                        visual mode, append the line (`path:7`) or range
+                        (`path:7-12`). Accepts the same targets and `!` as
+                        |:KittySend|.
+
 Default mappings (normal and visual mode):
 
     <Leader>ks          :KittySend
     <Leader>kS          :KittySend!
+    <Leader>kt          :KittySendThis
 
 ==============================================================================
 5. API                                                       *kitty-send-api*
@@ -92,5 +102,9 @@ kitty-send.send({opts})                                   *kitty-send.send()*
     Entry point for the command. {opts} is the user-command callback table;
     the `range` field selects buffer vs. selection, `bang` reuses the last
     target, and `fargs` accepts overlay numbers or `all` or `*`.
+
+kitty-send.send_this({opts})                         *kitty-send.send_this()*
+    Entry point for |:KittySendThis|. Takes the same {opts} as
+    |kitty-send.send()|.
 
 vim:tw=78:ts=8:ft=help:norl:

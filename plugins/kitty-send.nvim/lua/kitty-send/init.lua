@@ -141,8 +141,8 @@ local function sibling_panes(listen_on, self_id)
   return {}
 end
 
---- Deliver text to a pane as a bracketed paste, then a carriage return so the
---- final line is submitted (e.g. executed in a shell or REPL).
+--- Deliver text to a pane as a bracketed paste, then (when `submit` is set) a
+--- carriage return so the final line is executed in a shell or REPL.
 ---
 --- Bracketed paste is what makes multi-line text survive a target running tmux.
 --- Sent raw, the whole payload arrives as one fast burst; tmux forwards it as
@@ -158,10 +158,13 @@ end
 --- @param listen_on string
 --- @param id number
 --- @param text string
+--- @param submit boolean
 --- @return boolean ok
 --- @return string? err
-local function send_text(listen_on, id, text)
-  text = text:gsub("[\r\n]+$", "")
+local function send_text(listen_on, id, text, submit)
+  if submit then
+    text = text:gsub("[\r\n]+$", "")
+  end
   local match = "id:" .. id
   local paste = remote(listen_on, {
     "send-text",
@@ -174,6 +177,9 @@ local function send_text(listen_on, id, text)
   if paste.code ~= 0 then
     return false,
       (paste.stderr ~= "" and paste.stderr or "kitty @ send-text failed")
+  end
+  if not submit then
+    return true
   end
   local enter = remote(listen_on, { "send-text", "--match", match, "\r" })
   if enter.code ~= 0 then
@@ -208,6 +214,24 @@ local function payload(opts)
   end
   local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
   return table.concat(lines, "\n")
+end
+
+--- Build a git-root-relative path reference, with line range when given.
+--- @param opts table  User-command callback options.
+--- @return string? ref
+local function this_ref(opts)
+  local name = vim.api.nvim_buf_get_name(0)
+  if name == "" or vim.bo.buftype ~= "" then
+    return nil
+  end
+  local ref = require("yanker").git_relpath(name)
+  if opts.range and opts.range > 0 then
+    ref = ref .. ":" .. opts.line1
+    if opts.line2 ~= opts.line1 then
+      ref = ref .. "-" .. opts.line2
+    end
+  end
+  return ref .. " "
 end
 
 --- Resolve command arguments to sibling panes.
@@ -277,14 +301,30 @@ local function pick_native(listen_on)
     (res.stderr ~= "" and res.stderr or "kitty @ select-window failed")
 end
 
+--- @class kitty-send.DeliverOpts
+--- @field submit boolean  Press Enter after the paste.
+--- @field focus boolean   Focus the pane after the paste.
+
 --- Send `text` to `pane`, remembering it for `:KittySend!`.
-local function deliver(listen_on, pane, text)
-  local ok, err = send_text(listen_on, pane.id, text)
+--- @param listen_on string
+--- @param pane kitty-send.Pane
+--- @param text string
+--- @param dopts kitty-send.DeliverOpts
+local function deliver(listen_on, pane, text, dopts)
+  local ok, err = send_text(listen_on, pane.id, text, dopts.submit)
   if not ok then
     vim.notify("KittySend: " .. err, vim.log.levels.ERROR)
     return
   end
   last_target = pane.id
+  if dopts.focus then
+    local res =
+      remote(listen_on, { "focus-window", "--match", "id:" .. pane.id })
+    if res.code ~= 0 then
+      vim.notify("KittySend: focus pane failed", vim.log.levels.ERROR)
+    end
+    return
+  end
   vim.notify(
     ("KittySend: sent to pane %d%s"):format(
       pane.number or pane.id,
@@ -294,9 +334,11 @@ local function deliver(listen_on, pane, text)
   )
 end
 
---- Entry point for the `:KittySend[!]` command.
+--- Resolve target panes from args, bang, or picker, then deliver `text`.
 --- @param opts table  User-command callback options.
-function M.send(opts)
+--- @param text string
+--- @param dopts kitty-send.DeliverOpts
+local function dispatch(opts, text, dopts)
   local listen_on, self_id, err = kitty_env()
   if not listen_on then
     vim.notify("KittySend: " .. err, vim.log.levels.ERROR)
@@ -316,8 +358,6 @@ function M.send(opts)
     return
   end
 
-  local text = payload(opts)
-
   local targets, target_err = resolve_targets(opts.fargs or {}, panes)
   if target_err then
     vim.notify("KittySend: " .. target_err, vim.log.levels.ERROR)
@@ -325,7 +365,7 @@ function M.send(opts)
   end
   if targets then
     for _, pane in ipairs(targets) do
-      deliver(listen_on, pane, text)
+      deliver(listen_on, pane, text, dopts)
     end
     return
   end
@@ -334,14 +374,14 @@ function M.send(opts)
   if opts.bang and last_target then
     for _, p in ipairs(panes) do
       if p.id == last_target then
-        deliver(listen_on, p, text)
+        deliver(listen_on, p, text, dopts)
         return
       end
     end
   end
 
   if #panes == 1 then
-    deliver(listen_on, panes[1], text)
+    deliver(listen_on, panes[1], text, dopts)
     return
   end
 
@@ -366,7 +406,7 @@ function M.send(opts)
       )
       return
     end
-    deliver(listen_on, by_id[id] or { id = id, title = "" }, text)
+    deliver(listen_on, by_id[id] or { id = id, title = "" }, text, dopts)
     return
   end
 
@@ -384,9 +424,26 @@ function M.send(opts)
     end,
   }, function(choice)
     if choice then
-      deliver(listen_on, choice, text)
+      deliver(listen_on, choice, text, dopts)
     end
   end)
+end
+
+--- Entry point for the `:KittySend[!]` command.
+--- @param opts table  User-command callback options.
+function M.send(opts)
+  dispatch(opts, payload(opts), { submit = true, focus = false })
+end
+
+--- Entry point for the `:KittySendThis[!]` command.
+--- @param opts table  User-command callback options.
+function M.send_this(opts)
+  local ref = this_ref(opts)
+  if not ref then
+    vim.notify("KittySend: buffer has no file", vim.log.levels.WARN)
+    return
+  end
+  dispatch(opts, ref, { submit = false, focus = true })
 end
 
 return M
