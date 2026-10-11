@@ -46,15 +46,48 @@ local function kitty_env()
   return listen_on, self_id
 end
 
+local kitten_bin
+
+--- Resolve kitten by absolute path; PATH shims add latency.
+--- @return string
+local function kitten()
+  if kitten_bin then
+    return kitten_bin
+  end
+  kitten_bin = "kitten"
+  local dir = vim.env.KITTY_INSTALLATION_DIR
+  if not dir then
+    return kitten_bin
+  end
+  -- macOS app bundle, then Linux prefix.
+  for _, rel in ipairs({ "../../MacOS/kitten", "../../bin/kitten" }) do
+    local path = vim.fs.normalize(vim.fs.joinpath(dir, rel))
+    if vim.fn.executable(path) == 1 then
+      kitten_bin = path
+      break
+    end
+  end
+  return kitten_bin
+end
+
+--- Run a kitty remote-control command synchronously.
+--- @param listen_on string
+--- @param args string[]
+--- @param opts? vim.SystemOpts
+--- @return vim.SystemCompleted
+local function remote(listen_on, args, opts)
+  local cmd = vim.list_extend({ kitten(), "@", "--to", listen_on }, args)
+  return vim.system(cmd, opts or { text = true }):wait()
+end
+
 --- List sibling panes in picker order.
 --- @param listen_on string
 --- @param self_id number
 --- @return kitty-send.Pane[]? panes
 --- @return string? err
 local function sibling_panes(listen_on, self_id)
-  local res = vim
-    .system({ "kitty", "@", "--to", listen_on, "ls" }, { text = true })
-    :wait()
+  local res =
+    remote(listen_on, { "ls", "--match-tab", "window_id:" .. self_id })
   if res.code ~= 0 then
     return nil, (res.stderr ~= "" and res.stderr or "kitty @ ls failed")
   end
@@ -130,36 +163,19 @@ end
 local function send_text(listen_on, id, text)
   text = text:gsub("[\r\n]+$", "")
   local match = "id:" .. id
-  local paste = vim
-    .system({
-      "kitty",
-      "@",
-      "--to",
-      listen_on,
-      "send-text",
-      "--match",
-      match,
-      "--bracketed-paste",
-      "auto",
-      "--stdin",
-    }, { stdin = text, text = true })
-    :wait()
+  local paste = remote(listen_on, {
+    "send-text",
+    "--match",
+    match,
+    "--bracketed-paste",
+    "auto",
+    "--stdin",
+  }, { stdin = text, text = true })
   if paste.code ~= 0 then
     return false,
       (paste.stderr ~= "" and paste.stderr or "kitty @ send-text failed")
   end
-  local enter = vim
-    .system({
-      "kitty",
-      "@",
-      "--to",
-      listen_on,
-      "send-text",
-      "--match",
-      match,
-      "\r",
-    }, { text = true })
-    :wait()
+  local enter = remote(listen_on, { "send-text", "--match", match, "\r" })
   if enter.code ~= 0 then
     return false,
       (enter.stderr ~= "" and enter.stderr or "kitty @ send-text failed")
@@ -244,17 +260,8 @@ end
 --- @return number? id   Selected window id; nil if cancelled or on error.
 --- @return string? err
 local function pick_native(listen_on)
-  local res = vim
-    .system({
-      "kitty",
-      "@",
-      "--to",
-      listen_on,
-      "select-window",
-      "--self",
-      "--exclude-active",
-    }, { text = true })
-    :wait()
+  local res =
+    remote(listen_on, { "select-window", "--self", "--exclude-active" })
   local id = tonumber((res.stdout or ""):match("%d+"))
   if id then
     return id
