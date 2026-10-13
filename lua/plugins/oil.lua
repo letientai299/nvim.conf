@@ -4,6 +4,7 @@ local lazy_require = require("lib.lazy_ondemand").lazy_require
 local M = {}
 
 local prev_search ---@type string?
+local root_cache
 local base_columns = { "icon" }
 local detail_columns = { "icon", "permissions", "size", "mtime" }
 
@@ -170,7 +171,35 @@ function M.restore_search()
 end
 
 function M.git_root()
-  return vim.fs.root(0, ".git")
+  local cwd = vim.fn.getcwd()
+  local file = vim.bo.buftype == "" and vim.api.nvim_buf_get_name(0) or ""
+  local now = vim.uv.now()
+  if
+    root_cache
+    and root_cache.cwd == cwd
+    and root_cache.file == file
+    and now < root_cache.expires
+  then
+    return root_cache.root
+  end
+
+  local cwd_root = vim.fs.root(cwd, ".git")
+  local root
+  if
+    file == ""
+    or (
+      cwd_root
+      and file ~= cwd_root
+      and not vim.startswith(file, cwd_root .. "/")
+    )
+  then
+    root = cwd_root
+  else
+    root = vim.fs.root(file, ".git")
+  end
+  -- Bound staleness after Git metadata changes.
+  root_cache = { cwd = cwd, file = file, root = root, expires = now + 5000 }
+  return root
 end
 
 --- Return the absolute path of the entry under cursor, or nil.
