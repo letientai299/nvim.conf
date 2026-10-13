@@ -43,10 +43,15 @@ return {
     vim.api.nvim_create_user_command("FzfSnippets", function()
       local luasnip = require("luasnip")
       local snippets = {}
+      local current_line = vim.api.nvim_get_current_line()
+      local column = vim.api.nvim_win_get_cursor(0)[2]
+      local before_cursor = current_line:sub(1, column)
 
       for ft, available in
         pairs(luasnip.available(function(snippet)
-          return snippet
+          if snippet.show_condition(before_cursor) then
+            return snippet
+          end
         end))
       do
         for _, snippet in ipairs(available) do

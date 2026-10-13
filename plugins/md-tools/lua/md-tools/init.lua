@@ -2,9 +2,12 @@ local M = {}
 
 ---@param buf integer
 local function apply(buf)
-  vim.bo[buf].shiftwidth = 2
-  vim.bo[buf].tabstop = 2
-  vim.bo[buf].softtabstop = 2
+  local notebook = require("lib.notebook")
+  local myst = notebook.is_myst(buf)
+  local width = myst and 4 or 2
+  vim.bo[buf].shiftwidth = width
+  vim.bo[buf].tabstop = width
+  vim.bo[buf].softtabstop = width
 
   require("md-tools.checklist").setup_keymaps()
   require("md-tools.codeblock").setup_keymaps()
@@ -14,6 +17,7 @@ local function apply(buf)
   require("md-tools.at-path").setup(buf)
   require("md-tools.fence-lines").setup(buf)
   require("md-tools.textobjects").setup(buf)
+  notebook.setup_editing(buf)
 end
 
 function M.setup()

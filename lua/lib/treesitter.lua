@@ -115,6 +115,7 @@ function M.register_default_languages()
     return
   end
   default_languages_registered = true
+  require("lib.notebook").register_query()
   vim.treesitter.language.register(
     "tsx",
     { "typescriptreact", "javascriptreact" }

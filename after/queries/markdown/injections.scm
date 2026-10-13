@@ -19,3 +19,11 @@
   (code_fence_content) @injection.content)
   (#lua-match? @injection.language ":")
   (#gsub! @injection.language "^([^:]*):.*" "%1"))
+
+((fenced_code_block
+  (info_string) @_info
+  (code_fence_content) @injection.content)
+  (#lua-match? @_info "^{code%-cell}%s+i?python3?%s*$")
+  (#myst-code! @injection.content)
+  (#set! injection.include-children)
+  (#set! injection.language "python"))

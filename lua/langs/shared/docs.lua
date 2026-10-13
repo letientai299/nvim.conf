@@ -3,39 +3,6 @@ local M = {}
 local fc = require("lib.fallback_config")
 local rumdl = require("lib.rumdl")
 
-local function is_marimo(bufnr)
-  if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
-    return false
-  end
-
-  for _, line in ipairs(vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)) do
-    if
-      line:match("^marimo%-version:%s*")
-      or line:match("^```.*{[^}]*%.?marimo[^}]*}")
-    then
-      return true
-    end
-  end
-
-  return false
-end
-
-local function setup_marimo(bufnr)
-  if not is_marimo(bufnr) then
-    return
-  end
-
-  local ondemand = require("lib.lazy_ondemand")
-  ondemand.on_load("otter.nvim", function()
-    if is_marimo(bufnr) then
-      vim.api.nvim_buf_call(bufnr, function()
-        require("otter").activate({ "python" }, true, true)
-      end)
-    end
-  end)
-  require("lazy").load({ plugins = { "otter.nvim" } })
-end
-
 function M.markdown(bufnr)
   require("langs.shared.entry").setup("markdown", bufnr, {
     tools = {
@@ -68,7 +35,7 @@ function M.markdown(bufnr)
     return
   end
 
-  setup_marimo(bufnr)
+  require("lib.notebook").setup(bufnr)
 
   -- :Md2cb — convert the whole buffer (or the visual selection) to rich text
   -- and put it on the clipboard via the `md2cb` CLI, for pasting into Teams,
