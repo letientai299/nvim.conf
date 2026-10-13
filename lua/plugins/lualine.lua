@@ -100,7 +100,25 @@ return {
             end,
           },
         },
-        lualine_c = { "aerial", "searchcount" },
+        lualine_c = {
+          {
+            "filename",
+            path = 2,
+            shorting_target = 0,
+            fmt = function(path)
+              local root = vim.fs.root(0, ".git")
+              if root then
+                local prefix = root:gsub("%%", "%%%%") .. "/"
+                if path:sub(1, #prefix) == prefix then
+                  return path:sub(#prefix + 1)
+                end
+              end
+              return vim.fn.fnamemodify(path, ":~:.")
+            end,
+          },
+          "aerial",
+          "searchcount",
+        },
         lualine_x = {
           { line_endings, color = { fg = "#e0af68" } },
           { lsp_active },
