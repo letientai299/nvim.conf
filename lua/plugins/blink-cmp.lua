@@ -88,7 +88,7 @@ return {
           score_offset = 200,
         },
         snippets = {
-          score_offset = 150,
+          score_offset = 250,
         },
         buffer = {
           score_offset = 150,
