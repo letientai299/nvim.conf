@@ -41,7 +41,41 @@ return {
     { "<leader>fF", "<Cmd>FzfLua git_files<CR>", desc = "Git files" },
     { "<leader>fg", "<Cmd>FzfLua live_grep<CR>", desc = "Live grep" },
     { "<leader>fG", "<Cmd>FzfLua git_status<CR>", desc = "Git status" },
-    { "<leader>fh", "<Cmd>FzfLua oldfiles<CR>", desc = "Recent files" },
+    {
+      "<leader>fh",
+      function()
+        require("lib.lazy_ondemand").on_load("fzf-lua", function()
+          local cwd = vim.fn.getcwd()
+          local root = vim.fs.root(cwd, ".git")
+          local scopes = { { name = "All" } }
+          if root then
+            scopes[#scopes + 1] = { name = "Git root", cwd = root }
+          end
+          scopes[#scopes + 1] = { name = "CWD", cwd = cwd }
+          local index = root and 2 or #scopes
+          local function open_history(query)
+            local scope = scopes[index]
+            require("fzf-lua").oldfiles({
+              cwd = scope.cwd or cwd,
+              cwd_only = scope.cwd ~= nil,
+              prompt = "History (" .. scope.name .. ")> ",
+              query = query,
+              actions = {
+                ["ctrl-g"] = {
+                  fn = function(_, opts)
+                    index = index % #scopes + 1
+                    open_history(opts.last_query)
+                  end,
+                  header = "scope: " .. scopes[index % #scopes + 1].name,
+                },
+              },
+            })
+          end
+          open_history()
+        end)
+      end,
+      desc = "Recent files",
+    },
     { "<leader>fl", "<Cmd>FzfLua blines<CR>", desc = "Buffer lines" },
     { "<leader>fm", "<Cmd>FzfLua keymaps<CR>", desc = "Keymaps" },
     { "<leader>f'", "<Cmd>FzfLua marks<CR>", desc = "Marks" },
@@ -108,11 +142,7 @@ return {
         },
       },
       files = { cmd = "fzf-files" },
-      previewers = {
-        builtin = {
-          snacks_image = { enabled = true },
-        },
-      },
+      oldfiles = { _headers = { "actions", "cwd" } },
     })
     fzf.register_extension("Snippets", function()
       vim.cmd.FzfSnippets()

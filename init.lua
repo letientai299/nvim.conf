@@ -30,6 +30,29 @@ if _reading_stdin then
   })
 end
 
+if vim.fn.argc(-1) == 0 and not _reading_stdin then
+  vim.api.nvim_create_autocmd("BufHidden", {
+    buffer = vim.api.nvim_get_current_buf(),
+    once = true,
+    callback = function(args)
+      local buf = args.buf
+      vim.schedule(function()
+        if
+          vim.api.nvim_buf_is_valid(buf)
+          and #vim.fn.win_findbuf(buf) == 0
+          and vim.api.nvim_buf_get_name(buf) == ""
+          and vim.bo[buf].buftype == ""
+          and not vim.bo[buf].modified
+          and vim.api.nvim_buf_line_count(buf) == 1
+          and vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1] == ""
+        then
+          vim.api.nvim_buf_delete(buf, {})
+        end
+      end)
+    end,
+  })
+end
+
 -- Cache stdpath results (each call crosses the Lua→Vimscript bridge)
 local _dir_config = vim.fn.stdpath("config") --[[@as string]]
 local _dir_data = vim.fn.stdpath("data") --[[@as string]]
