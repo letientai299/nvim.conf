@@ -134,13 +134,7 @@ return {
     end
     local fzf = require("fzf-lua")
     fzf.setup({
-      winopts = {
-        preview = {
-          -- Always stack; "flex" would flip to side-by-side on wide windows.
-          layout = "vertical",
-          vertical = "up:50%",
-        },
-      },
+      winopts = require("lib.fzf_ui").winopts,
       files = { cmd = "fzf-files" },
       oldfiles = { _headers = { "actions", "cwd" } },
     })
