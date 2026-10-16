@@ -48,4 +48,48 @@ function M.setup()
   }
 end
 
+function M.copy_file()
+  if is_remote() or vim.fn.has("mac") == 0 then
+    vim.notify("File clipboard requires local macOS", vim.log.levels.WARN)
+    return
+  end
+  local path = vim.api.nvim_buf_get_name(0)
+  if vim.bo.buftype ~= "" or vim.fn.filereadable(path) == 0 then
+    vim.notify("Current buffer has no readable file", vim.log.levels.WARN)
+    return
+  end
+  if vim.bo.modified then
+    vim.notify("Save changes before copying the file", vim.log.levels.WARN)
+    return
+  end
+
+  local script = [[
+ObjC.import('AppKit');
+function run(argv) {
+  const url = $.NSURL.fileURLWithPath(argv[0]);
+  const clipboard = $.NSPasteboard.generalPasteboard;
+  clipboard.clearContents;
+  if (!clipboard.writeObjects($.NSArray.arrayWithObject(url))) {
+    throw new Error('File clipboard write failed');
+  }
+}
+]]
+  vim.system(
+    { "/usr/bin/osascript", "-l", "JavaScript", "-e", script, path },
+    { text = true },
+    function(result)
+      vim.schedule(function()
+        if result.code ~= 0 then
+          vim.notify(
+            "File copy failed: " .. vim.trim(result.stderr),
+            vim.log.levels.ERROR
+          )
+          return
+        end
+        vim.notify("File copied to clipboard")
+      end)
+    end
+  )
+end
+
 return M

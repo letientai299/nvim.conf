@@ -40,6 +40,12 @@ map(
   { desc = "Paste before from system clipboard" }
 )
 map({ "n", "v" }, "<Leader>yy", [["+y]], { desc = "Copy to system clipboard" })
+map("n", "<Leader>yF", function()
+  require("lib.clipboard").copy_file()
+end, { desc = "Copy file as attachment (macOS)" })
+map("n", "<Leader>yf", function()
+  require("lib.file_drag").start()
+end, { desc = "Drag file copy to another app (Kitty)" })
 map(
   { "n", "v" },
   "<Leader>yY",
