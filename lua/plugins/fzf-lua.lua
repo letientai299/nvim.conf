@@ -74,8 +74,7 @@ return {
       "<leader>fj",
       function()
         local root = vim.fs.root(0, ".git") or vim.uv.cwd()
-        local fzf_dirs = vim.fn.stdpath("config") .. "/scripts/fzf-dirs"
-        require("fzf-lua").fzf_exec(fzf_dirs, {
+        require("fzf-lua").fzf_exec("fzf-dirs", {
           cwd = root,
           prompt = "Dirs> ",
           actions = {
@@ -99,9 +98,6 @@ return {
     if not package.loaded["snacks"] then
       require("lazy").load({ plugins = { "snacks.nvim" } })
     end
-    -- File listing uses scripts/fzf-files (also in dotfiles/bin for shell
-    -- ctrl-t). Config (include_dirs, include_files) lives in that script.
-    local fzf_files = vim.fn.stdpath("config") .. "/scripts/fzf-files"
     local fzf = require("fzf-lua")
     fzf.setup({
       winopts = {
@@ -111,7 +107,7 @@ return {
           vertical = "up:50%",
         },
       },
-      files = { cmd = fzf_files },
+      files = { cmd = "fzf-files" },
       previewers = {
         builtin = {
           snacks_image = { enabled = true },
