@@ -9,7 +9,7 @@ local fts = { "javascript", "javascriptreact", "typescript", "typescriptreact" }
 local function cssmodules_tool()
   return {
     bin = "cssmodules-language-server",
-    mise = "npm:cssmodules-language-server",
+    mise = "npm:cssmodules-language-server[allow_low_downloads=true]",
     dependencies = { "node" },
   }
 end
