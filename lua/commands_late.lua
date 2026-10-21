@@ -223,14 +223,14 @@ for _, spec in ipairs({
   end, { nargs = "*", bang = true, desc = spec.pkg .. " (lazy)" })
 end
 
-vim.api.nvim_create_user_command("BufOnly", function()
+vim.api.nvim_create_user_command("BufOnly", function(opts)
   local cur = vim.api.nvim_get_current_buf()
   for _, buf in ipairs(vim.api.nvim_list_bufs()) do
     if buf ~= cur and vim.bo[buf].buflisted then
-      vim.api.nvim_buf_delete(buf, {})
+      vim.api.nvim_buf_delete(buf, { force = opts.bang })
     end
   end
-end, { desc = "Close all buffers except current" })
+end, { bang = true, desc = "Close all buffers except current" })
 
 -- ---------------------------------------------------------------------------
 -- Autocmds
