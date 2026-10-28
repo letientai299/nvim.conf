@@ -154,9 +154,6 @@ vim.opt.smoothscroll = true
 -- Load per-project .nvim.lua if present (sandboxed since 0.9)
 vim.opt.exrc = true
 
--- Fuzzy matching for native completion (0.11+)
-vim.opt.completeopt:append("fuzzy")
-
 -- Rounded borders on every floating window globally (0.11+)
 vim.o.winborder = "rounded"
 
