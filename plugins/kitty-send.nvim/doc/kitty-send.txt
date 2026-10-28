@@ -20,7 +20,17 @@ Without destination arguments, a tab with multiple sibling panes uses kitty's
 native selection overlay (`kitty @ select-window`) — the same visual picker
 that draws a number/letter over each pane. Press the shown key to pick the
 target, or `Esc` to cancel. Set `picker = "select"` to use `vim.ui.select`
-instead. With a single sibling pane the text is sent straight away.
+instead. With a single sibling pane the Kitty picker is skipped.
+
+When the chosen Kitty window runs a local tmux client, tmux's native numbered
+overlay appears in that window. Press a pane number to select it before
+pasting. Press Esc to cancel; the overlay expires after ten seconds. A single tmux pane skips the second picker. Cancel either picker to
+abort the send. Both commands support this flow, including explicit targets.
+Bang reuses both the Kitty and tmux pane when they remain available.
+
+Tmux discovery requires a local `tmux` executable and matches client PIDs from
+Kitty metadata. Separate servers using `tmux -L` or `tmux -S` are supported.
+Tmux behind SSH is not discovered; text goes to the active remote pane.
 
 ==============================================================================
 2. REQUIREMENTS                                     *kitty-send-requirements*

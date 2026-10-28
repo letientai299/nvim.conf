@@ -13,6 +13,7 @@ local M = {}
 
 -- Remembered destination pane id, reused by `:KittySend!`.
 local last_target = nil
+local last_tmux = nil
 local overlay_numbers = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0 }
 
 --- @class kitty-send.Config
@@ -130,6 +131,7 @@ local function sibling_panes(listen_on, self_id)
               id = w.id,
               number = overlay_numbers[index],
               title = w.title or "",
+              processes = w.foreground_processes,
             }
           end
         end
@@ -310,13 +312,14 @@ end
 --- @param pane kitty-send.Pane
 --- @param text string
 --- @param dopts kitty-send.DeliverOpts
-local function deliver(listen_on, pane, text, dopts)
+local function deliver(listen_on, pane, text, dopts, tmux_id)
   local ok, err = send_text(listen_on, pane.id, text, dopts.submit)
   if not ok then
     vim.notify("KittySend: " .. err, vim.log.levels.ERROR)
     return
   end
   last_target = pane.id
+  last_tmux = tmux_id
   if dopts.focus then
     local res =
       remote(listen_on, { "focus-window", "--match", "id:" .. pane.id })
@@ -332,6 +335,59 @@ local function deliver(listen_on, pane, text, dopts)
     ),
     vim.log.levels.INFO
   )
+end
+
+-- Resolve tmux before delivering Kitty input.
+local function pick_tmux(listen_on, pane, text, dopts, reuse)
+  local tmux = require("kitty-send.tmux")
+  local target, err = tmux.discover(pane.processes)
+  if err then
+    vim.notify("KittySend: " .. err, vim.log.levels.ERROR)
+    return
+  end
+  if not target then
+    deliver(listen_on, pane, text, dopts)
+    return
+  end
+  local function send(choice)
+    if not choice then
+      return
+    end
+    local ok, select_err = tmux.activate(target, choice.id)
+    if not ok then
+      vim.notify("KittySend: " .. select_err, vim.log.levels.ERROR)
+      return
+    end
+    deliver(listen_on, pane, text, dopts, choice.id)
+  end
+  for _, choice in ipairs(target.panes) do
+    if reuse and choice.id == last_tmux then
+      send(choice)
+      return
+    end
+  end
+  if #target.panes == 1 then
+    send(target.panes[1])
+    return
+  end
+  local focused =
+    remote(listen_on, { "focus-window", "--match", "id:" .. pane.id })
+  if focused.code ~= 0 then
+    vim.notify("KittySend: focus pane failed", vim.log.levels.ERROR)
+    return
+  end
+  local choice, pick_err = tmux.pick(target)
+  if not dopts.focus or not choice then
+    remote(
+      listen_on,
+      { "focus-window", "--match", "id:" .. vim.env.KITTY_WINDOW_ID }
+    )
+  end
+  if pick_err then
+    vim.notify("KittySend: " .. pick_err, vim.log.levels.ERROR)
+    return
+  end
+  send(choice)
 end
 
 --- Resolve target panes from args, bang, or picker, then deliver `text`.
@@ -365,7 +421,7 @@ local function dispatch(opts, text, dopts)
   end
   if targets then
     for _, pane in ipairs(targets) do
-      deliver(listen_on, pane, text, dopts)
+      pick_tmux(listen_on, pane, text, dopts)
     end
     return
   end
@@ -374,14 +430,14 @@ local function dispatch(opts, text, dopts)
   if opts.bang and last_target then
     for _, p in ipairs(panes) do
       if p.id == last_target then
-        deliver(listen_on, p, text, dopts)
+        pick_tmux(listen_on, p, text, dopts, true)
         return
       end
     end
   end
 
   if #panes == 1 then
-    deliver(listen_on, panes[1], text, dopts)
+    pick_tmux(listen_on, panes[1], text, dopts)
     return
   end
 
@@ -406,7 +462,7 @@ local function dispatch(opts, text, dopts)
       )
       return
     end
-    deliver(listen_on, by_id[id] or { id = id, title = "" }, text, dopts)
+    pick_tmux(listen_on, by_id[id] or { id = id, title = "" }, text, dopts)
     return
   end
 
@@ -424,7 +480,7 @@ local function dispatch(opts, text, dopts)
     end,
   }, function(choice)
     if choice then
-      deliver(listen_on, choice, text, dopts)
+      pick_tmux(listen_on, choice, text, dopts)
     end
   end)
 end
