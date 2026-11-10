@@ -214,17 +214,10 @@ else
   })
 end
 
-local function cd_git_root(source)
-  local root = vim.fs.root(source, ".git")
-  if root and root ~= vim.fn.getcwd() then
-    vim.fn.chdir(root)
-  end
-  return root
-end
-
 vim.api.nvim_create_user_command("GitRoot", function()
-  local root = cd_git_root(0)
+  local root = vim.fs.root(0, ".git")
   if root then
+    vim.fn.chdir(root)
     vim.notify(root)
   else
     vim.notify("Not in a git repo", vim.log.levels.WARN)
@@ -243,14 +236,17 @@ local function auto_git_root(buf)
   if not is_file or name == "" then
     return
   end
-  cd_git_root(vim.fs.dirname(name))
+  local root = vim.fs.root(vim.fs.dirname(name), ".git")
+  if root and (root ~= vim.fn.getcwd() or vim.fn.haslocaldir() ~= 1) then
+    vim.cmd.lcd({ args = { root } })
+  end
 end
 
 vim.api.nvim_create_user_command("GitRootAuto", function()
   vim.g.git_root_auto = not vim.g.git_root_auto
   auto_git_root(vim.api.nvim_get_current_buf())
   vim.notify("GitRootAuto: " .. (vim.g.git_root_auto and "on" or "off"))
-end, { desc = "Toggle automatic cd to the current file's git root" })
+end, { desc = "Toggle window-local cd to the current file's git root" })
 
 vim.api.nvim_create_autocmd("BufEnter", {
   group = augroup,
