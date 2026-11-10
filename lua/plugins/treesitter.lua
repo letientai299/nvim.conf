@@ -11,7 +11,15 @@ return {
       -- We manage highlighting ourselves (destroy patch, syntax clear,
       -- two-phase enable) via lib.treesitter — disable the plugin's built-in.
       highlight = false,
+      ensure_installed = { "d2" },
       languages = {
+        d2 = {
+          install_info = {
+            url = "https://github.com/ravsii/tree-sitter-d2",
+            revision = "7bba28221d8c466d28b725124494bf89219326fd",
+            queries = "queries",
+          },
+        },
         log = {
           install_info = {
             url = "https://github.com/Tudyx/tree-sitter-log",

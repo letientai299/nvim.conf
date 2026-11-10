@@ -82,6 +82,10 @@ return {
       default = { "lsp", "snippets", "path", "buffer" },
       per_filetype = {
         lua = { inherit_defaults = true, "lazydev" },
+        d2 = { inherit_defaults = true, "d2" },
+        markdown = { inherit_defaults = true, "d2" },
+        ["markdown.mdx"] = { inherit_defaults = true, "d2" },
+        quarto = { inherit_defaults = true, "d2" },
       },
       providers = {
         lsp = {
@@ -110,6 +114,11 @@ return {
           name = "LazyDev",
           module = "lazydev.integrations.blink",
           score_offset = 100,
+        },
+        d2 = {
+          name = "d2",
+          module = "blink_d2",
+          score_offset = 210,
         },
         kitty_pane = {
           name = "kitty",
@@ -159,8 +168,10 @@ return {
       vim.b.blink_disabled_sources = disabled
     end
 
-    -- Inject should_show_items into every provider
-    for _, id in ipairs(opts.sources.default) do
+    -- Inject should_show_items into every provider. `d2` is per-filetype
+    -- only, so it is not in `sources.default`.
+    local provider_ids = vim.list_extend({ "d2" }, opts.sources.default)
+    for _, id in ipairs(provider_ids) do
       opts.sources.providers[id] = opts.sources.providers[id] or {}
       opts.sources.providers[id].should_show_items = function()
         local disabled = vim.b.blink_disabled_sources

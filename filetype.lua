@@ -11,6 +11,12 @@ vim.filetype.add({
   extension = {
     cshtml = "razor",
     env = "env",
+    d2 = function()
+      return "d2",
+        function(buf)
+          vim.bo[buf].commentstring = "# %s"
+        end
+    end,
     mdx = "mdx",
     log = "log",
     razor = "razor",
