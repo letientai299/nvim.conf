@@ -234,13 +234,16 @@ end
 
 --- Toggle between filename-only and detail columns (permissions, size, mtime).
 function M.toggle_detail()
-  local oil = require("oil")
-  local cols = oil.get_columns and oil.get_columns() or {}
-  if #cols > 1 then
-    oil.set_columns(base_columns)
-  else
-    oil.set_columns(detail_columns)
+  local config = require("oil.config")
+  local detailed = false
+  for _, col in ipairs(config.columns) do
+    local name = type(col) == "table" and col[1] or col
+    if name == "permissions" or name == "size" or name == "mtime" then
+      detailed = true
+      break
+    end
   end
+  require("oil").set_columns(detailed and base_columns or detail_columns)
 end
 
 --- Rerender all open oil buffers and fire OilEnter so oil-git-status
